@@ -1,6 +1,6 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "he-thong-quan-ly-phim-online",
+    "name": "kanrezza/he-thong-quan-ly-phim-online",
     "type": "project",
     "description": "Hệ thống quản lý phim online - Lumière",
     "keywords": ["laravel", "framework"],
