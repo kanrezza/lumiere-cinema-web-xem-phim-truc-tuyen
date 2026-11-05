@@ -110,11 +110,35 @@ def history_cards(history):
     return cards
 
 
+def catalog_content_links(request):
+    limits = {'q': 150, 'category': 100, 'country': 100, 'actor': 64, 'year': 32,
+              'kind': 20, 'sort': 20, 'access': 20, 'availability': 24, 'release': 24, 'trailer': 12}
+    current = {key: request.GET.get(key, '').strip()[:limit] for key, limit in limits.items()
+               if request.GET.get(key, '').strip()}
+    def link(label, key=None, value=None):
+        query = dict(current)
+        if key is None:
+            active = not any(query.get(name) for name in ('availability', 'release', 'trailer'))
+            for name in ('availability', 'release', 'trailer'):
+                query.pop(name, None)
+        else:
+            active = query.get(key) == value
+            if active:
+                query.pop(key, None)
+            else:
+                query[key] = value
+        return {'label': label, 'active': active,
+                'href': reverse('catalog') + ('?' + urlencode(query) if query else '?sort=newest')}
+    return [link('Tất cả'), link('Đã có phim', 'availability', 'ready'),
+            link('Chưa có bản xem', 'availability', 'upcoming'),
+            link('Phim chiếu rạp', 'release', 'cinema'), link('Có trailer', 'trailer', '1')]
+
+
 
 def landing(request):
     """Public introduction stays distinct from the signed-in movie browser."""
     # Existing bookmarked filter links remain useful after moving discovery.
-    if any(request.GET.get(key) for key in ('q', 'category', 'country', 'actor', 'year', 'kind', 'sort', 'page', 'access')):
+    if any(request.GET.get(key) for key in ('q', 'category', 'country', 'actor', 'year', 'kind', 'sort', 'page', 'access', 'availability', 'release', 'trailer')):
         return redirect(reverse('catalog') + '?' + request.GET.urlencode())
     movies = catalog_movies()
     return render(request, 'cinema/landing.html', {
@@ -150,7 +174,10 @@ def catalog(request):
         else:
             actor_id = None
     selected_category = next((genre for genre in categories if genre.slug == category), None)
-    is_browsing = any(request.GET.get(key) for key in ('q', 'category', 'country', 'actor', 'year', 'kind', 'sort', 'page', 'access'))
+    availability = request.GET.get('availability', '').strip()[:24]
+    release = request.GET.get('release', '').strip()[:24]
+    trailer_filter = request.GET.get('trailer', '').strip()[:12]
+    is_browsing = any(request.GET.get(key) for key in ('q', 'category', 'country', 'actor', 'year', 'kind', 'sort', 'page', 'access', 'availability', 'release', 'trailer'))
     filtered = movies
     if q: filtered = filter_movie_search(filtered, q)
     if selected_year:
@@ -162,6 +189,12 @@ def catalog(request):
         filtered = filtered.filter(actors__pk=actor_id) if actor_id else filtered.none()
     if kind in ('movie', 'series'): filtered = filtered.filter(kind=kind)
     if request.GET.get('access') == 'vip': filtered = filtered.filter(is_vip=True)
+    if availability:
+        filtered = filtered.filter(ready_episode_id__isnull=availability == 'upcoming') if availability in ('ready', 'upcoming') else filtered.none()
+    if release:
+        filtered = filtered.filter(is_cinema_release=True) if release == 'cinema' else filtered.none()
+    if trailer_filter:
+        filtered = filtered.exclude(trailer_url='', trailer_file='') if trailer_filter == '1' else filtered.none()
     if request.GET.get('sort') == 'rating': filtered = filtered.order_by('-score', '-created_at', '-pk')
 
     shelves = []
@@ -196,6 +229,8 @@ def catalog(request):
         'featured_movies': featured_movies,
         'countries': country_options, 'selected_country': selected_country,
         'years': years, 'selected_year': selected_year,
+        'content_links': catalog_content_links(request), 'availability': availability,
+        'release': release, 'trailer_filter': trailer_filter,
         'selected_category': selected_category, 'selected_actor': selected_actor, 'actor_filter': actor_filter,
     })
 
@@ -221,6 +256,14 @@ def movie_detail(request, slug):
         'saved': request.user.is_authenticated and Watchlist.objects.filter(user=request.user, movie=movie).exists(),
         'related': related,
     })
+
+
+@require_GET
+def movie_trailer(request, slug):
+    movie = get_object_or_404(catalog_movies(), slug=slug)
+    if not movie.has_trailer:
+        raise Http404('Phim chưa có trailer.')
+    return render(request, 'cinema/trailer.html', {'movie': movie})
 
 
 @login_required

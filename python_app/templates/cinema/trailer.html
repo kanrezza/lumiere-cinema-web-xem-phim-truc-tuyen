@@ -1,0 +1,30 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}Trailer {{ movie.title }} · Lumière{% endblock %}
+{% block content %}
+<section class="content-section trailer-page">
+  <a class="trailer-back" href="{% url 'movie' movie.slug %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>Thông tin phim</a>
+  <header class="trailer-heading">
+    <div><p class="eyebrow">VIDEO GIỚI THIỆU</p><h1>{{ movie.title }}</h1></div>
+    <div class="trailer-tags"><span class="trailer-label">Trailer</span>{% if movie.is_cinema_release %}<span class="cinema-tag">Chiếu rạp</span>{% endif %}{% if not movie.ready_episode_id %}<span class="trailer-waiting">Chưa có bản xem</span>{% endif %}</div>
+  </header>
+  <div class="trailer-media" data-trailer-player>
+    {% if movie.trailer_source_kind == 'file' %}
+    <video class="trailer-video" controls playsinline preload="metadata"{% if movie.backdrop %} poster="{{ movie.backdrop.url }}"{% elif movie.poster %} poster="{{ movie.poster.url }}"{% endif %} aria-label="Trailer {{ movie.title }}">
+      <source src="{{ movie.trailer_file.url }}" type="video/mp4">
+      Trình duyệt chưa hỗ trợ phát video này. <a href="{{ movie.trailer_file.url }}">Mở trailer MP4</a>.
+    </video>
+    {% elif movie.trailer_source_kind == 'youtube' %}
+    <div class="trailer-placeholder" data-trailer-placeholder>
+      {% if movie.backdrop %}<img src="{{ movie.backdrop.url }}" alt="">{% elif movie.poster %}<img src="{{ movie.poster.url }}" alt="">{% else %}<img src="{% static 'imagery/' %}{{ movie.artwork }}.jpg" alt="">{% endif %}
+      <div class="trailer-placeholder-shade"></div>
+      <div class="trailer-placeholder-copy"><span>TRAILER</span><button type="button" class="trailer-load-button" data-trailer-load data-trailer-embed="{{ movie.trailer_embed_url }}" data-trailer-title="{{ movie.title }}"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Phát trailer</button><p>Phát video giới thiệu từ YouTube.</p></div>
+    </div>
+    {% endif %}
+  </div>
+  {% if movie.trailer_credit %}<p class="trailer-credit">{{ movie.trailer_credit|urlize|linebreaksbr }}</p>{% endif %}
+  <div class="trailer-info"><div><p class="trailer-player-status" role="status" aria-live="polite" data-trailer-status>{% if movie.trailer_source_kind == 'youtube' %}Video chỉ được tải khi bạn bấm phát.{% else %}Sẵn sàng phát trailer.{% endif %}</p><p class="trailer-explanation">{% if movie.ready_episode_id %}Đây là video giới thiệu. Bạn có thể mở bản phim đầy đủ bên dưới.{% else %}Đây là video giới thiệu. Bản phim đầy đủ đang được chuẩn bị.{% endif %}</p></div>
+    <div class="trailer-page-actions">{% if movie.trailer_source_kind == 'youtube' and movie.trailer_embed_url %}<a class="trailer-external" href="{{ movie.trailer_url }}" target="_blank" rel="noopener noreferrer">Xem trên YouTube <span aria-hidden="true">↗</span></a>{% endif %}
+    {% if movie.ready_episode_id %}{% if movie.is_vip and not user.is_vip and not user.is_staff %}<a class="btn" href="{% url 'plans' %}">Xem phim với VIP <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>{% else %}<a class="btn" href="{% url 'watch' movie.ready_episode_id %}">Xem phim <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>{% endif %}{% else %}<a class="btn secondary" href="{% url 'movie' movie.slug %}">Quay lại thông tin phim <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>{% endif %}</div>
+  </div>
+</section>
+{% endblock %}

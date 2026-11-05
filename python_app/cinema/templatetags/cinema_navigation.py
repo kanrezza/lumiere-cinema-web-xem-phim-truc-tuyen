@@ -16,7 +16,8 @@ def _catalog_filters(context, changing):
     query = {}
     if request is not None and request.path == catalog_url:
         limits = {'q': 150, 'category': 100, 'country': 100, 'actor': 64,
-                  'kind': 20, 'sort': 20, 'access': 20, 'year': 32}
+                  'kind': 20, 'sort': 20, 'access': 20, 'year': 32,
+                  'availability': 24, 'release': 24, 'trailer': 12}
         for key, limit in limits.items():
             if key == changing:
                 continue

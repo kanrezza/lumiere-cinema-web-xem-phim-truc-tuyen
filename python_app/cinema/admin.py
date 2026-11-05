@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django import forms
 from .models import *
 
 @admin.register(User)
@@ -9,11 +10,21 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.register(Movie)
 class MovieAdmin(admin.ModelAdmin):
-    list_display = ('title', 'year', 'is_vip', 'published')
-    list_filter = ('is_vip', 'published', 'kind')
+    list_display = ('title', 'year', 'is_cinema_release', 'is_vip', 'published')
+    list_filter = ('is_vip', 'is_cinema_release', 'published', 'kind')
     search_fields = ('title',)
     prepopulated_fields = {'slug': ('title',)}
     filter_horizontal = ('categories', 'actors')
+
+    def get_form(self, request, obj=None, **kwargs):
+        base = super().get_form(request, obj, **kwargs)
+        class UploadCheckedForm(base):
+            def clean(self):
+                cleaned = super().clean()
+                if getattr(request, '_trailer_upload_error', None):
+                    raise forms.ValidationError(request._trailer_upload_error)
+                return cleaned
+        return UploadCheckedForm
 
 @admin.register(Episode)
 class EpisodeAdmin(admin.ModelAdmin):

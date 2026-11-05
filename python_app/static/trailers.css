@@ -1,0 +1,77 @@
+/* Release classification, playback availability and trailer are separate facts. */
+.card-content-tags { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+.cinema-tag { display: inline-flex; align-items: center; width: fit-content; padding: 4px 7px; border: 1px solid #a5bee03d; border-radius: 4px; background: #789fda12; color: #c6d7f2; font-size: 9px; line-height: 1.4; font-weight: 500; letter-spacing: 0; white-space: nowrap; }
+.card-trailer-link { display: inline-flex; align-items: center; gap: 4px; min-height: 26px; padding: 3px 6px; color: var(--accent); font-size: 10px; border-radius: 4px; }
+.card-trailer-link .icon { width: 12px; height: 12px; }
+.card-trailer-link:hover { background: var(--accent-soft, #fa815612); }
+.card-trailer-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.film-meta .cinema-tag { padding: 4px 7px; border-color: #a5bee04d; font-size: 10px; }
+.quickview-kicker .cinema-tag { font-size: 8px; }
+.quickview-trailer { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 7px; font-size: 12px; color: var(--text); }
+.quickview-trailer .icon { width: 16px; height: 16px; }
+.quickview-trailer:hover { border-color: var(--accent); color: var(--accent); }
+.quickview-actions:has(.quickview-play[hidden]) .quickview-trailer { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.quickview-trailer[hidden], .cinema-tag[hidden] { display: none!important; }
+
+.trailer-page { max-width: 1300px; padding-top: 28px; padding-bottom: 58px; }
+.trailer-back { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px; color: var(--muted); font-size: 12px; }
+.trailer-back .icon { width: 14px; height: 14px; transform: rotate(180deg); }
+.trailer-back:hover { color: var(--accent); }
+.trailer-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 25px; margin-bottom: 24px; }
+.trailer-heading .eyebrow { margin-bottom: 10px; font-size: 9px; color: var(--accent); }
+.trailer-heading h1 { font-size: 30px; line-height: 1.2; margin: 0; overflow-wrap: anywhere; }
+.trailer-tags { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+.trailer-label, .trailer-waiting { display: inline-flex; padding: 4px 8px; border: 1px solid var(--line); border-radius: 4px; font-size: 10px; line-height: 1.4; color: var(--muted); white-space: nowrap; }
+.trailer-label { color: var(--accent); border-color: #fa81564d; background: var(--accent-soft, #fa815612); }
+.trailer-media { position: relative; aspect-ratio: 16 / 9; overflow: hidden; isolation: isolate; border: 1px solid #ffffff24; border-radius: 12px; background: #080b0d; color: #f5f2eb; }
+.trailer-video, .trailer-frame { display: block; width: 100%; height: 100%; border: 0; background: #080b0d; color-scheme: dark; object-fit: contain; }
+.trailer-placeholder { position: absolute; inset: 0; display: grid; place-items: center; }
+.trailer-placeholder > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+.trailer-placeholder-shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg, #080b0df0, #080b0d65 65%); }
+.trailer-placeholder-copy { padding: 30px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.trailer-placeholder-copy > span { font-size: 10px; font-weight: 600; letter-spacing: 2px; color: #ffffffb8; margin-bottom: 20px; }
+.trailer-placeholder-copy > p { font-size: 12px; color: #ccd0d0; margin: 16px 0 0; }
+.trailer-load-button { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; border: 1px solid #ffffff45; border-radius: 8px; padding: 13px 24px; background: #f5f2eb; color: #20120d; font-size: 14px; font-weight: 600; box-shadow: 0 8px 28px #0004; }
+.trailer-load-button .icon { width: 23px; height: 23px; }
+.trailer-load-button:hover { background: #fff; }
+.trailer-load-button:focus-visible { outline: 2px solid #fa8156; outline-offset: 5px; }
+.trailer-info { display: flex; align-items: flex-start; justify-content: space-between; gap: 35px; padding-top: 20px; }
+.trailer-credit { color: var(--muted); font-size: 11px; line-height: 1.8; margin: 15px 0 0; max-width: 960px; overflow-wrap: anywhere; }
+.trailer-credit a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.trailer-player-status { color: var(--muted); font-size: 11px; line-height: 1.7; margin-bottom: 9px; }
+.trailer-explanation { color: var(--text); font-size: 13px; line-height: 1.8; max-width: 640px; margin-bottom: 0; }
+.trailer-page-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 18px; flex-shrink: 0; }
+.trailer-page-actions .btn { min-height: 42px; font-size: 12px; }
+.trailer-external { display: inline-flex; gap: 7px; color: var(--muted); font-size: 11px; padding: 10px 0; }
+.trailer-external:hover { color: var(--accent); }
+
+html[data-theme="light"] .cinema-tag { color: #365c86; background: #eaf0f8; border-color: #c3d2e3; }
+html[data-theme="light"] .trailer-media { border-color: #b8c1bb; }
+@media (max-width: 800px) {
+  .trailer-heading { display: block; }
+  .trailer-tags { justify-content: flex-start; margin-top: 16px; }
+  .trailer-info { display: block; }
+  .trailer-page-actions { justify-content: flex-start; margin-top: 18px; }
+}
+@media (max-width: 600px) {
+  .card-content-tags { gap: 5px; margin-top: 7px; }
+  .cinema-tag { font-size: 8px; padding: 3px 6px; }
+  .card-trailer-link { font-size: 9px; padding: 3px 4px; }
+  .quickview-trailer { font-size: 11px; padding: 10px 12px; }
+  .trailer-page { padding-top: 22px; padding-bottom: 38px; }
+  .trailer-back { margin-bottom: 21px; font-size: 11px; }
+  .trailer-heading { margin-bottom: 19px; }
+  .trailer-heading h1 { font-size: 25px; }
+  .trailer-tags { margin-top: 13px; gap: 6px; }
+  .trailer-tags .cinema-tag, .trailer-label, .trailer-waiting { font-size: 9px; }
+  .trailer-media { border-radius: 8px; }
+  .trailer-placeholder-copy { padding: 14px; }
+  .trailer-placeholder-copy > span { display: none; }
+  .trailer-placeholder-copy > p { font-size: 10px; margin-top: 11px; }
+  .trailer-load-button { min-height: 44px; font-size: 12px; padding: 10px 16px; }
+  .trailer-load-button .icon { width: 20px; height: 20px; }
+  .trailer-info { padding-top: 16px; }
+  .trailer-explanation { font-size: 12px; }
+  .trailer-page-actions { gap: 14px; }
+  .trailer-page-actions .btn { font-size: 11px; }
+}

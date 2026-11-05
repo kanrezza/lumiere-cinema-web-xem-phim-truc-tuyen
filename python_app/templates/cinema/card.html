@@ -16,6 +16,10 @@
     <div class="card-title"><h3>{{ movie.title }}</h3><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></div>
     <p>{{ movie.year }}<span>·</span>{{ movie.get_kind_display }}{% if movie.duration_minutes %}<span>·</span>{{ movie.duration_minutes }} phút{% endif %}</p>
   </a>
+  {% if movie.is_cinema_release or movie.has_trailer %}<div class="card-content-tags">
+    {% if movie.is_cinema_release %}<span class="cinema-tag">Chiếu rạp</span>{% endif %}
+    {% if movie.has_trailer %}<a class="card-trailer-link" href="{% url 'trailer' movie.slug %}" aria-label="Xem trailer {{ movie.title }}"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Xem trailer</a>{% endif %}
+  </div>{% endif %}
   <button class="quickview-trigger" type="button" aria-label="Xem nhanh {{ movie.title }}" aria-haspopup="dialog" aria-controls="movie-quickview" hidden
     data-movie-title="{{ movie.title }}"
     data-movie-year="{{ movie.year }}"
@@ -29,6 +33,8 @@
     data-movie-detail="{% url 'movie' movie.slug %}"
     data-movie-play="{% if movie.ready_episode_id %}{% if movie.is_vip and not user.is_vip and not user.is_staff %}{% url 'plans' %}{% else %}{% url 'watch' movie.ready_episode_id %}{% endif %}{% endif %}"
     data-movie-play-label="{% if movie.is_vip and not user.is_vip and not user.is_staff %}Xem với VIP{% elif not user.is_authenticated %}Đăng nhập để xem{% else %}Xem ngay{% endif %}"
+    data-movie-cinema="{% if movie.is_cinema_release %}1{% else %}0{% endif %}"
+    data-movie-trailer="{% if movie.has_trailer %}{% url 'trailer' movie.slug %}{% endif %}"
     data-movie-vip="{% if movie.is_vip %}1{% else %}0{% endif %}">
     <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span>Xem nhanh</span>
   </button>

@@ -7,6 +7,7 @@ from cinema import views as v
 from cinema.forms import LoginForm
 urlpatterns = [
     path('', v.landing, name='landing'), path('browse/', v.catalog, name='catalog'), path('movies/<slug:slug>/', v.movie_detail, name='movie'),
+    path('movies/<slug:slug>/trailer/', v.movie_trailer, name='trailer'),
     path('accounts/register/', v.register, name='register'), path('accounts/login/', auth.LoginView.as_view(redirect_authenticated_user=True, authentication_form=LoginForm, extra_context={'title':'Chào mừng trở lại', 'subtitle':'Tiếp tục câu chuyện của bạn.', 'button':'Đăng nhập'}), name='login'), path('accounts/', include('django.contrib.auth.urls')),
     path('library/', v.library, name='library'), path('profile/', v.profile, name='profile'), path('profile/avatar/', v.profile_avatar, name='profile_avatar'),
     path('movies/<int:pk>/save/', v.watchlist_toggle, name='save'), path('movies/<int:pk>/comment/', v.comment, name='comment'), path('movies/<int:pk>/rate/', v.rate, name='rate'),

@@ -36,3 +36,9 @@
   .catalog-filters .reset-filter { grid-column: 1 / -1; justify-self: end; padding: 0; }
   .catalog-filters > .btn { width: 100%; }
 }
+
+.catalog-segments { display:flex; flex-wrap:wrap; gap:9px; margin:6px 0 24px; }
+.catalog-segments a { display:inline-flex; align-items:center; padding:8px 13px; min-height:36px; border:1px solid var(--line); border-radius:24px; background:var(--panel); color:var(--muted); font-size:12px; }
+.catalog-segments a:hover { color:var(--text); border-color:var(--accent); }
+.catalog-segments a.selected { color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
+@media(max-width:600px) { .catalog-segments { gap:8px; margin-bottom:20px; } .catalog-segments a { padding:7px 11px; font-size:11px; } }

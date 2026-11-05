@@ -28,7 +28,7 @@ class SecurityMiddleware:
         response = self.get_response(request)
         payment_url = urlsplit(settings.VNPAY_URL)
         payment_origin = f'{payment_url.scheme}://{payment_url.netloc}'
-        response['Content-Security-Policy'] = f"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self' {payment_origin}"
+        response['Content-Security-Policy'] = f"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' {payment_origin}"
         response['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
         if request.user.is_authenticated or request.path.startswith('/stream/'):
             response['Cache-Control'] = 'private, no-store'

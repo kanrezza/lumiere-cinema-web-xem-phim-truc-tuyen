@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from .search import normalize_search
+from .trailers import validate_trailer_file, validate_youtube_url, youtube_embed_url
 
 private_storage = PrivateVideoStorage()
 
@@ -16,6 +17,9 @@ def video_path(instance, filename):
 
 def avatar_path(instance, filename):
     return f'avatars/{uuid.uuid4().hex}.webp'
+
+def trailer_path(instance, filename):
+    return f'trailers/{uuid.uuid4().hex}.mp4'
 
 def validate_video(file):
     if file.size > settings.MAX_VIDEO_BYTES:
@@ -76,6 +80,10 @@ class Movie(SearchableModel):
     year = models.PositiveIntegerField(default=2026)
     country = models.CharField(max_length=100, default='Việt Nam')
     kind = models.CharField(max_length=20, choices=[('movie', 'Phim lẻ'), ('series', 'Phim bộ')], default='movie')
+    is_cinema_release = models.BooleanField('Phim chiếu rạp', default=False, help_text='Phân loại phim điện ảnh; không khẳng định phim hiện đang chiếu ngoài rạp.')
+    trailer_url = models.URLField('Liên kết trailer YouTube', max_length=500, blank=True, validators=[validate_youtube_url], help_text='Chọn liên kết YouTube HTTPS hoặc upload MP4 bên dưới, không dùng đồng thời cả hai.')
+    trailer_file = models.FileField('File trailer MP4', upload_to=trailer_path, blank=True, validators=[FileExtensionValidator(['mp4']), validate_trailer_file], help_text='Trailer công khai, tối đa 50 MB / 5 phút, MP4 H.264 và AAC. Video phim đầy đủ vẫn upload ở Tập phim và lưu riêng tư.')
+    trailer_credit = models.CharField('Nguồn/ghi công trailer', max_length=500, blank=True, help_text='Ghi tác giả, nguồn và giấy phép sử dụng trailer nếu cần; chỉ nhập văn bản hoặc liên kết, không nhập HTML.')
     is_vip = models.BooleanField(default=False)
     published = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -84,6 +92,23 @@ class Movie(SearchableModel):
     search_sources = {'search_title': 'title', 'search_description': 'description'}
     class Meta: ordering = ['-created_at']
     def __str__(self): return self.title
+
+    def clean(self):
+        super().clean()
+        if self.trailer_url and self.trailer_file:
+            raise ValidationError({'trailer_url': 'Chỉ chọn một nguồn trailer: YouTube hoặc file MP4.', 'trailer_file': 'Xóa nguồn còn lại trước khi lưu.'})
+
+    @property
+    def trailer_embed_url(self):
+        return youtube_embed_url(self.trailer_url)
+
+    @property
+    def has_trailer(self):
+        return bool(self.trailer_file or self.trailer_embed_url)
+
+    @property
+    def trailer_source_kind(self):
+        return 'file' if self.trailer_file else ('youtube' if self.trailer_embed_url else '')
 
 class Episode(models.Model):
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='episodes')

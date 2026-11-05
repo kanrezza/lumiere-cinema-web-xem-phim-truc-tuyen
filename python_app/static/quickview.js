@@ -13,6 +13,8 @@
   const play = dialog.querySelector('#quickview-play');
   const playLabel = dialog.querySelector('#quickview-play-label');
   const vip = dialog.querySelector('#quickview-vip');
+  const cinema = dialog.querySelector('#quickview-cinema');
+  const trailer = dialog.querySelector('#quickview-trailer');
   const close = dialog.querySelector('.quickview-close');
   let returnFocus = null;
   let addedScrollLock = false;
@@ -35,6 +37,10 @@
     image.src = movie.movieImage;
     details.href = movie.movieDetail;
     vip.hidden = movie.movieVip !== '1';
+    cinema.hidden = movie.movieCinema !== '1';
+    trailer.hidden = !movie.movieTrailer;
+    if (movie.movieTrailer) trailer.href = movie.movieTrailer;
+    else trailer.removeAttribute('href');
     const hasPlayback = movie.movieReady === '1' && Boolean(movie.moviePlay);
     play.hidden = !hasPlayback;
     if (hasPlayback) play.href = movie.moviePlay;

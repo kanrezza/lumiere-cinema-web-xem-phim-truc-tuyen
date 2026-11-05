@@ -4,7 +4,8 @@ Bản rebuild Django của hệ thống phim online. Nằm riêng trong `python_
 
 ## Đã có trong bản này
 
-- Giao diện tối responsive, khám phá/tìm kiếm/lọc phim, chi tiết phim, tủ phim và lịch sử xem.
+- Giao diện sáng/tối responsive, khám phá/tìm kiếm/lọc phim, chi tiết phim, tủ phim và lịch sử xem.
+- Trailer công khai bằng MP4 hoặc YouTube; phân biệt phim chiếu rạp, bản phim sẵn sàng và video giới thiệu.
 - Đăng ký, đăng nhập, đăng xuất bằng POST, đổi/quên mật khẩu, hồ sơ và kiểm soát quyền quản trị.
 - Đánh giá 1–5, bình luận, báo lỗi video và quản trị Django cho phim/tập phim/người dùng/gói/giao dịch; bảng thống kê tại `/studio/` dành cho staff.
 - Upload MP4/MKV/MOV/WebM vào kho riêng; worker FFmpeg kiểm tra nội dung và chuyển thành HLS H.264/AAC tối đa 720p.
@@ -56,6 +57,37 @@ Mở `http://127.0.0.1:8000/`; admin tại `/admin/`. Không tạo tài khoản 
 4. Khi trạng thái chuyển thành `ready`, đăng nhập tài khoản có quyền để phát từ trang chi tiết phim. Nếu lỗi, kiểm tra định dạng rồi chạy `python manage.py process_videos --episode ID --retry-failed`.
 
 Worker kết thúc khi xử lý xong các mục đang chờ; local chạy lại sau mỗi đợt upload. Production dùng service/timer mẫu trong `deploy/`. Chạy FFmpeg dưới tài khoản riêng, giới hạn CPU/RAM/dung lượng và chặn Internet ra ngoài, chỉ mở kết nối database cần thiết. Không chạy worker bằng root. Không bật thư mục `private_media` làm static/media trên web server; cả file gốc lẫn HLS đều riêng tư. Xóa metadata phim/tập không đồng nghĩa dọn toàn bộ file; cần chính sách kiểm kê/dọn file có kiểm soát trước khi dùng lâu dài.
+
+## Trailer và phim chiếu rạp
+
+Sau khi chạy `migrate` (bao gồm `0006_movie_trailers_and_cinema` và `0007_movie_trailer_credit`), mở Movie trong `/admin/`:
+
+1. Đánh dấu **Phim chiếu rạp** nếu phù hợp. Đây là phân loại do quản trị chọn, không có nghĩa phim hiện còn chiếu ngoài rạp.
+2. Chọn **một** nguồn: liên kết YouTube HTTPS hoặc file MP4. Xóa nguồn cũ trước khi đổi loại; không dán HTML iframe.
+3. Điền **Nguồn/ghi công trailer** khi cần. Chỉ sử dụng nội dung có quyền phát hành; trường ghi công hỗ trợ văn bản và liên kết được escape.
+
+MP4 tối đa 50 MiB, thời lượng trên 0 đến 5 phút, một luồng H.264, tối đa một luồng âm thanh AAC và kích thước tối đa 4096×2160. Server kiểm tra nội dung bằng `ffprobe`; đổi đuôi file không đủ. Trailer không đi qua worker chuyển mã, vì vậy cần chuẩn bị file tương thích trước khi upload. Chỉ nhân viên có quyền thêm/sửa Movie mới upload trailer qua admin. File dùng tên UUID trong kho **public** `MEDIA_ROOT/trailers`, tách khỏi Episode và kho phim riêng tư. Thay/xóa metadata không tự dọn mọi file trailer cũ; áp dụng chính sách dọn file có kiểm kê như kho video.
+
+Trang `/movies/<slug>/trailer/` mở cho khách khi phim đã công khai và có nguồn hợp lệ. YouTube chỉ tải iframe sau khi bấm Phát trailer, dùng `youtube-nocookie.com`; CSP chỉ cho phép nguồn iframe này. Nhà cung cấp có thể giới hạn nhúng/xóa video, khi đó người xem có liên kết mở YouTube. Phát được một video bên ngoài vẫn cần kiểm tra thực tế.
+
+Trailer không cấp quyền xem phim, VIP, ticket HLS hoặc tiến độ bản đầy đủ. Phim chưa có tập `ready` vẫn ghi **Đang chuẩn bị/Chưa có bản xem**, dù có trailer. **Phim chiếu rạp** và **Có trailer** là hai nhãn độc lập với trạng thái này; chưa có dữ liệu lịch phát hành để tự gọi là “Sắp chiếu”.
+
+Các bộ lọc có thể kết hợp với tìm kiếm, thể loại, quốc gia, năm và phân trang:
+
+- `/browse/?availability=ready`: đã có bản phim sẵn sàng.
+- `/browse/?availability=upcoming`: chưa có bản xem trong thư viện.
+- `/browse/?release=cinema`: phim được quản trị phân loại chiếu rạp.
+- `/browse/?trailer=1`: phim có nguồn trailer.
+
+Thêm đoạn giới thiệu mẫu có sẵn, không tải nguồn ngoài:
+
+```bash
+python manage.py seed_trailer_demo
+```
+
+Lệnh thêm đoạn trích **16 giây** từ Big Buck Bunny, ghi công Blender Foundation và CC BY 3.0; đây là clip demo, không phải trailer chính thức. Chạy lại giữ nguyên trailer đã có; không tạo tập phim, cấp quyền hoặc tự gắn nhãn chiếu rạp. Bản phim đầy đủ vẫn cần upload/xử lý riêng. Nguồn tài sản tại [static/imagery/SOURCES.md](static/imagery/SOURCES.md).
+
+Bản khảo sát giao diện Chợ Phim, phạm vi kiểm chứng và thứ tự cải thiện nằm tại [docs/CHOPHIM_REVIEW.md](docs/CHOPHIM_REVIEW.md).
 
 ## VNPay
 
@@ -152,4 +184,4 @@ python manage.py test cinema
 python manage.py test cinema cinema.audit_experience_cases
 ```
 
-Bộ test kiểm tra quyền video, chữ ký/phiên/hạn token, VIP hết hạn, CSRF, XSS escaping, quyền điều khiển phòng, giới hạn phòng, callback VNPay, dữ liệu nhập và tính lặp an toàn. Local UI/video cần thêm kiểm tra trình duyệt với file thật; test tổng hợp không chứng minh chống tải tuyệt đối.
+Bộ test kiểm tra quyền video, chữ ký/phiên/hạn token, VIP hết hạn, CSRF, XSS escaping, quyền điều khiển phòng, giới hạn phòng, callback VNPay, dữ liệu nhập, trailer/upload/URL và bộ lọc nội dung. Local UI/video cần thêm kiểm tra trình duyệt với file thật; test tổng hợp không chứng minh chống tải tuyệt đối.
