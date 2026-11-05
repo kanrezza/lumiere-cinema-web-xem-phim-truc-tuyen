@@ -52,12 +52,6 @@
         h1 { margin:0 0 6px; font-size:30px; letter-spacing:-0.04em; }
         .subtitle { color:var(--muted); font-size:14px; margin:0; }
 
-        /* Period tabs */
-        .tabs { display:flex; gap:8px; margin:24px 0 28px; flex-wrap:wrap; }
-        .tab { border:1px solid var(--line); border-radius:999px; padding:10px 20px; font:inherit; font-size:14px; font-weight:700; background:rgba(255,255,255,0.06); color:#c8ccd6; text-decoration:none; transition:all 0.15s; }
-        .tab:hover { border-color:var(--green); color:var(--green); }
-        .tab.active { border-color:var(--green); background:rgba(0,215,96,0.12); color:var(--green); }
-
         /* Movie list */
         .movie-list { display:flex; flex-direction:column; gap:12px; }
         .movie-item { display:flex; align-items:center; gap:16px; border:1px solid var(--line); border-radius:18px; padding:14px 16px; background:#0d1117; transition:background 0.15s,transform 0.15s; }
@@ -168,13 +162,6 @@
         <div class="content">
             <h1>Phim đánh giá cao</h1>
             <p class="subtitle">Xếp hạng theo điểm bình chọn của người xem · {{ $movies->total() }} phim</p>
-
-            <div class="tabs">
-                <a class="tab {{ $period === 'all'   ? 'active' : '' }}" href="{{ route('top-rated.index', ['period' => 'all']) }}">Tất cả</a>
-                <a class="tab {{ $period === 'year'  ? 'active' : '' }}" href="{{ route('top-rated.index', ['period' => 'year']) }}">Năm {{ now()->year }}</a>
-                <a class="tab {{ $period === 'month' ? 'active' : '' }}" href="{{ route('top-rated.index', ['period' => 'month']) }}">Tháng này</a>
-                <a class="tab {{ $period === 'week'  ? 'active' : '' }}" href="{{ route('top-rated.index', ['period' => 'week']) }}">Tuần này</a>
-            </div>
 
             @if($movies->total() === 0)
                 <div class="empty-state">

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminMovieController;
+use App\Http\Controllers\Admin\AdminActorController;
 use App\Http\Controllers\Admin\AdminRatingController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Auth\AuthController;
@@ -114,4 +115,12 @@ Route::prefix('admin')->middleware(['auth', 'active', 'admin'])->group(function 
     // Rating management
     Route::get('/ratings',                 [AdminRatingController::class, 'index'])->name('admin.ratings.index');
     Route::delete('/ratings/{rating}',     [AdminRatingController::class, 'destroy'])->name('admin.ratings.destroy');
+
+    // Actor management
+    Route::get('/actors',                  [AdminActorController::class, 'index'])->name('admin.actors.index');
+    Route::get('/actors/create',           [AdminActorController::class, 'create'])->name('admin.actors.create');
+    Route::post('/actors',                 [AdminActorController::class, 'store'])->name('admin.actors.store');
+    Route::get('/actors/{actor}/edit',     [AdminActorController::class, 'edit'])->name('admin.actors.edit');
+    Route::put('/actors/{actor}',          [AdminActorController::class, 'update'])->name('admin.actors.update');
+    Route::delete('/actors/{actor}',       [AdminActorController::class, 'destroy'])->name('admin.actors.destroy');
 });

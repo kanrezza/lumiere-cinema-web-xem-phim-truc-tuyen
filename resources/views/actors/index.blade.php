@@ -56,6 +56,7 @@
         .actor-card{border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px 16px;background:#0d1117;display:flex;flex-direction:column;align-items:center;gap:12px;transition:border-color 0.15s,background 0.15s;}
         .actor-card:hover{border-color:rgba(0,215,96,0.4);background:#0f1a12;}
         .actor-avatar{width:60px;height:60px;border-radius:999px;background:rgba(0,215,96,0.12);border:1px solid rgba(0,215,96,0.3);display:grid;place-items:center;font-size:22px;font-weight:900;color:#00d760;flex-shrink:0;}
+        .actor-avatar-img{width:60px;height:60px;border-radius:999px;object-fit:cover;border:1px solid rgba(0,215,96,0.3);flex-shrink:0;}
         .actor-name{font-size:14px;font-weight:700;text-align:center;line-height:1.4;color:#e5e7eb;}
         .actor-count{font-size:12px;color:#6b7280;font-weight:500;}
         .empty{text-align:center;color:#4b5563;padding:80px 20px;font-size:15px;}
@@ -139,7 +140,11 @@
                 <div class="actor-grid">
                     @foreach($actors as $actor)
                         <a class="actor-card" href="{{ route('actors.show', urlencode($actor['name'])) }}">
-                            <div class="actor-avatar">{{ mb_strtoupper(mb_substr($actor['name'], 0, 1)) }}</div>
+                            @if(!empty($actor['profile']) && $actor['profile']->avatar)
+                                <img class="actor-avatar-img" src="{{ $actor['profile']->avatarUrl() }}" alt="{{ $actor['name'] }}" onerror="this.style.display='none'">
+                            @else
+                                <div class="actor-avatar">{{ mb_strtoupper(mb_substr($actor['name'], 0, 1)) }}</div>
+                            @endif
                             <div class="actor-name">{{ $actor['name'] }}</div>
                             <div class="actor-count">{{ $actor['count'] }} phim</div>
                         </a>

@@ -47,6 +47,8 @@
 
         .actor-hero{display:flex;align-items:center;gap:20px;margin-bottom:40px;}
         .actor-avatar{width:72px;height:72px;border-radius:999px;background:rgba(0,215,96,0.12);border:2px solid rgba(0,215,96,0.35);display:grid;place-items:center;font-size:28px;font-weight:900;color:#00d760;flex-shrink:0;}
+        .actor-avatar-img{width:72px;height:72px;border-radius:999px;object-fit:cover;border:2px solid rgba(0,215,96,0.35);flex-shrink:0;}
+        .actor-bio{margin-top:10px;color:#9ca3af;font-size:14px;line-height:1.75;max-width:560px;}
         .actor-info h1{margin:0 0 4px;font-size:clamp(28px,4vw,48px);font-weight:900;letter-spacing:-0.04em;}
         .actor-info p{margin:0;color:#6b7280;font-size:14px;font-weight:500;}
         .back-link{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,0.12);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:700;color:#9ca3af;margin-bottom:28px;}
@@ -137,10 +139,18 @@
             <a class="back-link" href="{{ route('actors.index') }}">← Tất cả diễn viên</a>
 
             <div class="actor-hero">
-                <div class="actor-avatar">{{ mb_strtoupper(mb_substr($name, 0, 1)) }}</div>
+                @if($profile && $profile->avatar)
+                    <img class="actor-avatar-img" src="{{ $profile->avatarUrl() }}" alt="{{ $name }}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">
+                    <div class="actor-avatar" style="display:none" aria-hidden="true">{{ mb_strtoupper(mb_substr($name, 0, 1)) }}</div>
+                @else
+                    <div class="actor-avatar">{{ mb_strtoupper(mb_substr($name, 0, 1)) }}</div>
+                @endif
                 <div class="actor-info">
                     <h1>{{ $name }}</h1>
                     <p>{{ $movies->count() }} phim tham gia</p>
+                    @if($profile && $profile->bio)
+                        <p class="actor-bio">{{ $profile->bio }}</p>
+                    @endif
                 </div>
             </div>
 

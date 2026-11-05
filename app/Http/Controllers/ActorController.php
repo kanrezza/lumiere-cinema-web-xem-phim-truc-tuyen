@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Actor;
 use App\Models\Category;
 use App\Models\Movie;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ActorController extends Controller
@@ -16,20 +16,28 @@ class ActorController extends Controller
             ->where('actors', '!=', '')
             ->get(['actors']);
 
-        $actors = collect();
+        $actorCounts = collect();
         foreach ($movies as $movie) {
             $names = array_map('trim', explode(',', $movie->actors));
             foreach ($names as $name) {
                 if ($name !== '') {
-                    $actors->push($name);
+                    $actorCounts->push($name);
                 }
             }
         }
 
-        $actors = $actors->filter()
+        $actorCounts = $actorCounts->filter()
             ->countBy()
-            ->sortByDesc(fn ($count) => $count)
-            ->map(fn ($count, $name) => ['name' => $name, 'count' => $count]);
+            ->sortByDesc(fn ($count) => $count);
+
+        // Lấy profile từ bảng actors (nếu có)
+        $profiles = Actor::whereIn('name', $actorCounts->keys())->get()->keyBy('name');
+
+        $actors = $actorCounts->map(fn ($count, $name) => [
+            'name'    => $name,
+            'count'   => $count,
+            'profile' => $profiles->get($name),
+        ]);
 
         $categories = Category::all();
         return view('actors.index', compact('actors', 'categories'));
@@ -43,7 +51,9 @@ class ActorController extends Controller
             ->latest()
             ->get();
 
+        $profile    = Actor::where('name', $name)->first();
         $categories = Category::all();
-        return view('actors.show', compact('name', 'movies', 'categories'));
+
+        return view('actors.show', compact('name', 'movies', 'categories', 'profile'));
     }
 }

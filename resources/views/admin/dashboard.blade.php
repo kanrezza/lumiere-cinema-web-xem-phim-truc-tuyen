@@ -107,6 +107,7 @@
             <a class="action-link secondary" href="{{ route('admin.movies.index') }}">Quản lý phim</a>
             <a class="action-link secondary" href="{{ route('admin.users.index') }}">Quản lý người dùng</a>
             <a class="action-link secondary" href="{{ route('admin.ratings.index') }}">Rating phim</a>
+            <a class="action-link secondary" href="{{ route('admin.actors.index') }}">Diễn viên</a>
         </div>
 
         <p class="section-label">PHIM</p>
