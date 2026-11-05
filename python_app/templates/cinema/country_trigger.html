@@ -1,0 +1,2 @@
+<a data-nav-fallback="country" href="{% url 'countries' %}" {% if request.path == '/countries/' or request.GET.country and not request.GET.actor %}aria-current="page"{% endif %}>Quốc gia</a>
+<button type="button" class="nav-genre-trigger{% if request.path == '/countries/' or request.GET.country and not request.GET.actor %} is-current{% endif %}" data-nav-trigger data-nav-key="country" aria-expanded="false" aria-controls="country-navigation-panel" hidden>Quốc gia<svg class="icon genre-chevron" aria-hidden="true"><use href="#i-arrow"/></svg></button>

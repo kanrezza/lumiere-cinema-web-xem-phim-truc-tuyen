@@ -1,0 +1,313 @@
+/* Lumière — photographic cinema direction. References: DESIGN_REFERENCES.md. */
+@font-face {
+  font-family: Manrope;
+  src: url('fonts/manrope.ttf') format('truetype');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+:root { --bg:#090c12; --panel:#121720; --field:#171d28; --line:#262d3a; --text:#eff2f8; --muted:#929cae; --accent:#8aabff; --width:1360px; }
+body { font-family:Manrope, sans-serif; font-size:14px; line-height:1.65; }
+h1,h2,h3 { letter-spacing:-.4px; }
+h1 { font-weight:600; }
+h2,h3,strong { font-weight:600; }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+.header { background:#090c12; border-color:#1b2230; }
+.header-inner { height:76px; padding:0 40px; gap:46px; }
+.brand { font-family:Manrope,sans-serif; font-size:23px; font-weight:750; letter-spacing:-1px; align-items:center; gap:9px; }
+.brand-symbol { width:24px; height:24px; color:#96b1ff; }
+.header nav { gap:28px; }
+.header nav a { font-size:12px; font-weight:500; color:#929cae; }
+.header nav a[aria-current] { color:#fff; }
+.header nav a[aria-current]:after { left:35%; right:35%; bottom:17px; height:3px; border-radius:3px; }
+.header-right { gap:23px; }
+.header-search { display:flex; align-items:center; gap:9px; }
+.header-search svg { width:16px; height:16px; color:#9aa6bb; }
+.header-search input { width:140px; padding:5px 0; background:none; border:0; border-radius:0; outline:none; font-size:12px; }
+.header-search input:focus { width:165px; }
+.vip-link { display:flex; gap:6px; align-items:center; background:#182239; border:1px solid #2b3b5d; border-radius:6px; color:#b6caff; font-size:11px; padding:5px 9px; letter-spacing:.2px; }
+.vip-link svg { width:14px; height:14px; }
+.login-link { font-size:12px; font-weight:500; }
+.account { border-color:#344667; color:#c5d5ff; background:#1f2a3d; }
+.content-section,.catalog-shell { padding:32px 40px; }
+.btn { border-radius:7px; background:#7199ff; color:#081328; padding:10px 18px; font-weight:650; min-height:41px; transition:background .18s, border-color .18s; }
+.btn:hover { background:#9bb7ff; }
+.btn.secondary,.btn.glass { border-color:#343e51; background:#1b2332; color:#e1e8f7; font-weight:500; }
+.btn.secondary:hover { background:#26334a; }
+.btn.btn-white { background:#f5f7fb; color:#161d2b; }
+.btn.btn-white:hover { background:#d8e4ff; }
+input,select,textarea { border-color:#303b4d; border-radius:6px; font-size:13px; }
+button:disabled { background:#28364f; color:#93a5c9; border-color:#34435d; opacity:1; }
+.skip-link { background:#bed0ff; color:#071126; }
+.cinema-hero { min-height:414px; position:relative; isolation:isolate; overflow:hidden; border-radius:14px; margin-bottom:37px; background:#142234; }
+.cinema-backdrop { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 52%; z-index:-3; }
+.cinema-hero-shade { position:absolute; inset:0; z-index:-2; background:linear-gradient(90deg,#070d18f5 0%,#0b1523dd 28%,#101d3260 65%,#07101b10),linear-gradient(0deg,#080d1b75,transparent 60%); }
+.cinema-hero-copy { max-width:540px; padding:52px 45px 48px; }
+.feature-badge { display:flex; align-items:center; gap:7px; font-size:11px; color:#c5d3e9; margin-bottom:19px; }
+.feature-badge>span { width:5px; height:5px; border-radius:50%; background:#b3cbff; }
+.cinema-hero h1 { font-size:38px; line-height:1.25; font-weight:600; letter-spacing:-1px; margin:0 0 16px; color:#fff; }
+.hero-metadata { display:flex; gap:11px; align-items:center; font-size:11px; color:#c4cee0; }
+.hero-metadata>span { color:#7c8aa5; }
+.hero-metadata b { font-size:9px; letter-spacing:.6px; padding:1px 5px; background:#c8d7ff; color:#203154; border-radius:2px; }
+.hero-synopsis { color:#aab9ce; font-size:12px; line-height:1.85; max-width:350px; margin:18px 0 24px; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; }
+.hero-actions { display:flex; align-items:center; gap:25px; }
+.hero-actions .btn { font-size:12px; padding:10px 17px; }
+.hero-more { font-size:11px; font-weight:500; color:#dbe5f6; }
+.hero-more span { padding-left:6px; }
+.hero-art-note { position:absolute; bottom:17px; right:21px; font-size:9px; color:#bbc9d4b8; }
+.catalog-heading h2 { font-size:21px; font-weight:600; letter-spacing:-.5px; }
+.catalog-heading .count { margin-left:2px; color:#77859b; font-size:11px; }
+.browse-tools { display:flex; justify-content:space-between; align-items:center; gap:20px; margin:20px 0 16px; }
+.genre-links { display:flex; gap:8px; flex-wrap:wrap; }
+.genre-link { border:1px solid #252f40; background:#111925; border-radius:6px; padding:6px 13px; color:#9faec6; font-size:11px; }
+.genre-link.active { background:#e1e9f7; border-color:#e1e9f7; color:#131d2c; font-weight:600; }
+.genre-link:hover { border-color:#7289b1; }
+.rated-link { font-size:11px; color:#a1aec4; white-space:nowrap; }
+.rated-link span { margin-left:8px; }
+.filter-disclosure { margin-bottom:23px; }
+.filter-disclosure>summary { display:flex; align-items:center; gap:7px; color:#8290a7; cursor:pointer; font-size:11px; list-style:none; width:max-content; }
+.filter-disclosure>summary::-webkit-details-marker { display:none; }
+.filter-disclosure .icon { width:14px; height:14px; }
+.filter-form { margin-top:15px; margin-bottom:0; border-color:#202a3a; }
+.filter-form select { border-color:#303c52; background:#141d2c; }
+.search { border-color:#273248; background:#101725; }
+.search:focus-within { border-color:#7b9bd8; }
+.movie-grid { gap:26px 20px; }
+.poster { border-radius:9px; box-shadow:0 8px 22px #0003; }
+.poster img { transition:transform .4s ease; }
+.movie-card:hover .poster img { transform:scale(1.035); }
+.art-orbit img { object-position:70% center; }
+.demo-poster-title { position:absolute; bottom:0; left:0; right:0; padding:58px 15px 22px; background:linear-gradient(transparent,#050913e8); font-size:19px; font-weight:550; line-height:1.25; letter-spacing:-.6px; text-align:center; color:#fff; pointer-events:none; }
+.vip-badge { background:#d7e3ff; color:#233d6e; border-radius:3px; font-size:9px; padding:2px 6px; top:9px; left:9px; }
+.poster-hover { background:#101a2b33; }
+.movie-card h3 { font-weight:550; font-size:12px; margin-top:12px; color:#e8edf7; }
+.movie-card p { font-size:10px; color:#7e8ba3; }
+.together-strip { display:flex; gap:24px; align-items:center; margin-top:42px; border:1px solid #202d43; background:#101928; border-radius:10px; overflow:hidden; padding-right:28px; }
+.together-art { align-self:stretch; width:175px; min-height:144px; flex-shrink:0; position:relative; }
+.together-art img { width:100%; height:100%; position:absolute; inset:0; object-fit:cover; object-position:center 36%; }
+.together-art:after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,#101928); }
+.together-strip .section-label { color:#8faccb; font-size:10px; }
+.together-strip h2 { font-size:20px; font-weight:550; margin:5px 0 7px; }
+.together-strip p { font-size:11px; color:#8d9fbb; margin:0; }
+.together-strip>.btn { margin-left:auto; font-size:11px; white-space:nowrap; }
+.footer-inner { padding:28px 40px; font-size:10px; }
+footer { border-color:#1a2433; }
+.footer-inner .brand { font-size:20px; gap:7px; color:#b2bed1; }
+.footer-inner .brand-symbol { width:18px; height:18px; }
+.footer-links a { color:#7f8da5; }
+/* Membership page: one purchase decision, paired with an editorial film wall. */
+.membership-shell { max-width:1240px; margin:auto; padding:34px 40px 40px; }
+.back-link { display:inline-flex; gap:10px; align-items:center; color:#7e8da5; font-size:11px; margin-bottom:32px; }
+.back-link:hover { color:#c3d5ff; }
+.membership-stage { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(350px,.85fr); gap:70px; align-items:start; }
+.membership-story,.membership-purchase { min-width:0; }
+.membership-label { display:inline-flex; align-items:center; gap:8px; color:#b7ccf7; font-size:12px; margin:4px 0 20px; }
+.membership-label svg { width:20px; height:20px; }
+.membership-story h1 { font-size:34px; font-weight:550; line-height:1.4; letter-spacing:-1px; margin-bottom:15px; }
+.membership-intro { color:#8d9bb3; font-size:12px; line-height:1.9; margin-bottom:22px; }
+.membership-collage { display:flex; gap:11px; height:223px; align-items:center; overflow:hidden; margin:3px -14px 19px; padding:13px 14px; position:relative; mask-image:linear-gradient(90deg,transparent,#000 3%,#000 94%,transparent); }
+.collage-poster { display:block; position:relative; min-width:115px; width:115px; height:176px; overflow:hidden; border-radius:7px; box-shadow:0 10px 25px #0005; transform:rotate(-6deg); }
+.collage-poster:nth-child(even) { transform:translateY(-12px) rotate(-6deg); }
+.collage-poster:nth-child(3n) { transform:translateY(12px) rotate(-6deg); }
+.collage-poster img { width:100%; height:100%; object-fit:cover; }
+.collage-poster:first-child img { object-position:70% center; }
+.collage-poster span { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent,#070c17e6); padding:35px 9px 12px; text-align:center; font-size:11px; font-weight:600; line-height:1.4; }
+.membership-benefits { display:grid; gap:17px; }
+.membership-benefits>div { display:flex; align-items:center; gap:15px; }
+.membership-benefits svg { color:#91abd8; width:23px; height:23px; flex:0 0 auto; }
+.membership-benefits strong { display:block; font-size:12px; font-weight:600; color:#dbe4f4; }
+.membership-benefits small { display:block; color:#7e8ea8; font-size:11px; margin-top:3px; }
+.membership-purchase { border:1px solid #2c3950; border-radius:14px; background:#121b2a; padding:27px; box-shadow:0 20px 45px #02050b55; }
+.purchase-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:25px; }
+.purchase-step { color:#99aac6; font-size:11px; }
+.secure-label { display:flex; align-items:center; gap:6px; color:#8294b0; font-size:10px; }
+.secure-label svg { width:13px; height:13px; }
+.membership-purchase h2 { font-size:21px; font-weight:650; letter-spacing:-.55px; margin-bottom:6px; }
+.purchase-subtitle { color:#8293b0; font-size:11px; margin-bottom:23px; }
+.plan-options { display:grid; gap:11px; padding:0; border:0; margin:0 0 22px; }
+.plan-option { position:relative; display:flex; align-items:center; gap:11px; padding:16px 13px; border:1px solid #31405a; background:#152033; border-radius:8px; cursor:pointer; color:#dce5f5; transition:border-color .2s,background .2s; }
+.plan-option:hover { border-color:#758fbb; }
+.plan-option:has(input:checked) { border-color:#a1bfff; background:#1e2f4b; box-shadow:inset 0 0 0 1px #a1bfff; }
+.plan-option input { position:absolute; width:1px !important; height:1px; opacity:0; }
+.plan-option:has(input:focus-visible) { outline:2px solid #fff; outline-offset:4px; }
+.plan-radio { width:16px; height:16px; border-radius:50%; border:1px solid #587194; display:grid; place-items:center; flex:0 0 auto; }
+.plan-option input:checked+.plan-radio { border-color:#c7d9ff; }
+.plan-option input:checked+.plan-radio:after { content:''; width:8px; height:8px; background:#c7d9ff; border-radius:50%; }
+.plan-option-name { flex:1; }
+.plan-option-name strong { display:block; font-size:12px; font-weight:600; }
+.plan-option-name small { display:block; font-size:10px; color:#95a9c6; margin-top:4px; }
+.long-plan { margin-left:7px; font-size:8px; padding:2px 5px; border-radius:3px; background:#314664; color:#b4cff5; }
+.plan-option-price { font-size:15px; font-weight:650; white-space:nowrap; font-variant-numeric:tabular-nums; color:#f0f5ff; }
+.plan-option-price small { font-size:10px; font-weight:400; margin-left:4px; color:#a5b7d3; }
+.purchase-inclusions { border-bottom:1px solid #29384f; padding:1px 0 17px; margin-bottom:19px; }
+.purchase-inclusions>span { color:#7185a4; font-size:10px; }
+.purchase-inclusions p { font-size:11px; margin:9px 0 0; color:#b5c4db; }
+.purchase-inclusions p span { color:#9ab9e8; display:inline-block; width:22px; }
+.purchase-total { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-bottom:17px; font-size:11px; color:#94a6c2; }
+.purchase-total strong { font-size:20px; font-weight:600; color:#e8f1ff; font-variant-numeric:tabular-nums; }
+.purchase-button { width:100%; display:flex; justify-content:space-between; padding:12px 15px; font-size:12px; background:#d8e5ff; color:#10213c; }
+.purchase-button:hover { background:#fff; }
+.purchase-button:disabled { background:#a4b8da; color:#263957; border:0; cursor:not-allowed; }
+.payment-note { display:flex; align-items:flex-start; gap:6px; color:#7f91ae; font-size:9px; margin:12px 0 20px; line-height:1.65; }
+.status-dot { width:4px; height:4px; background:#ba9d6c; margin-top:5px; border-radius:50%; flex:0 0 auto; }
+.free-option { padding-top:18px; border-top:1px solid #29384f; display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:10px; }
+.free-option>span { color:#7f91ae; }
+.free-option a { color:#bdcce6; font-size:10px; }
+.free-option a span { padding-left:5px; }
+.membership-faq { display:grid; grid-template-columns:.8fr 1.2fr; gap:60px; margin-top:60px; padding-top:29px; border-top:1px solid #202b3e; }
+.membership-faq .section-label { color:#687e9f; font-size:10px; }
+.membership-faq h2 { font-size:20px; font-weight:500; margin-top:7px; }
+.faq-items details { border-bottom:1px solid #202b3e; }
+.faq-items summary { cursor:pointer; display:flex; justify-content:space-between; gap:15px; list-style:none; padding:14px 0; font-size:12px; color:#bdcbe0; }
+.faq-items summary::-webkit-details-marker { display:none; }
+.faq-items summary span { color:#7084a6; font-size:18px; font-weight:300; }
+.faq-items details[open] summary span { transform:rotate(45deg); }
+.faq-items p { color:#8a9bb5; font-size:11px; line-height:1.9; padding-right:22px; }
+/* Apply the same material and typography to account, detail and room screens. */
+.form-panel,.panel,.chat-panel,.history-card { background:#111a28; border-color:#28354a; border-radius:10px; }
+.form-panel { padding:30px; box-shadow:0 15px 55px #0003; }
+.form-panel h1,.form-panel h2 { font-weight:600; }
+.auth-layout { padding:65px 20px; }
+.form-panel input { background:#0e1623; border-color:#2c3b52; }
+.form-panel a,.text-button,.admin-link { color:#9fb7e0; }
+.admin-link { border-color:#344969; }
+.actor-initial { background:#223047; color:#b7c9e8; }
+.movie-overview { gap:23px 35px; }
+.detail-poster img { border-radius:9px; box-shadow:0 12px 32px #0005; }
+.movie-heading h1 { font-size:32px; font-weight:600; }
+.movie-description h2,.episode-section h2 { font-size:17px; font-weight:600; }
+.tags a,.tags>span { background:#152134; border-color:#2b3b56; color:#91a9cf; }
+.tags .tag-vip { color:#b5cdf6; border-color:#4b6084; }
+.metadata,.synopsis { color:#8b9cb7; }
+.order,.discussion,.episode-section { border-color:#243045; }
+.notice { background:#1b2639; border-color:#344863; color:#aebfda; }
+.members>span { background:#19283d; border-color:#304461; }
+#chat-messages strong { color:#a2beeb; }
+#chat-form button { background:#7a9fde; border-color:#90afe7; color:#101f38; }
+@media(min-width:1101px) { .catalog-heading .search { display:none; } }
+@media(max-width:1200px) {
+  .header-inner { gap:30px; }
+  .header nav { gap:21px; }
+  .header-search input { width:100px; }
+  .membership-stage { gap:40px; }
+  .membership-story h1 { font-size:31px; }
+  .collage-poster { min-width:101px; width:101px; height:162px; }
+}
+@media(max-width:1100px) {
+  .header-search { display:none; }
+  .header-right { gap:20px; }
+  .membership-stage { grid-template-columns:1fr 360px; gap:30px; }
+  .membership-purchase { padding:22px; }
+  .membership-story h1 { font-size:28px; }
+  .membership-collage { height:210px; }
+  .collage-poster { min-width:95px; width:95px; height:153px; }
+  .membership-benefits small { font-size:10px; }
+}
+@media(max-width:900px) {
+  .header-inner { padding:0 26px; gap:25px; }
+  .header nav { gap:18px; }
+  .content-section,.catalog-shell { padding:26px; }
+  .cinema-hero { min-height:370px; }
+  .cinema-hero-copy { padding:39px 32px; }
+  .cinema-hero h1 { font-size:34px; }
+  .membership-shell { padding:28px 26px; }
+  .membership-stage { grid-template-columns:minmax(0,1fr); gap:32px; }
+  .membership-story { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 28px; }
+  .membership-label,.membership-story h1,.membership-intro { grid-column:1; }
+  .membership-collage { grid-column:2; grid-row:1/5; height:100%; margin:0; }
+  .membership-benefits { grid-column:1/-1; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:13px; }
+  .membership-benefits>div { align-items:flex-start; gap:10px; }
+  .membership-purchase { max-width:520px; width:100%; margin:auto; padding:29px; }
+  .membership-faq { gap:25px; margin-top:40px; }
+  .together-art { width:100px; }
+  .together-strip { gap:18px; padding-right:19px; }
+  .together-strip h2 { font-size:17px; }
+  .together-strip p { max-width:260px; }
+}
+@media(max-width:680px) {
+  .header-inner { height:auto; padding:17px 20px 0; gap:0; }
+  .brand { font-size:21px; gap:7px; }
+  .brand-symbol { width:21px; height:21px; }
+  .header-right { gap:17px; }
+  .header nav { height:44px; margin-top:9px; gap:24px; }
+  .header nav a { font-size:11px; }
+  .header nav a[aria-current]:after { bottom:0; left:0; right:0; height:2px; }
+  .vip-link { padding:3px 6px; font-size:10px; }
+  .vip-link svg { width:12px; }
+  .login-link { font-size:11px; }
+  .content-section,.catalog-shell { padding:20px; }
+  .cinema-hero { min-height:350px; margin-bottom:29px; border-radius:10px; }
+  .cinema-backdrop { object-position:66% center; }
+  .cinema-hero-shade { background:linear-gradient(90deg,#07101de6,#0a162752),linear-gradient(0deg,#080e1eeb,transparent 90%); }
+  .cinema-hero-copy { padding:30px 24px 40px; max-width:375px; }
+  .feature-badge { font-size:10px; margin-bottom:18px; }
+  .cinema-hero h1 { font-size:29px; max-width:280px; letter-spacing:-.7px; }
+  .hero-synopsis { font-size:11px; max-width:280px; margin:18px 0 21px; -webkit-line-clamp:2; }
+  .hero-actions { gap:18px; flex-wrap:wrap; }
+  .hero-actions .btn { min-height:37px; font-size:11px; padding:8px 13px; }
+  .hero-more { font-size:10px; }
+  .hero-art-note { font-size:8px; bottom:12px; }
+  .catalog-heading h2 { font-size:19px; }
+  .browse-tools { flex-wrap:wrap; gap:14px; margin-top:17px; }
+  .genre-links { flex-wrap:nowrap; overflow-x:auto; max-width:100%; padding-bottom:3px; }
+  .genre-link { font-size:10px; padding:6px 11px; white-space:nowrap; }
+  .rated-link { display:none; }
+  .movie-grid { gap:23px 15px; }
+  .movie-card h3 { font-size:12px; }
+  .demo-poster-title { font-size:17px; padding:50px 10px 18px; }
+  .together-strip { padding:23px; gap:13px; flex-wrap:wrap; }
+  .together-art { display:none; }
+  .together-strip .btn { margin:4px 0 0; }
+  .together-strip h2 { font-size:18px; }
+  .footer-inner { padding:25px 20px; gap:20px; }
+  .footer-inner .brand { font-size:18px; }
+  .membership-shell { padding:23px 20px; }
+  .back-link { font-size:10px; margin-bottom:26px; }
+  .membership-story { display:block; }
+  .membership-label { margin-bottom:14px; font-size:11px; }
+  .membership-label svg { width:17px; }
+  .membership-story h1 { font-size:27px; line-height:1.4; letter-spacing:-.6px; }
+  .membership-intro { font-size:11px; margin-bottom:10px; }
+  .desktop-break { display:none; }
+  .membership-collage { height:190px; margin:5px -12px 17px; }
+  .collage-poster { min-width:103px; width:103px; height:150px; }
+  .membership-benefits { display:grid; grid-template-columns:1fr; gap:15px; margin-top:0; }
+  .membership-benefits strong { font-size:11px; }
+  .membership-benefits small { font-size:10px; }
+  .membership-benefits svg { width:20px; height:20px; }
+  .membership-purchase { padding:23px; border-radius:11px; }
+  .purchase-top { margin-bottom:20px; }
+  .membership-purchase h2 { font-size:20px; }
+  .plan-option { padding:14px 11px; gap:9px; }
+  .plan-option-price { font-size:14px; }
+  .purchase-total strong { font-size:20px; }
+  .free-option { flex-wrap:wrap; }
+  .membership-faq { grid-template-columns:1fr; gap:12px; margin-top:36px; padding-top:24px; }
+  .membership-faq h2 { font-size:19px; }
+  .faq-items summary { font-size:11px; }
+  .auth-layout { padding:35px 20px; }
+  .form-panel { padding:25px; }
+  .movie-heading h1 { font-size:25px; }
+  .movie-overview { gap:22px 20px; }
+}
+@media(max-width:420px) {
+  .header-inner { padding-left:16px; padding-right:16px; }
+  .header nav { justify-content:space-between; gap:12px; }
+  .header nav a { font-size:10px; }
+  .content-section,.catalog-shell { padding:18px 16px; }
+  .cinema-hero-copy { padding:28px 20px 34px; }
+  .cinema-hero { min-height:340px; }
+  .cinema-hero h1 { font-size:27px; }
+  .hero-more { display:none; }
+  .hero-metadata { gap:8px; font-size:10px; }
+  .membership-shell { padding:20px 16px; }
+  .membership-story h1 { font-size:25px; }
+  .membership-purchase { padding:20px 17px; }
+  .plan-option-name strong { font-size:11px; }
+  .plan-option-name small { font-size:9px; }
+  .long-plan { display:none; }
+  .plan-option-price { font-size:13px; }
+  .plan-option-price small { font-size:9px; }
+  .membership-collage { height:183px; }
+  .movie-heading h1 { font-size:22px; }
+}

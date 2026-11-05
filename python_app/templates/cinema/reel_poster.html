@@ -1,0 +1,6 @@
+{% load static %}
+<a class="collage-poster art-{{ movie.artwork }}" href="{% url 'movie' movie.slug %}">
+  {% if movie.poster %}<img src="{{ movie.poster.url }}" alt="" width="152" height="224">
+  {% else %}<img src="{% static 'imagery/' %}{{ movie.artwork }}.jpg" alt="" width="152" height="224">{% endif %}
+  <span>{{ movie.title }}</span>
+</a>

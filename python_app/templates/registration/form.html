@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="auth-layout auth-centered">
+  <div class="form-panel">
+    <h1>{% if request.resolver_match.url_name == 'login' %}Đăng nhập{% else %}{{ title|default:'Tài khoản' }}{% endif %}</h1>
+    {% if request.resolver_match.url_name == 'register' %}
+      <p class="muted">Tạo tài khoản để lưu phim, theo dõi lịch sử xem và tham gia phòng xem chung.</p>
+    {% elif request.resolver_match.url_name == 'login' %}
+      <p class="muted">Dùng tên đăng nhập hoặc email của bạn.</p>
+    {% elif request.resolver_match.url_name == 'password_reset' %}
+      <p class="muted">Nhập email đã đăng ký để nhận hướng dẫn đặt lại mật khẩu.</p>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button class="btn full">{% if request.resolver_match.url_name == 'register' %}Tạo tài khoản{% else %}{{ button|default:'Tiếp tục' }}{% endif %}</button>
+    </form>
+    <p class="auth-links">
+      {% if request.resolver_match.url_name == 'login' %}
+        <a href="{% url 'register' %}">Tạo tài khoản</a>
+        <span>·</span>
+        <a href="{% url 'password_reset' %}">Quên mật khẩu?</a>
+      {% else %}
+        <a href="{% url 'login' %}">Quay lại đăng nhập</a>
+      {% endif %}
+    </p>
+  </div>
+</section>
+{% endblock %}

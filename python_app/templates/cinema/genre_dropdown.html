@@ -1,0 +1,7 @@
+<section id="genre-navigation-panel" class="genre-dropdown-panel" data-nav-panel="genre" aria-label="Chọn thể loại" hidden>
+  <div class="genre-dropdown-heading"><span>Khám phá theo thể loại</span><small>{{ navigation_genres|length }} thể loại</small></div>
+  <nav class="genre-dropdown-links" aria-label="Danh sách thể loại">
+    {% for genre in navigation_genres %}<a href="{{ genre.href }}" {% if request.GET.category == genre.slug %}aria-current="page"{% endif %}><span>{{ genre.name }}</span><small>{{ genre.count }} phim</small></a>{% empty %}<p class="genre-dropdown-empty">Thể loại sẽ xuất hiện khi có phim được xuất bản.</p>{% endfor %}
+  </nav>
+  <a class="genre-dropdown-all" href="{% url 'categories' %}">Xem tất cả thể loại<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+</section>

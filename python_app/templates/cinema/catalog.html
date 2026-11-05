@@ -1,0 +1,71 @@
+{% extends 'base.html' %}{% load static %}
+{% block head %}<link rel="stylesheet" href="{% static 'catalog-filters.css' %}?v=year-search-1">{% endblock %}
+{% block body_class %}{% if not is_browsing %}home-page{% endif %}{% endblock %}
+{% block content %}
+{% if not is_browsing and featured %}
+<section class="cinema-stage" aria-label="Phim nổi bật" data-feature-stage>
+  {% for film in featured_movies %}
+  <article class="feature-panel" id="feature-{{ film.pk }}" role="tabpanel" aria-labelledby="feature-tab-{{ film.pk }}" {% if not forloop.first %}hidden{% endif %}>
+    {% if film.backdrop %}<img class="feature-image" src="{{ film.backdrop.url }}" alt="" {% if forloop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+    {% elif film.poster %}<img class="feature-image" src="{{ film.poster.url }}" alt="">
+    {% else %}<img class="feature-image" src="{% static 'imagery/' %}{{ film.artwork }}.jpg" alt="">{% endif %}
+    {% if film.slug == 'big-buck-bunny' %}<video class="feature-preview" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" data-preview-src="{% static 'imagery/big-buck-bunny-preview.mp4' %}"></video>{% endif %}
+    <div class="feature-scrim"></div>
+    <div class="feature-content">
+      <p class="feature-kicker"><span class="feature-line"></span>LUMIÈRE SELECT<span class="feature-edition">0{{ forloop.counter }} / 0{{ featured_movies|length }}</span></p>
+      <h1 class="feature-title">{{ film.title }}</h1>
+      <div class="film-meta"><span>{{ film.year }}</span>{% if film.duration_minutes %}<span>{{ film.duration_minutes }} phút</span>{% endif %}<span>{{ film.get_kind_display }}</span>{% if film.is_vip %}<b class="mint">VIP</b>{% endif %}</div>
+      <p class="feature-description">{{ film.description|truncatechars:170 }}</p>
+      <div class="actions">
+        {% if film.ready_episode_id %}
+          {% if film.is_vip and not user.is_vip and not user.is_staff %}<a class="btn btn-play" href="{% url 'plans' %}"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Xem với VIP</a>
+          {% else %}<a class="btn btn-play" href="{% url 'watch' film.ready_episode_id %}"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Xem ngay</a>{% endif %}
+        {% endif %}
+        <a class="feature-detail" href="{% url 'movie' film.slug %}">Thông tin phim <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+  <div class="feature-bottom" data-feature-controls hidden>
+    <button class="preview-toggle" type="button" aria-label="Tạm dừng xem trước" aria-pressed="false" data-preview-toggle><span class="preview-symbol" aria-hidden="true">Ⅱ</span><span data-preview-label>Tạm dừng xem trước</span></button>
+    <div class="feature-tabs" role="tablist" aria-label="Chọn phim nổi bật">
+      {% for film in featured_movies %}<button type="button" class="feature-tab" id="feature-tab-{{ film.pk }}" role="tab" aria-controls="feature-{{ film.pk }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}" tabindex="{% if forloop.first %}0{% else %}-1{% endif %}">{% if film.backdrop %}<img src="{{ film.backdrop.url }}" alt="">{% elif film.poster %}<img src="{{ film.poster.url }}" alt="">{% else %}<img src="{% static 'imagery/' %}{{ film.artwork }}.jpg" alt="">{% endif %}<span><small>0{{ forloop.counter }}</small>{{ film.title }}</span></button>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+<div class="browse-content {% if not is_browsing %}home-shelves{% endif %}">
+{% if not is_browsing %}
+  <nav class="discovery-bar" aria-label="Khám phá theo thể loại"><span>Bạn muốn xem gì?</span><a class="selected" href="{% url 'catalog' %}?sort=newest">Tất cả phim</a>{% for cat in categories %}{% if cat.published_count %}<a href="{% url 'catalog' %}?category={{ cat.slug }}">{{ cat.name }}</a>{% endif %}{% endfor %}<a href="{% url 'catalog' %}?access=vip" class="discovery-vip">Lumière VIP ↗</a></nav>
+  {% for shelf in shelves %}
+  <section class="film-shelf poster-shelf" data-shelf><div class="shelf-heading"><div><h2>{{ shelf.title }}</h2><p{% if shelf.preparing %} class="shelf-availability-note"{% endif %}>{{ shelf.subtitle }}</p></div><div class="shelf-actions"><a class="shelf-more" href="{{ shelf.href }}">Xem tất cả <span>↗</span></a><button class="shelf-arrow previous" type="button" data-shelf-dir="-1" aria-label="Cuộn {{ shelf.title }} sang trái"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button><button class="shelf-arrow" type="button" data-shelf-dir="1" aria-label="Cuộn {{ shelf.title }} sang phải"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></div></div><div class="film-row">{% for movie in shelf.movies %}{% include 'cinema/card.html' with portrait=True %}{% endfor %}</div></section>
+  {% if forloop.first %}
+  {% if continue_watching %}
+  <section class="film-shelf continue-shelf" data-shelf><div class="shelf-heading"><div><h2>Xem tiếp</h2><p>Câu chuyện đang chờ bạn.</p></div><a class="shelf-more" href="{% url 'library' %}">Tủ phim <span>↗</span></a></div><div class="film-row">
+    {% for item in continue_watching %}<a class="continue-card" href="{% url 'watch' item.episode.pk %}"><div class="continue-art">{% if item.episode.movie.backdrop %}<img src="{{ item.episode.movie.backdrop.url }}" alt="" loading="lazy">{% elif item.episode.movie.poster %}<img src="{{ item.episode.movie.poster.url }}" alt="" loading="lazy">{% else %}<img src="{% static 'imagery/' %}{{ item.episode.movie.artwork }}.jpg" alt="" loading="lazy">{% endif %}<span class="continue-play"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg></span><progress value="{{ item.progress_percent }}" max="100" aria-label="Tiến độ {{ item.episode.movie.title }}"></progress></div><h3>{{ item.episode.movie.title }}</h3><p>{{ item.episode.title }} · Còn {{ item.remaining_minutes }} phút</p></a>{% endfor %}
+  </div></section>
+  {% endif %}
+  {% endif %}
+  {% endfor %}
+  <section class="together-banner"><div class="together-icon"><svg aria-hidden="true"><use href="#i-users"/></svg></div><div><span class="eyebrow">CÙNG NHAU XEM PHIM</span><h2>Xa nhau vẫn chung một buổi chiếu.</h2><p>Đồng bộ phát phim và trò chuyện trong phòng riêng của bạn.</p></div>{% if user.is_vip %}<a class="btn secondary" href="{% if featured.ready_episode_id %}{% url 'watch' featured.ready_episode_id %}#watch-together{% else %}{% url 'catalog' %}{% endif %}">Bắt đầu xem chung <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>{% else %}<a class="btn secondary" href="{% url 'plans' %}">Khám phá Lumière VIP <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>{% endif %}</section>
+{% else %}
+  <section class="catalog-section"><div class="browse-heading"><div><p class="eyebrow">THƯ VIỆN LUMIÈRE</p><h1>{% if q %}Kết quả cho “{{ q }}”{% elif selected_actor %}Phim có {{ selected_actor.name }}{% elif selected_country %}Phim {{ selected_country }}{% elif selected_category %}Phim {{ selected_category.name }}{% elif selected_year %}Phim năm {{ selected_year }}{% elif request.GET.kind == 'movie' %}Phim lẻ{% elif request.GET.kind == 'series' %}Phim bộ{% elif request.GET.access == 'vip' %}Phim dành cho thành viên VIP{% elif request.GET.sort == 'rating' %}Phim được đánh giá cao{% else %}Khám phá phim{% endif %}</h1><p class="muted">{{ page.paginator.count }} phim trong thư viện</p></div></div>
+  <form id="browse-search" class="browse-filters catalog-filters" method="get">
+    <input type="hidden" name="access" value="{{ request.GET.access }}">
+    <input type="hidden" name="actor" value="{{ actor_filter }}">
+    <label class="browse-query"><span class="sr-only">Tìm phim</span><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="search" name="q" value="{{ q }}" placeholder="Tìm phim hoặc diễn viên, có dấu hoặc không dấu…"></label>
+    <a class="reset-filter" href="{% url 'catalog' %}">Xóa bộ lọc</a>
+    <label class="catalog-filter"><span>Thể loại</span><select name="category"><option value="">Tất cả thể loại</option>{% for cat in categories %}<option value="{{ cat.slug }}" {% if category == cat.slug %}selected{% endif %}>{{ cat.name }}</option>{% endfor %}</select></label>
+    <label class="catalog-filter"><span>Quốc gia</span><select name="country"><option value="">Tất cả quốc gia</option>{% for country in countries %}<option value="{{ country.name }}" {% if selected_country == country.name %}selected{% endif %}>{{ country.name }}</option>{% endfor %}</select></label>
+    <label class="catalog-filter"><span>Năm phát hành</span><select name="year"><option value="">Tất cả năm</option>{% for year in years %}<option value="{{ year }}" {% if selected_year == year|stringformat:'s' %}selected{% endif %}>{{ year }}</option>{% endfor %}</select></label>
+    <label class="catalog-filter"><span>Định dạng</span><select name="kind"><option value="">Tất cả phim</option><option value="movie" {% if request.GET.kind == 'movie' %}selected{% endif %}>Phim lẻ</option><option value="series" {% if request.GET.kind == 'series' %}selected{% endif %}>Phim bộ</option></select></label>
+    <label class="catalog-filter"><span>Sắp xếp</span><select name="sort"><option value="">Mới nhất</option><option value="rating" {% if request.GET.sort == 'rating' %}selected{% endif %}>Đánh giá cao</option></select></label>
+    <button class="btn secondary" type="submit">Áp dụng</button>
+  </form>
+  {% if selected_actor or selected_country or selected_category or selected_year %}<div class="discovery-active-filters" aria-label="Bộ lọc đang áp dụng">{% if selected_category %}<span>Thể loại: {{ selected_category.name }}</span>{% endif %}{% if selected_country %}<span>Quốc gia: {{ selected_country }}</span>{% endif %}{% if selected_actor %}<span>Diễn viên: {{ selected_actor.name }}</span>{% endif %}{% if selected_year %}<span>Năm: {{ selected_year }}</span>{% endif %}</div>{% endif %}
+  <div class="movie-grid portrait-grid">{% for movie in page %}{% include 'cinema/card.html' with portrait=True %}{% empty %}<div class="empty"><svg class="empty-icon" aria-hidden="true"><use href="#i-search"/></svg><h2>Chưa có phim phù hợp</h2><p>Thử từ khóa khác hoặc bỏ bớt bộ lọc.</p><a class="btn secondary" href="{% url 'catalog' %}">Quay lại khám phá</a></div>{% endfor %}</div>
+  {% if page.has_other_pages %}<div class="pagination">{% if page.has_previous %}<a class="btn secondary" href="?q={{ q|urlencode }}&category={{ category|urlencode }}&kind={{ request.GET.kind|urlencode }}&sort={{ request.GET.sort|urlencode }}&access={{ request.GET.access|urlencode }}&country={{ selected_country|urlencode }}&actor={{ actor_filter|urlencode }}&year={{ selected_year|urlencode }}&page={{ page.previous_page_number }}">Trước</a>{% endif %}<span>Trang {{ page.number }} / {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a class="btn secondary" href="?q={{ q|urlencode }}&category={{ category|urlencode }}&kind={{ request.GET.kind|urlencode }}&sort={{ request.GET.sort|urlencode }}&access={{ request.GET.access|urlencode }}&country={{ selected_country|urlencode }}&actor={{ actor_filter|urlencode }}&year={{ selected_year|urlencode }}&page={{ page.next_page_number }}">Tiếp</a>{% endif %}</div>{% endif %}
+  </section>
+{% endif %}
+</div>
+{% endblock %}

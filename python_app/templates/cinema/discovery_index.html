@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} · Lumière{% endblock %}
+{% block content %}
+<section class="content-section discovery-directory">
+  <div class="discovery-heading"><div><p class="eyebrow">{{ eyebrow }}</p><h1>{{ title }}</h1><p class="muted">{{ description }}</p></div><form class="discovery-search" method="get" role="search"><label class="sr-only" for="discovery-query">{% if discovery_kind == 'countries' %}Tìm quốc gia{% else %}Tìm thể loại{% endif %}</label><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input id="discovery-query" type="search" name="q" value="{{ q }}" placeholder="{% if discovery_kind == 'countries' %}Tìm quốc gia…{% else %}Tìm thể loại…{% endif %}"><button class="btn small secondary" type="submit">Tìm</button></form></div>
+  <p class="discovery-count">{{ items|length }} {% if discovery_kind == 'countries' %}quốc gia{% else %}thể loại{% endif %}{% if q %} phù hợp với “{{ q }}”{% else %} trong thư viện{% endif %}</p>
+  <div class="discovery-grid">{% for item in items %}<a class="discovery-tile" href="{{ item.href }}"><span class="discovery-tile-icon"><svg class="icon" aria-hidden="true"><use href="{% if discovery_kind == 'countries' %}#i-globe{% else %}#i-grid{% endif %}"/></svg></span><div><h2>{{ item.name }}</h2><p>{{ item.count }} phim</p></div><svg class="icon discovery-tile-arrow" aria-hidden="true"><use href="#i-arrow"/></svg></a>{% empty %}<div class="empty"><h2>{% if q %}Chưa tìm thấy kết quả{% else %}Nội dung đang được cập nhật{% endif %}</h2><p>{% if q %}Thử từ khóa khác hoặc xem lại toàn bộ danh sách.{% else %}Các mục sẽ xuất hiện khi có phim được xuất bản.{% endif %}</p><a class="btn secondary" href="{% if discovery_kind == 'countries' %}{% url 'countries' %}{% else %}{% url 'categories' %}{% endif %}">Xem tất cả</a></div>{% endfor %}</div>
+</section>
+{% endblock %}

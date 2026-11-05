@@ -1,0 +1,7 @@
+<section id="country-navigation-panel" class="genre-dropdown-panel" data-nav-panel="country" aria-label="Chọn quốc gia" hidden>
+  <div class="genre-dropdown-heading"><span>Khám phá theo quốc gia</span><small>{{ navigation_countries|length }} quốc gia</small></div>
+  <nav class="genre-dropdown-links" aria-label="Danh sách quốc gia">
+    {% for country in navigation_countries %}<a href="{{ country.href }}" {% if country.selected %}aria-current="page"{% endif %}><span>{{ country.name }}</span><small>{{ country.count }} phim</small></a>{% empty %}<p class="genre-dropdown-empty">Quốc gia sẽ xuất hiện khi có phim được xuất bản.</p>{% endfor %}
+  </nav>
+  <a class="genre-dropdown-all" href="{% url 'countries' %}">Xem tất cả quốc gia<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+</section>

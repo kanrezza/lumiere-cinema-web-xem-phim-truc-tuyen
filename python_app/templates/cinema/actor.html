@@ -1,0 +1,15 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}{{ actor.name }} · Diễn viên · Lumière{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'actors.css' %}?v=discovery-1">{% endblock %}
+{% block content %}
+<section class="content-section actor-detail">
+  <a class="actors-back" href="{% url 'actors' %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>Tất cả diễn viên</a>
+  <div class="actor-profile">
+    <span class="actor-profile-avatar" aria-hidden="true">{{ actor.name|slice:':1'|upper }}</span>
+    <div class="actor-profile-copy"><p class="eyebrow">DIỄN VIÊN</p><h1>{{ actor.name }}</h1>{% if actor.bio %}<div class="actor-biography">{{ actor.bio|linebreaks }}</div>{% else %}<p class="muted actor-biography">Thông tin diễn viên đang được cập nhật.</p>{% endif %}</div>
+  </div>
+  <div class="actor-filmography"><div class="section-heading"><div><h2>Phim tham gia</h2><p class="muted">Những bộ phim hiện có trong thư viện Lumière.</p></div><a class="actors-catalog-link" href="{% url 'catalog' %}">Khám phá tất cả <span aria-hidden="true">↗</span></a></div>
+    <div class="movie-grid portrait-grid">{% for movie in movies %}{% include 'cinema/card.html' with portrait=True %}{% empty %}<div class="actors-empty actor-empty-films"><h2>Chưa có phim được công bố</h2><p>Các tựa phim có sự tham gia của {{ actor.name }} sẽ xuất hiện tại đây khi được cập nhật.</p><a class="btn secondary" href="{% url 'catalog' %}">Khám phá thư viện</a></div>{% endfor %}</div>
+  </div>
+</section>
+{% endblock %}

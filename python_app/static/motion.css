@@ -1,0 +1,181 @@
+/* Cinema motion layer. All content works without animation or JavaScript. */
+:root { --accent:#ff987b; --cinema-coral:#ff987b; --cinema-mint:#a8dfd3; }
+.brand-symbol { color:var(--cinema-coral); }
+.header { position:sticky; top:0; z-index:30; background:#090c12ed; backdrop-filter:blur(18px); }
+.header nav a { transition:color .2s; }
+.header nav a[aria-current]:after { background:var(--cinema-coral); }
+.vip-link { background:#2c211f; border-color:#574038; color:#ffc3a7; transition:background .2s,transform .2s; }
+.vip-link:hover { background:#443029; transform:translateY(-2px); }
+.motion-toggle { display:inline-flex; align-items:center; justify-content:center; gap:6px; background:none; color:#929ba9; border:1px solid #29313e; border-radius:30px; min-width:32px; min-height:32px; padding:6px 9px; font-size:10px; white-space:nowrap; }
+.motion-toggle:hover { color:#fff; border-color:#677489; }
+.motion-toggle svg { width:13px; height:13px; }
+.motion-play-icon { display:none; }
+.motion-toggle[aria-pressed=true] .motion-pause-icon { display:none; }
+.motion-toggle[aria-pressed=true] .motion-play-icon { display:block; }
+.motion-toggle:disabled { background:none; color:#8993a4; border-color:#29313e; cursor:default; }
+.btn { position:relative; overflow:hidden; background:#ef997e; transition:transform .22s,background .22s,box-shadow .22s; }
+.btn:hover { background:#ffc4ab; }
+.btn:not(:disabled):not(.disabled):hover { transform:translateY(-2px); box-shadow:0 7px 22px #0003; }
+.btn:not(:disabled):not(.disabled):active { transform:translateY(0) scale(.98); }
+.btn:not(:disabled):not(.disabled)::after { content:''; position:absolute; top:-50%; bottom:-50%; left:-60%; width:35%; background:linear-gradient(90deg,transparent,#ffffff40,transparent); transform:skewX(-20deg); transition:left .55s; pointer-events:none; }
+.btn:not(:disabled):not(.disabled):hover::after { left:130%; }
+.btn svg,.hero-more span,.rated-link span,.free-option a span { transition:transform .25s; }
+.btn:hover svg { transform:scale(1.12); }
+.hero-more:hover span,.rated-link:hover span,.free-option a:hover span { display:inline-block; transform:translate(2px,-2px); }
+.cinema-hero { min-height:440px; border:1px solid #ffffff12; box-shadow:0 24px 70px #0004; }
+.cinema-backdrop { animation:cinema-drift 28s ease-in-out infinite alternate; transform-origin:73% 45%; }
+.cinema-hero-copy { padding-top:58px; padding-bottom:58px; }
+.feature-badge { color:#f4be9e; letter-spacing:.4px; }
+.feature-badge>span { background:#ffa784; box-shadow:0 0 0 4px #ff987b18; }
+.hero-frame { position:absolute; inset:18px; pointer-events:none; opacity:.5; }
+.hero-frame span { position:absolute; width:20px; height:20px; border-color:#ffffff70; border-style:solid; }
+.hero-frame span:first-child { top:0; left:0; border-width:1px 0 0 1px; border-top-left-radius:3px; }
+.hero-frame span:last-child { bottom:0; right:0; border-width:0 1px 1px 0; border-bottom-right-radius:3px; }
+.hero-metadata b,.vip-badge { background:#f2ba98; color:#332319; }
+.genre-link { transition:background .2s,color .2s,transform .2s; }
+.genre-link:hover { transform:translateY(-2px); border-color:#a27e6b; color:#fff; }
+.genre-link.active { background:#e8c7b4; border-color:#e8c7b4; color:#2f211c; }
+.movie-card { perspective:800px; }
+.movie-card .poster { transform:rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg)); transition:transform .22s ease-out,box-shadow .3s; }
+.movie-card:hover .poster,.movie-card:focus-visible .poster { box-shadow:0 18px 32px #0008,0 0 0 1px #c4a49550; }
+.movie-card:hover .poster img { transform:scale(1.06); }
+.poster-hover { transition:opacity .3s,background .3s; background:linear-gradient(transparent,#0a0c1855); }
+.poster-hover svg { width:49px; height:49px; padding:12px; border:1px solid #ffffff80; border-radius:50%; background:#ffffff26; backdrop-filter:blur(8px); transform:translateY(12px) scale(.8); transition:transform .3s; }
+.movie-card:hover .poster-hover svg,.movie-card:focus-visible .poster-hover svg { transform:translateY(0) scale(1); }
+.movie-card:focus-visible .poster-hover { opacity:1; }
+.movie-card h3 { transition:color .2s; }
+.movie-card:hover h3 { color:#ffd1b8; }
+.together-strip { border-color:#493c39; background:linear-gradient(105deg,#191c2a,#251d21); }
+.together-art:after { background:linear-gradient(90deg,transparent,#191c2a); }
+.together-strip .section-label { color:#dca58a; }
+.membership-shell { position:relative; isolation:isolate; max-width:1280px; padding-top:26px; }
+.membership-shell::before { content:''; pointer-events:none; position:absolute; z-index:-1; top:10px; left:-14%; width:83%; height:720px; background:radial-gradient(ellipse at 45% 45%,#a2492c1e,transparent 65%); }
+.membership-stage { gap:60px; }
+.membership-label { color:#edb098; letter-spacing:1px; text-transform:uppercase; font-size:10px; margin-bottom:19px; }
+.membership-label svg { width:18px; }
+.membership-story h1 { font-size:39px; line-height:1.26; letter-spacing:-1.2px; margin-bottom:19px; }
+.membership-story h1>span { color:#f6bb9a; }
+.membership-intro { color:#a4a4ad; font-size:13px; line-height:1.8; margin-bottom:8px; }
+.membership-collage.reel-viewport { display:block; height:290px; padding:24px 0; margin:0 -16px; overflow:hidden; mask-image:linear-gradient(90deg,transparent,#000 4%,#000 92%,transparent); }
+.reel-track { display:flex; width:max-content; animation:film-reel 26s ease-in-out infinite alternate; }
+.reel-group { display:flex; align-items:center; gap:16px; padding:15px 16px 15px 0; flex-shrink:0; }
+.reel-group .collage-poster { width:152px; min-width:152px; height:224px; border-radius:11px; border:1px solid #ffffff20; transform:rotate(-5deg); transition:transform .35s,box-shadow .35s; }
+.reel-group .collage-poster:nth-child(even) { transform:translateY(-10px) rotate(4deg); }
+.reel-group .collage-poster:nth-child(3n) { transform:translateY(10px) rotate(-4deg); }
+.reel-group .collage-poster:hover,.reel-group .collage-poster:focus-visible { transform:translateY(-8px) rotate(0) scale(1.04); box-shadow:0 16px 36px #000a; z-index:2; }
+.collage-poster span { font-size:12px; padding:40px 10px 15px; }
+.reel-caption { display:flex; gap:10px; align-items:center; margin:8px 0 31px; font-size:10px; color:#a49a96; }
+.reel-caption-line { height:1px; width:26px; background:#b57c60; }
+.reel-caption svg { margin-left:auto; width:19px; height:19px; color:#c3947b; }
+.membership-benefits { grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; border-top:1px solid #ffffff15; padding-top:22px; }
+.membership-benefits>div { display:block; }
+.membership-benefits svg { margin-bottom:9px; color:#e0ac90; width:21px; height:21px; }
+.membership-benefits strong { font-size:11px; color:#e7dcd7; }
+.membership-benefits small { font-size:10px; color:#98959b; line-height:1.75; margin-top:6px; }
+.membership-purchase { position:relative; overflow:hidden; background:linear-gradient(145deg,#231f26,#141a25 57%); border-color:#59433d; box-shadow:0 20px 65px #0005; border-radius:18px; }
+.membership-purchase::before { content:''; position:absolute; top:0; left:12%; right:12%; height:1px; background:linear-gradient(90deg,transparent,#edb396,transparent); }
+.purchase-step { color:#b9a49f; }
+.secure-label { color:#a6a0aa; }
+.membership-purchase h2 { font-size:22px; }
+.purchase-subtitle { color:#a29ca9; font-size:12px; }
+.plan-option { background:#191b28; border-color:#414052; transition:background .25s,border-color .25s,box-shadow .25s; }
+.plan-option:hover { border-color:#c49b86; }
+.plan-option:has(input:checked) { border-color:#e6ac8c; background:linear-gradient(110deg,#43302a,#2c2630); box-shadow:inset 0 0 0 1px #e6ac8c40,0 4px 20px #0002; }
+.plan-option-name strong { font-size:13px; color:#f1e8e2; }
+.plan-option-name small { color:#b7a8a7; }
+.plan-radio { border-color:#8b766f; }
+.plan-option input:checked+.plan-radio { border-color:#f4bb98; }
+.plan-option input:checked+.plan-radio:after { background:#f4bb98; }
+.long-plan { background:#553b2f; color:#f5c3a1; }
+.purchase-inclusions,.free-option { border-color:#ffffff16; }
+.purchase-inclusions p { font-size:12px; color:#c6c1cd; }
+.purchase-inclusions p span { color:#a8dfd3; }
+.purchase-total strong { font-size:25px; color:#fae2d5; }
+#selected-price { display:inline-block; }
+.purchase-button { background:#f2b38f; color:#2b1d17; }
+.purchase-button:hover { background:#ffd0b2; }
+.purchase-button:disabled { background:#ad8b7a; color:#211b1a; }
+.payment-note { font-size:10px; color:#a29ba8; }
+.free-option a { color:#d2b9ab; }
+.membership-faq { margin-top:47px; border-color:#ffffff12; }
+.faq-items details { border-color:#ffffff14; }
+.faq-items summary { transition:color .2s; }
+.faq-items summary:hover { color:#f3bc9b; }
+.faq-items summary span { transition:transform .25s; }
+.faq-items details[open] p { animation:faq-appear .25s ease-out; }
+/* Only visible loops run. Hover, keyboard navigation and the motion control pause them. */
+.motion-loop { animation-play-state:paused; }
+[data-motion-loop].is-motion-visible .motion-loop { animation-play-state:running; }
+.reel-viewport:hover .motion-loop,.reel-viewport:focus-within .motion-loop,
+.motion-paused .motion-loop,.motion-suspended .motion-loop { animation-play-state:paused !important; }
+.reel-viewport:focus-within { overflow-x:auto; mask-image:none; }
+.reel-viewport:focus-within .reel-track { animation:none; transform:none; }
+.motion-paused .btn,.motion-paused .btn::after,.motion-paused .btn svg,.motion-paused .poster,
+.motion-paused .poster img,.motion-paused .poster-hover,.motion-paused .poster-hover svg,
+.motion-paused .collage-poster,.motion-paused .vip-link,.motion-paused .genre-link,
+.motion-paused .plan-option,.motion-paused .faq-items summary span { transition:none; }
+.motion-paused .movie-card .poster,.motion-paused .movie-card:hover .poster img,
+.motion-paused .btn:hover,.motion-paused .vip-link:hover,.motion-paused .genre-link:hover { transform:none !important; }
+.motion-paused .faq-items details[open] p { animation:none; }
+@keyframes film-reel { to { transform:translateX(var(--reel-travel,0px)); } }
+@keyframes cinema-drift { from { transform:scale(1.02); } to { transform:scale(1.13) translateX(-1%); } }
+@keyframes faq-appear { from { opacity:0; transform:translateY(-5px); } to { opacity:1; transform:translateY(0); } }
+@media(max-width:1200px) {
+  .motion-toggle [data-motion-label] { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+  .motion-toggle { padding:7px; }
+  .membership-stage { gap:35px; }
+  .membership-story h1 { font-size:35px; }
+  .membership-benefits { gap:15px; }
+}
+@media(max-width:900px) {
+  .header-inner { gap:20px; }
+  .header-right { gap:16px; }
+  .membership-story { display:block; }
+  .membership-story h1 br { display:none; }
+  .membership-story h1 span::before { content:' '; }
+  .membership-intro br { display:none; }
+  .membership-stage { grid-template-columns:minmax(0,1fr); gap:30px; }
+  .membership-collage.reel-viewport { height:275px; }
+  .membership-benefits { margin-top:0; }
+  .membership-purchase { width:100%; max-width:560px; }
+}
+@media(max-width:680px) {
+  .header-inner { gap:0; }
+  .header-right { gap:13px; }
+  .motion-toggle { min-height:29px; min-width:29px; padding:6px; }
+  .cinema-hero { min-height:370px; }
+  .cinema-hero-copy { padding:35px 24px; }
+  .hero-frame { inset:12px; }
+  .hero-frame span { width:13px; height:13px; }
+  .membership-label { font-size:10px; }
+  .membership-story h1 { font-size:33px; line-height:1.3; }
+  .membership-story h1 br { display:block; }
+  .membership-story h1 span::before { content:none; }
+  .membership-intro { font-size:12px; max-width:310px; }
+  .membership-collage.reel-viewport { height:258px; margin:0 -16px; padding-top:24px; }
+  .reel-group { gap:13px; padding-right:13px; }
+  .reel-group .collage-poster { width:130px; min-width:130px; height:193px; }
+  .collage-poster span { font-size:11px; }
+  .reel-caption { font-size:9px; margin-bottom:23px; }
+  .membership-benefits { gap:13px; padding-top:19px; }
+  .membership-benefits strong { font-size:10px; line-height:1.6; }
+  .membership-benefits small { display:none; }
+  .membership-benefits svg { width:19px; height:19px; margin-bottom:4px; }
+  .membership-purchase { padding:24px 20px; border-radius:14px; }
+  .plan-option-name strong { font-size:12px; }
+  .purchase-total strong { font-size:24px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  html:not(:has(body.motion-enabled)) { scroll-behavior:auto; }
+  body:not(.motion-enabled) .motion-loop,body:not(.motion-enabled) .faq-items details[open] p { animation:none !important; }
+  body:not(.motion-enabled) .reel-viewport { overflow-x:auto !important; mask-image:none !important; }
+  body:not(.motion-enabled) .btn,body:not(.motion-enabled) .btn::after,
+  body:not(.motion-enabled) .btn svg,body:not(.motion-enabled) .poster,
+  body:not(.motion-enabled) .poster img,body:not(.motion-enabled) .poster-hover,
+  body:not(.motion-enabled) .poster-hover svg,body:not(.motion-enabled) .collage-poster,
+  body:not(.motion-enabled) .vip-link,body:not(.motion-enabled) .genre-link,
+  body:not(.motion-enabled) .plan-option,body:not(.motion-enabled) .faq-items summary span { transition:none !important; }
+  body:not(.motion-enabled) .movie-card .poster,body:not(.motion-enabled) .movie-card:hover .poster img,
+  body:not(.motion-enabled) .btn:hover,body:not(.motion-enabled) .vip-link:hover,
+  body:not(.motion-enabled) .genre-link:hover,body:not(.motion-enabled) .reel-group .collage-poster:hover { transform:none !important; }
+}

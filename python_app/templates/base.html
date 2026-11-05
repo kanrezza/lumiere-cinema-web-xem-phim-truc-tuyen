@@ -1,0 +1,69 @@
+{% load static cinema_navigation %}{% genre_menu_data as navigation_genres %}{% country_menu_data as navigation_countries %}
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0d0e">
+  <script src="{% static 'theme.js' %}?v=light-dark-1"></script>
+  <meta name="description" content="Khám phá phim, lưu những tựa phim yêu thích và tận hưởng những buổi xem chung cùng Lumière.">
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+  <title>{% block title %}Lumière · Phim cho buổi tối của bạn{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'streaming.css' %}?v=lumiere-dropdown-1">
+  <script src="{% static 'app.js' %}?v=lumiere-dropdown-1" defer></script>
+  <script src="{% static 'motion.js' %}?v=lumiere-dropdown-1" defer></script>
+  <script src="{% static 'streaming.js' %}?v=lumiere-dropdown-1" defer></script>
+  <link rel="stylesheet" href="{% static 'quickview.css' %}?v=catalog-ready-2">
+  <script src="{% static 'quickview.js' %}?v=catalog-ready-2" defer></script>
+  <link rel="stylesheet" href="{% static 'discovery.css' %}?v=genre-dropdown-1">
+  <script src="{% static 'navigation.js' %}?v=country-dropdown-1" defer></script>
+  <link rel="stylesheet" href="{% static 'avatar.css' %}?v=profile-avatar-2">
+  <script src="{% static 'avatar.js' %}?v=profile-avatar-2" defer></script>
+  {% block head %}{% endblock %}
+  <link rel="stylesheet" href="{% static 'theme.css' %}?v=light-dark-2">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+<svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M21 20v-2a6 6 0 0 0-4-5"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4V3Z"/></symbol>
+</defs></svg>
+<a class="skip-link" href="#main">Đến nội dung chính</a>
+<header class="site-header">
+  <div class="header-inner">
+    {% block brand %}<a class="brand" href="{% if user.is_authenticated %}{% url 'catalog' %}{% else %}{% url 'landing' %}{% endif %}" aria-label="Lumière — Trang chủ"><span class="brand-mark" aria-hidden="true">l<span>›</span></span>lumière<span class="brand-period">.</span></a>{% endblock %}
+    {% block navigation %}<nav class="main-nav" aria-label="Điều hướng chính">
+      <a href="{% url 'catalog' %}" {% if request.path == '/browse/' and not request.GET.kind and not request.GET.category and not request.GET.country and not request.GET.actor %}aria-current="page"{% endif %}>Khám phá</a>
+      <a href="/browse/?kind=movie" {% if request.GET.kind == 'movie' and not request.GET.category and not request.GET.country and not request.GET.actor %}aria-current="page"{% endif %}>Phim lẻ</a>
+      <a href="/browse/?kind=series" {% if request.GET.kind == 'series' and not request.GET.category and not request.GET.country and not request.GET.actor %}aria-current="page"{% endif %}>Phim bộ</a>
+      {% include 'cinema/genre_trigger.html' %}
+      {% include 'cinema/country_trigger.html' %}
+      <a href="{% url 'actors' %}" {% if request.resolver_match.url_name == 'actors' or request.resolver_match.url_name == 'actor' or request.GET.actor %}aria-current="page"{% endif %}>Diễn viên</a>
+      <a href="{% url 'library' %}" {% if request.path == '/library/' %}aria-current="page"{% endif %}>Tủ phim</a>
+    </nav>{% endblock %}
+    <div class="header-actions">{% include 'cinema/theme_toggle.html' %}{% block header_actions %}
+      {% block header_search %}<form class="header-search" method="get" action="/browse/" role="search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="search" name="q" value="{% if request.path == '/browse/' %}{{ request.GET.q }}{% endif %}" placeholder="Tìm phim, diễn viên…" aria-label="Tìm kiếm phim"><button type="submit" class="sr-only">Tìm kiếm</button></form>
+      <a class="mobile-search" href="/browse/?sort=newest#browse-search" aria-label="Tìm phim"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></a>
+      <a class="header-vip" href="{% url 'plans' %}"{% if user.is_vip %} aria-label="VIP của bạn"{% endif %}>{% if user.is_vip %}<b>VIP</b><span> của bạn</span>{% else %}Lumière <b>VIP</b>{% endif %}</a>{% endblock %}
+      {% if user.is_authenticated %}
+      <details class="account-menu"><summary aria-label="Menu tài khoản {{ user.username }}"><span class="avatar user-avatar" aria-hidden="true"><span class="avatar-initial">{{ user.username|slice:':1'|upper }}</span>{% if user.avatar %}<img class="avatar-image" data-saved-avatar src="{{ user.avatar.url }}" alt="" width="66" height="66">{% endif %}</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></summary><div class="account-dropdown"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{% if user.is_staff %}Quản trị viên{% elif user.is_vip %}Thành viên VIP{% else %}Thành viên{% endif %}</small><a href="{% url 'profile' %}">Quản lý tài khoản</a><a href="{% url 'library' %}">Tủ phim của tôi</a>{% if user.is_staff %}<a href="{% url 'studio' %}">Studio quản trị</a>{% endif %}<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button>Đăng xuất</button></form></div></details>
+      {% else %}<a class="header-login" href="{% url 'login' %}">Đăng nhập</a>{% endif %}
+    {% endblock %}</div>
+  </div>
+  {% include 'cinema/genre_dropdown.html' %}
+  {% include 'cinema/country_dropdown.html' %}
+</header>
+<main id="main">
+  {% if messages %}<div class="messages" role="status">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+{% block footer %}<footer class="site-footer"><div class="footer-inner"><div><a class="brand" href="/">lumière<span class="brand-period">.</span></a><p>Một bộ phim hay, một buổi tối đáng nhớ.</p></div><div class="footer-links"><a href="/browse/">Khám phá</a><a href="{% url 'actors' %}">Diễn viên</a><a href="{% url 'plans' %}">Thành viên VIP</a><button type="button" class="motion-toggle" data-motion-toggle aria-pressed="false"><span data-motion-label>Tắt hiệu ứng</span></button></div><small>© 2026 Lumière</small></div></footer>{% endblock %}
+{% include 'cinema/quickview.html' %}
+{% block scripts %}{% endblock %}
+</body></html>

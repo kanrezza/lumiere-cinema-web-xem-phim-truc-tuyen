@@ -1,0 +1,33 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}Diễn viên · Lumière{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'actors.css' %}?v=discovery-1">{% endblock %}
+{% block content %}
+<section class="content-section actors-directory">
+  <div class="actors-heading">
+    <div><p class="eyebrow">KHÁM PHÁ LUMIÈRE</p><h1>Diễn viên</h1><p class="muted">Tìm diễn viên và khám phá những bộ phim họ tham gia.</p></div>
+    {% if actors %}<span class="actors-count">{% if actors.paginator %}{{ actors.paginator.count }}{% else %}{{ actors|length }}{% endif %} diễn viên</span>{% endif %}
+  </div>
+  <form class="actors-search" method="get" role="search">
+    <label class="actors-search-field"><span class="sr-only">Tìm diễn viên</span><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="search" name="q" value="{{ q }}" placeholder="Tìm tên diễn viên…" autocomplete="off"></label>
+    <button class="btn" type="submit">Tìm kiếm</button>
+    {% if q %}<a class="actors-reset" href="{% url 'actors' %}">Xóa tìm kiếm</a>{% endif %}
+  </form>
+  <div class="actors-grid">
+    {% for actor in actors %}
+    <a class="actor-card" href="{% url 'actor' actor.pk %}">
+      <span class="actor-card-avatar" aria-hidden="true">{{ actor.name|slice:':1'|upper }}</span>
+      <div class="actor-card-copy"><h2>{{ actor.name }}</h2><p>{{ actor.film_count }} phim trong thư viện</p></div>
+      <svg class="icon actor-card-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+    </a>
+    {% empty %}
+    <div class="actors-empty">
+      <span class="actors-empty-icon" aria-hidden="true"><svg class="icon"><use href="#i-users"/></svg></span>
+      <h2>{% if q %}Không tìm thấy diễn viên phù hợp{% else %}Thông tin diễn viên đang được cập nhật{% endif %}</h2>
+      <p>{% if q %}Thử tìm bằng tên khác hoặc xóa từ khóa để xem danh sách.{% else %}Bạn vẫn có thể khám phá các bộ phim đang có trong thư viện Lumière.{% endif %}</p>
+      <div class="actions">{% if q %}<a class="btn" href="{% url 'actors' %}">Xem tất cả diễn viên</a>{% else %}<a class="btn" href="{% url 'catalog' %}">Khám phá phim</a>{% endif %}{% if perms.cinema.add_actor %}<a class="btn secondary" href="{% url 'admin:cinema_actor_add' %}">Thêm diễn viên</a>{% endif %}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% if actors.has_other_pages %}<nav class="pagination" aria-label="Phân trang diễn viên">{% if actors.has_previous %}<a class="btn secondary" href="?q={{ q|urlencode }}&page={{ actors.previous_page_number }}">Trang trước</a>{% endif %}<span>{{ actors.number }} / {{ actors.paginator.num_pages }}</span>{% if actors.has_next %}<a class="btn secondary" href="?q={{ q|urlencode }}&page={{ actors.next_page_number }}">Trang sau</a>{% endif %}</nav>{% endif %}
+</section>
+{% endblock %}
