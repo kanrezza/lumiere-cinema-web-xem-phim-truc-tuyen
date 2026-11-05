@@ -9,15 +9,26 @@ use Illuminate\Support\Facades\Hash;
 class AdminUserSeeder extends Seeder
 {
     /**
-     * Seed the default admin account.
+     * Seed an administrator only when credentials are explicitly configured.
      */
     public function run(): void
     {
+        $email = config('seeding.admin.email');
+        $password = config('seeding.admin.password');
+
+        if (! is_string($email) || ! is_string($password)
+            || ! filter_var(trim($email), FILTER_VALIDATE_EMAIL)
+            || mb_strlen(trim($password)) < 12) {
+            $this->command?->warn('Bỏ qua tài khoản quản trị: cần ADMIN_EMAIL hợp lệ và ADMIN_PASSWORD tối thiểu 12 ký tự.');
+
+            return;
+        }
+
         User::updateOrCreate(
-            ['email' => 'admin@movieweb.local'],
+            ['email' => trim($email)],
             [
                 'name' => 'MovieWeb Admin',
-                'password' => Hash::make('Admin@123456'),
+                'password' => Hash::make($password),
                 'role' => 'admin',
                 'status' => 'active',
             ],

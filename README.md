@@ -36,12 +36,9 @@ Hệ thống cho phép người dùng xem và khám phá phim trực tuyến, đ
 
 ---
 
-## Tài khoản demo
+## Khởi tạo quản trị cho bản Laravel
 
-| Vai trò | Tài khoản | Mật khẩu |
-|---------|-----------|----------|
-| Admin   | admin@gmail.com | 123456 |
-| User    | danh@gmail.com  | 123456 |
+Không có tài khoản hoặc mật khẩu quản trị mặc định. Để chạy `AdminUserSeeder`, đặt `ADMIN_EMAIL` hợp lệ và `ADMIN_PASSWORD` tối thiểu 12 ký tự trong môi trường riêng; không đưa giá trị thật lên Git. Nếu thiếu hoặc không hợp lệ, seeder cảnh báo rồi bỏ qua việc tạo quản trị. Nếu đã cache cấu hình Laravel, cập nhật cache sau khi đổi các biến này. Chạy lại seeder sẽ cập nhật mật khẩu và quyền của tài khoản có email đã cấu hình; chỉ thực hiện khi bạn chủ động muốn cập nhật tài khoản đó.
 
 ---
 
