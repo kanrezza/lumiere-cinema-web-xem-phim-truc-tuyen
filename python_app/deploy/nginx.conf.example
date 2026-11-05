@@ -1,0 +1,55 @@
+# EXAMPLE ONLY: replace domain, TLS certificate, and paths before enabling.
+# Requires TRUST_PROXY=1 and Gunicorn bound only to 127.0.0.1:8000.
+# In the nginx http {} block:
+limit_req_zone $binary_remote_addr zone=lumiere_auth:10m rate=10r/m;
+limit_req_zone $binary_remote_addr zone=lumiere_general:10m rate=20r/s;
+
+server {
+    listen 80;
+    server_name cinema.example.com;
+    return 301 https://$host$request_uri;
+}
+server {
+    listen 443 ssl;
+    server_name cinema.example.com;
+    ssl_certificate /etc/letsencrypt/live/cinema.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/cinema.example.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    server_tokens off;
+    # More than app file limit to allow multipart overhead. Restrict disk quota too.
+    client_max_body_size 4100m;
+    client_body_timeout 120s;
+    client_body_temp_path /var/lib/nginx/lumiere_uploads;
+
+    location /static/ {
+        alias /srv/lumiere/python_app/staticfiles/;
+        add_header X-Content-Type-Options nosniff always;
+    }
+    location /media/ {
+        # Public image assets ONLY. Never point this at private_media.
+        alias /srv/lumiere/python_app/public_media/;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Content-Security-Policy "default-src 'none'; sandbox" always;
+    }
+    location ~ ^/(private_media|originals|hls)/ { return 404; }
+    location ~ ^/(accounts/|admin/login/) {
+        limit_req zone=lumiere_auth burst=10 nodelay;
+        include /etc/nginx/snippets/lumiere_proxy.conf;
+    }
+    location / {
+        limit_req zone=lumiere_general burst=50 nodelay;
+        include /etc/nginx/snippets/lumiere_proxy.conf;
+    }
+}
+
+# Save the following directives as /etc/nginx/snippets/lumiere_proxy.conf:
+# proxy_pass http://127.0.0.1:8000;
+# proxy_set_header Host $host;
+# proxy_set_header X-Forwarded-Proto $scheme;
+# proxy_set_header X-Real-IP $remote_addr;
+# proxy_set_header X-Forwarded-For $remote_addr;
+# proxy_request_buffering on;
+# proxy_read_timeout 120s;
+# proxy_send_timeout 120s;
+# proxy_buffering off;
+# access_log off;  # Or use a log format with $uri only; signed video query strings are sensitive.

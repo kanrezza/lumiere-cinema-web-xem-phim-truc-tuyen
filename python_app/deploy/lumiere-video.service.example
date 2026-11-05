@@ -1,0 +1,23 @@
+[Unit]
+Description=Lumiere queued video conversion
+After=network.target
+
+[Service]
+Type=oneshot
+User=lumiere
+Group=lumiere
+WorkingDirectory=/srv/lumiere/python_app
+EnvironmentFile=/etc/lumiere/env
+ExecStart=/srv/lumiere/python_app/.venv/bin/python manage.py process_videos
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/lumiere/python_app/private_media
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+# The worker needs database access but should have no outbound Internet route.
+# Enforce that at the container/network firewall; FFmpeg handles untrusted files.
+MemoryMax=2G
+CPUQuota=200%
+TimeoutStartSec=7h
+UMask=0077
