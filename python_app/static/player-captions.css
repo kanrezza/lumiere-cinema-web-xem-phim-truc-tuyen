@@ -1,21 +1,43 @@
 .player-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .player-control:disabled, .player-range:disabled { opacity: .4; cursor: not-allowed; }
-.player-caption-control { display: flex; align-items: center; gap: 7px; min-width: 0; color: #f5f2eb; }
-.player-caption-control > span { font-size: 10px; border: 1px solid #ffffff85; border-radius: 3px; padding: 1px 3px; line-height: 1.2; }
-.player-caption-control .player-subtitles { width: auto; max-width: 160px; min-height: 32px; margin: 0; padding: 4px 20px 4px 7px; font-size: 11px; border: 1px solid #ffffff45; border-radius: 5px; background: #14181d; color: #fff; color-scheme: dark; }
-.player-caption-control .player-subtitles:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.player-caption-display { position: absolute; left: 5%; right: 5%; bottom: 96px; z-index: 3; max-height: 45%; overflow: hidden; pointer-events: none; text-align: center; color: #fff; font-family: Arial, sans-serif; font-size: clamp(16px, 1.8vw, 20px); line-height: 1.45; text-shadow: 0 1px 3px #000, 0 0 2px #000; }
+.player-caption-display[hidden] { display: none!important; }
+.player-caption-display > span { padding: 3px 7px; border-radius: 3px; background: #000c; white-space: pre-line; overflow-wrap: anywhere; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.player-caption-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; border: 1px solid #ffffff55; border-radius: 6px; padding: 5px 9px; background: #14181dd9; color: #fff; font-size: 11px; white-space: nowrap; }
+.player-caption-toggle > span:first-child { border: 1px solid currentColor; border-radius: 3px; padding: 0 3px; font-size: 10px; font-weight: 700; }
+.player-caption-toggle:hover, .player-caption-toggle[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+.player-caption-toggle:focus-visible, .caption-panel :is(button, select):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.caption-panel { position: absolute; inset: auto 12px 74px auto; z-index: 8; width: min(340px, calc(100% - 24px)); max-height: calc(100% - 90px); overflow: auto; overscroll-behavior: contain; padding: 20px; border: 1px solid #ffffff38; border-radius: 10px; background: #14181df7; color: #f5f2eb; box-shadow: 0 12px 40px #0008; color-scheme: dark; }
+.caption-panel[hidden] { display: none!important; }
+.player-wrap:has(.caption-panel:not([hidden])) .player-controls { opacity: 1; }
+.caption-panel-heading { position: sticky; top: -20px; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 15px; margin: -20px -20px 18px; padding: 10px 20px; border-bottom: 1px solid #ffffff24; background: #14181d; }
+.caption-panel-heading h2 { margin: 0; font-size: 16px; font-weight: 600; color: #fff; }
+.caption-close { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid #ffffff36; border-radius: 50%; background: transparent; color: #fff; font-size: 23px; line-height: 1; }
+.caption-field { display: block; margin: 13px 0 6px; color: #d8dce0; font-size: 11px; }
+.caption-panel select { display: block; width: 100%; max-width: 100%; min-height: 38px; margin: 0; border: 1px solid #ffffff45; border-radius: 5px; padding: 6px 25px 6px 9px; background: #22272e; color: #fff; font-size: 12px; color-scheme: dark; }
+.caption-panel select:disabled { opacity: .5; }
+.caption-panel :is(.caption-empty, .caption-translation > p, .caption-generation > p) { color: #bfc5cc; font-size: 11px; line-height: 1.7; margin: 12px 0 0; }
+.caption-translation, .caption-generation { margin-top: 20px; padding-top: 17px; border-top: 1px solid #ffffff24; }
+.caption-translation h3, .caption-generation h3 { margin: 0; color: #fff; font-size: 13px; font-weight: 600; }
+.caption-translation > p:first-of-type, .caption-generation > p:first-of-type { margin-top: 6px; }
+.caption-translate { display: block; width: 100%; min-height: 39px; margin: 16px 0 0; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: var(--accent-ink, #20120d); font-size: 12px; font-weight: 600; }
+.caption-translate:disabled { opacity: .4; cursor: not-allowed; }
+.caption-translation-status { min-height: 18px; overflow-wrap: anywhere; }
+.caption-translation-status[data-error="true"] { color: #ffb9a5; }
 .player-wrap video::cue { color: #fff; background: #000c; font-family: Arial, sans-serif; font-size: clamp(13px, 1.6vw, 20px); text-shadow: 0 1px 2px #000; }
 @media (max-width: 600px) {
   .player-wrap { display: grid; grid-template-columns: minmax(0, 1fr); }
   .player-wrap video { grid-area: 1 / 1; }
+  .player-caption-display { grid-area: 1 / 1; position: relative; inset: auto; align-self: end; justify-self: stretch; margin: 12px 12px 16px; max-height: 120px; font-size: 16px; }
   .player-controls { grid-area: 2 / 1; position: relative; bottom: auto; padding-top: 13px; background: #0b0d0e; }
   .player-wrap.is-playing:not(:hover):not(:focus-within) .player-controls { opacity: 1; }
   .player-center { grid-area: 1 / 1; position: relative; top: auto; left: auto; transform: none; align-self: center; justify-self: center; }
   .player-controls-row { flex-wrap: wrap; gap: 9px; }
-  .player-end-controls { gap: 9px; }
-  .player-caption-control { gap: 4px; }
-  .player-caption-control .player-subtitles { max-width: 110px; font-size: 10px; padding-left: 5px; }
-  .player-controls-row:has(.player-subtitles) .player-end-controls { flex-basis: 100%; justify-content: flex-end; }
-  .player-controls-row:has(.player-subtitles) .player-caption-control { margin-right: auto; }
-  .player-controls-row:has(.player-subtitles) .player-caption-control .player-subtitles { max-width: 185px; }
+  .player-end-controls { gap: 9px; flex-basis: 100%; justify-content: flex-end; }
+  .player-caption-toggle { margin-right: auto; }
+  .caption-panel { inset: 10px 10px auto; width: auto; max-height: calc(100% - 20px); padding: 15px; }
+  .caption-panel-heading { top: -15px; margin: -15px -15px 12px; padding: 10px 15px; }
+  .caption-panel-heading h2 { font-size: 15px; }
+  .caption-field { margin-top: 10px; }
+  .caption-translation, .caption-generation { margin-top: 15px; padding-top: 13px; }
 }

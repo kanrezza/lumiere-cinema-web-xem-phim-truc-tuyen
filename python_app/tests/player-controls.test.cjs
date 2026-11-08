@@ -116,6 +116,38 @@ test('caption switch shows only the chosen DOM subtitle track and survives sourc
 test('player works when no subtitle selector exists', () => {
   const env = environment({subtitles: false}); env.load('player-controls.js'); env.actions[2].fire('click'); assert.equal(env.video.currentTime, 33);
 });
+test('a generated or translated caption track can be selected without reloading the movie', () => {
+  const env = environment(); env.load('player-controls.js');
+  const translated = new Element('track');
+  translated.track = {mode: 'disabled', cues: [{line: 'auto', snapToLines: false, text: 'Xin chào'}]};
+  env.subtitleTracks.push(translated);
+  env.video.fire('lumiere:captions-changed', {detail: {selected: '2'}});
+  assert.equal(translated.track.mode, 'showing');
+  assert.equal(env.subtitleSelect.value, '2');
+  assert.equal(env.subtitleTracks[0].track.mode, 'disabled');
+  translated.fire('load'); assert.equal(translated.track.cues[0].line, -5);
+  translated.track.cues.push({line: 'auto', snapToLines: false, text: 'Later parsed cue'});
+  env.video.fire('timeupdate'); assert.equal(translated.track.cues[1].line, -5);
+  env.video.fire('loadedmetadata'); assert.equal(translated.track.mode, 'showing');
+});
+test('caption overlay shows active text safely and hands off to native mobile fullscreen', () => {
+  const env = environment();
+  const display = new Element(), text = new Element();
+  const query = env.wrap.querySelector;
+  env.wrap.querySelector = selector => selector === '[data-caption-display]' ? display : selector === '[data-caption-text]' ? text : query(selector);
+  env.subtitleTracks[0].track.activeCues = [{text: '<script>literal caption</script>', getCueAsHTML: () => ({textContent: '<script>literal caption</script>'})}];
+  env.load('player-controls.js');
+  env.subtitleSelect.value = '0'; env.subtitleSelect.fire('change');
+  assert.equal(env.subtitleTracks[0].track.mode, 'hidden');
+  assert.equal(text.textContent, '<script>literal caption</script>');
+  assert.equal(display.hidden, false);
+  env.video.fire('webkitbeginfullscreen');
+  assert.equal(env.subtitleTracks[0].track.mode, 'showing'); assert.equal(display.hidden, true);
+  env.video.fire('webkitendfullscreen');
+  assert.equal(env.subtitleTracks[0].track.mode, 'hidden'); assert.equal(display.hidden, false);
+  env.subtitleSelect.value = 'off'; env.subtitleSelect.fire('change');
+  assert.equal(display.hidden, true); assert.equal(text.textContent, '');
+});
 test('source refresh preserves a seek made while the ticket request is pending', async () => {
   const env = environment(); let resolveTicket;
   env.context.postForm = () => new Promise(resolve => {resolveTicket = resolve;});

@@ -1,7 +1,54 @@
 {% load l10n %}
 {% with subtitles=episode.subtitles.all %}
-<div class="player-wrap" tabindex="0" role="group" aria-label="Trình phát phim" data-can-seek="{% if room and not is_host %}false{% else %}true{% endif %}"><video id="player" controls playsinline preload="metadata" controlslist="nodownload" disablepictureinpicture {% if episode.movie.backdrop %}poster="{{ episode.movie.backdrop.url }}"{% endif %} data-ticket="{% url 'ticket' episode.pk %}" data-progress="{% url 'progress' episode.pk %}" data-position="{{ position|default:0|unlocalize }}" data-duration="{{ episode.duration|unlocalize }}">{% for subtitle in subtitles %}<track data-subtitle kind="subtitles" src="{% url 'subtitle' episode.pk subtitle.pk %}" srclang="{{ subtitle.language }}" label="{{ subtitle.label }}">{% endfor %}</video><div class="watermark">LUMIÈRE · #{{ user.pk }}</div>
-<button class="player-center" data-player-action="play" aria-label="Phát phim" hidden><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg></button>
-<div class="player-controls" hidden><input class="player-range" type="range" min="0" max="100" value="0" step="1" aria-label="Vị trí phát"><div class="player-controls-row"><button class="player-control player-toggle" data-player-action="play" aria-label="Phát"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span class="player-pause-symbol" aria-hidden="true">Ⅱ</span></button><button class="player-control" data-player-action="back" aria-label="Lùi 10 giây"><span class="player-skip" aria-hidden="true">−10</span></button><button class="player-control" data-player-action="forward" aria-label="Tua 10 giây"><span class="player-skip" aria-hidden="true">+10</span></button><span class="player-time"><span data-player-time>0:00</span> / <span data-player-duration>0:00</span></span><div class="player-end-controls">{% if subtitles %}<label class="player-caption-control"><span aria-hidden="true">CC</span><select class="player-subtitles" aria-label="Phụ đề"><option value="off">Tắt phụ đề</option>{% for subtitle in subtitles %}<option value="{{ forloop.counter0 }}">{{ subtitle.label }}</option>{% endfor %}</select></label>{% endif %}<button class="player-control" data-player-action="mute" aria-label="Tắt tiếng"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4V9Zm12-1a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg></button><input type="range" class="player-volume" min="0" max="1" step=".05" value="1" aria-label="Âm lượng"><span class="player-quality" data-player-quality></span><button class="player-control" data-player-action="fullscreen" aria-label="Toàn màn hình"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button></div></div></div></div>
+<div class="player-wrap" tabindex="0" role="group" aria-label="Trình phát phim" data-can-seek="{% if room and not is_host %}false{% else %}true{% endif %}">
+  <video id="player" controls playsinline preload="metadata" controlslist="nodownload" disablepictureinpicture {% if episode.movie.backdrop %}poster="{{ episode.movie.backdrop.url }}"{% endif %} data-ticket="{% url 'ticket' episode.pk %}" data-progress="{% url 'progress' episode.pk %}" data-position="{{ position|default:0|unlocalize }}" data-duration="{{ episode.duration|unlocalize }}">
+    {% for subtitle in subtitles %}<track data-subtitle data-subtitle-id="{{ subtitle.pk }}" kind="subtitles" src="{% url 'subtitle' episode.pk subtitle.pk %}" srclang="{{ subtitle.language }}" label="{{ subtitle.label }}">{% endfor %}
+  </video>
+  <div class="player-caption-display" data-caption-display aria-hidden="true" hidden><span data-caption-text></span></div>
+  <div class="watermark">LUMIÈRE · #{{ user.pk }}</div>
+  <button type="button" class="player-center" data-player-action="play" aria-label="Phát phim" hidden><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg></button>
+  <div class="player-controls" hidden>
+    <input class="player-range" type="range" min="0" max="100" value="0" step="1" aria-label="Vị trí phát">
+    <div class="player-controls-row">
+      <button type="button" class="player-control player-toggle" data-player-action="play" aria-label="Phát"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span class="player-pause-symbol" aria-hidden="true">Ⅱ</span></button>
+      <button type="button" class="player-control" data-player-action="back" aria-label="Lùi 10 giây"><span class="player-skip" aria-hidden="true">−10</span></button>
+      <button type="button" class="player-control" data-player-action="forward" aria-label="Tua 10 giây"><span class="player-skip" aria-hidden="true">+10</span></button>
+      <span class="player-time"><span data-player-time>0:00</span> / <span data-player-duration>0:00</span></span>
+      <div class="player-end-controls">
+        <button type="button" class="player-caption-toggle" data-caption-toggle aria-label="Phụ đề" aria-haspopup="dialog" aria-expanded="false" aria-controls="caption-panel"><span aria-hidden="true">CC</span><span>Phụ đề</span></button>
+        <button type="button" class="player-control" data-player-action="mute" aria-label="Tắt tiếng"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4V9Zm12-1a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg></button>
+        <input type="range" class="player-volume" min="0" max="1" step=".05" value="1" aria-label="Âm lượng">
+        <span class="player-quality" data-player-quality></span>
+        <button type="button" class="player-control" data-player-action="fullscreen" aria-label="Toàn màn hình"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
+      </div>
+    </div>
+  </div>
+  <section class="caption-panel" id="caption-panel" role="dialog" aria-modal="false" aria-labelledby="caption-panel-title" data-caption-panel data-caption-scope="/watch/{{ episode.pk }}/" hidden>
+    <div class="caption-panel-heading"><h2 id="caption-panel-title">Phụ đề</h2><button type="button" class="caption-close" data-caption-close aria-label="Đóng phụ đề">×</button></div>
+    <label class="caption-field" for="caption-selection">Phụ đề hiển thị</label>
+    <select id="caption-selection" class="player-subtitles" aria-label="Phụ đề"{% if not subtitles %} disabled{% endif %}><option value="off">Tắt phụ đề</option>{% for subtitle in subtitles %}<option value="{{ forloop.counter0 }}">{{ subtitle.label }}</option>{% endfor %}</select>
+    {% if not subtitles %}<p class="caption-empty" data-caption-empty>Phim chưa có phụ đề. Bạn có thể tạo phụ đề từ lời thoại rồi dịch sang ngôn ngữ khác.</p>{% endif %}
+    <form class="caption-generation" data-caption-generate action="{% url 'caption_generate' episode.pk %}">
+      {% csrf_token %}
+      <h3>Tạo phụ đề từ âm thanh</h3>
+      <p>Nhận dạng lời thoại trong phim. Quá trình này có thể mất vài phút.</p>
+      <label class="caption-field" for="caption-speech-language">Ngôn ngữ lời thoại</label>
+      <select id="caption-speech-language" data-caption-speech-language aria-label="Ngôn ngữ lời thoại"><option value="auto">Tự nhận diện</option><option value="en">English</option><option value="vi">Tiếng Việt</option></select>
+      <button type="submit" class="caption-translate" data-caption-generate-submit>Tạo phụ đề tự động</button>
+      <p class="caption-translation-status" role="status" aria-live="polite" data-caption-generate-status></p>
+    </form>
+    <form class="caption-translation" data-caption-form>
+      {% csrf_token %}
+      <h3>Dịch tự động</h3>
+      <p>Dịch từ phụ đề gốc. Bản dịch có thể có sai sót.</p>
+      <label class="caption-field" for="caption-source">Phụ đề gốc</label>
+      <select id="caption-source" data-caption-source aria-label="Phụ đề gốc"{% if not subtitles %} disabled{% endif %}>{% for subtitle in subtitles %}<option value="{{ subtitle.pk }}" data-language="{{ subtitle.language }}" data-translate-url="{% url 'subtitle_translate' episode.pk subtitle.pk %}">{{ subtitle.label }}</option>{% empty %}<option value="">Chưa có phụ đề gốc</option>{% endfor %}</select>
+      <label class="caption-field" for="caption-target">Dịch sang</label>
+      <select id="caption-target" data-caption-target aria-label="Ngôn ngữ dịch"><option value="vi">Tiếng Việt</option><option value="en">English</option></select>
+      <button type="submit" class="caption-translate" data-caption-submit{% if not subtitles %} disabled{% endif %}>Dịch tự động</button>
+      <p class="caption-translation-status" role="status" aria-live="polite" data-caption-status></p>
+    </form>
+  </section>
+</div>
 <p id="player-status" role="status" class="muted">Đang chuẩn bị nguồn phát…</p><button id="retry-player" class="btn small secondary" hidden>Thử phát lại</button>
 {% endwith %}

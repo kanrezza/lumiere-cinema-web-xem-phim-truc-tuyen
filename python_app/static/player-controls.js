@@ -12,13 +12,17 @@
   const muteButton = wrap.querySelector('[data-player-action=mute]');
   const fullscreenButton = wrap.querySelector('[data-player-action=fullscreen]');
   const subtitles = wrap.querySelector('.player-subtitles');
+  const captionDisplay = wrap.querySelector('[data-caption-display]');
+  const captionText = wrap.querySelector('[data-caption-text]');
   const status = document.getElementById('player-status');
   const room = document.getElementById('room');
   const canSeek = wrap.dataset.canSeek !== 'false' && (!room || room.dataset.host === 'true');
   if (!controls || !range) return;
   let pendingSeek = null;
   let selectedSubtitle = 'off';
-  const subtitleElements = Array.from(video.querySelectorAll('track[data-subtitle]'));
+  let nativeFullscreen = false;
+  let subtitleElements = Array.from(video.querySelectorAll('track[data-subtitle]'));
+  const boundSubtitleElements = new WeakSet();
   const tell = message => {if (status) status.textContent = message;};
   const finite = value => Number.isFinite(Number(value)) ? Number(value) : 0;
   const time = seconds => {const safe = Math.max(0, Math.floor(finite(seconds) + 1e-3)); return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`;};
@@ -79,10 +83,28 @@
     const line = wrap.clientWidth > 0 && wrap.clientWidth <= 600 ? -2 : -5;
     for (const cue of Array.from(element.track.cues || [])) {cue.snapToLines = true; cue.line = line;}
   };
+  const renderCaptions = () => {
+    if (!captionDisplay || !captionText) return;
+    const element = selectedSubtitle === 'off' ? null : subtitleElements[Number(selectedSubtitle)];
+    const text = Array.from(element?.track.activeCues || []).map(cue => cue.getCueAsHTML?.().textContent ?? cue.text ?? '').join('\n');
+    captionText.textContent = text;
+    captionDisplay.hidden = !text || nativeFullscreen;
+  };
   const applySubtitles = () => {
+    subtitleElements = Array.from(video.querySelectorAll('track[data-subtitle]'));
+    for (const track of subtitleElements) {
+      if (boundSubtitleElements.has(track)) continue;
+      boundSubtitleElements.add(track);
+      track.addEventListener('load', () => {positionCues(track); renderCaptions();});
+      track.track.addEventListener?.('cuechange', () => {positionCues(track); renderCaptions();});
+      track.addEventListener('error', () => {
+        if (subtitleElements[Number(selectedSubtitle)] === track) tell('Không tải được phụ đề đã chọn. Bạn có thể tắt hoặc chọn ngôn ngữ khác.');
+      });
+    }
     const selected = selectedSubtitle === 'off' ? -1 : Number(selectedSubtitle);
-    subtitleElements.forEach((element, index) => {element.track.mode = index === selected ? 'showing' : 'disabled'; positionCues(element);});
+    subtitleElements.forEach((element, index) => {element.track.mode = index === selected ? (captionDisplay && !nativeFullscreen ? 'hidden' : 'showing') : 'disabled'; positionCues(element);});
     if (subtitles) subtitles.value = selectedSubtitle;
+    renderCaptions();
   };
   if (subtitles) {
     subtitles.value = 'off';
@@ -92,14 +114,16 @@
       applySubtitles();
     });
     video.textTracks.addEventListener('addtrack', applySubtitles);
-    for (const track of subtitleElements) {
-      track.addEventListener('load', () => positionCues(track));
-      track.addEventListener('error', () => {
-        if (track.track.mode === 'showing') tell('Không tải được phụ đề đã chọn. Bạn có thể tắt hoặc chọn ngôn ngữ khác.');
-      });
-    }
+    video.addEventListener('lumiere:captions-changed', event => {
+      subtitleElements = Array.from(video.querySelectorAll('track[data-subtitle]'));
+      const selected = String(event.detail?.selected ?? selectedSubtitle);
+      selectedSubtitle = /^\d+$/.test(selected) && Number(selected) < subtitleElements.length ? selected : 'off';
+      applySubtitles();
+    });
     applySubtitles();
     window.addEventListener('resize', applySubtitles);
+    video.addEventListener('webkitbeginfullscreen', () => {nativeFullscreen = true; applySubtitles();});
+    video.addEventListener('webkitendfullscreen', () => {nativeFullscreen = false; applySubtitles();});
   }
   for (const button of wrap.querySelectorAll('[data-player-action]')) {
     if (['back', 'forward'].includes(button.dataset.playerAction)) button.disabled = !canSeek;
@@ -119,7 +143,7 @@
   range.addEventListener('input', () => {seekTo(Number(range.value));});
   wrap.addEventListener('keydown', event => {
     if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
-    if (event.target.closest('input, select, textarea, [contenteditable="true"], [role="textbox"]')) return;
+    if (event.target.closest('input, select, textarea, [contenteditable="true"], [role="textbox"], [data-caption-panel]')) return;
     if (skip(event.key === 'ArrowLeft' ? -10 : 10)) event.preventDefault();
   });
   if (volume) volume.addEventListener('input', () => {video.volume = Number(volume.value); video.muted = video.volume === 0;});
@@ -138,7 +162,11 @@
   video.addEventListener('loadedmetadata', ready);
   video.addEventListener('durationchange', updateTime);
   if (video.readyState >= 1) ready();
-  video.addEventListener('timeupdate', updateTime);
+  video.addEventListener('timeupdate', () => {
+    updateTime();
+    for (const element of subtitleElements) if (element.track.mode === 'showing') positionCues(element);
+    renderCaptions();
+  });
   video.addEventListener('seeked', () => {pendingSeek = null; updateTime(); updatePlaying();});
   video.addEventListener('emptied', () => {pendingSeek = null; controls.hidden = true; if (center) center.hidden = true; updateTime();});
   video.addEventListener('play', updatePlaying);

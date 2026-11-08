@@ -32,10 +32,13 @@ class PlayerPageTests(TestCase):
         self.assertContains(response, 'data-can-seek="true"')
         self.assertNotContains(response, '<track default')
 
-    def test_episode_without_tracks_has_no_empty_caption_picker_or_foreign_track(self):
+    def test_episode_without_tracks_keeps_caption_button_and_explains_empty_state(self):
         self.client.force_login(self.host)
         response = self.client.get(reverse('watch', args=[self.other_episode.pk]))
-        self.assertNotContains(response, '<select class="player-subtitles"')
+        self.assertContains(response, 'data-caption-toggle')
+        self.assertContains(response, 'Phim chưa có phụ đề')
+        self.assertContains(response, 'class="player-subtitles" aria-label="Phụ đề" disabled')
+        self.assertContains(response, 'Tạo phụ đề tự động')
         self.assertNotContains(response, reverse('subtitle', args=[self.episode.pk, self.track.pk]))
 
     def test_host_and_guest_share_captions_but_only_host_seeks_the_room(self):
@@ -45,7 +48,8 @@ class PlayerPageTests(TestCase):
                 response = self.client.get(reverse('room', args=[self.room.pk]))
                 self.assertContains(response, f'data-can-seek="{can_seek}"')
                 self.assertContains(response, reverse('subtitle', args=[self.episode.pk, self.track.pk]))
-                self.assertContains(response, 'player-controls.js?v=captions-seek-2')
+                self.assertContains(response, 'player-controls.js')
+                self.assertContains(response, 'caption-panel.js')
                 self.assertContains(response, 'aria-label="Phụ đề"')
 
     def test_guest_cannot_bypass_movie_access_through_player_or_caption_url(self):
