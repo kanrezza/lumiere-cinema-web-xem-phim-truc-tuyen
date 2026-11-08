@@ -6,6 +6,7 @@ Bản rebuild Django của hệ thống phim online. Nằm riêng trong `python_
 
 - Giao diện sáng/tối responsive, khám phá/tìm kiếm/lọc phim, chi tiết phim, tủ phim và lịch sử xem.
 - Trailer công khai bằng MP4 hoặc YouTube; phân biệt phim chiếu rạp, bản phim sẵn sàng và video giới thiệu.
+- Phụ đề SRT/WebVTT theo từng tập, chọn ngôn ngữ/tắt bằng CC; metadata IMDb có liên kết nguồn và ngày đối chiếu.
 - Đăng ký, đăng nhập, đăng xuất bằng POST, đổi/quên mật khẩu, hồ sơ và kiểm soát quyền quản trị.
 - Đánh giá 1–5, bình luận, báo lỗi video và quản trị Django cho phim/tập phim/người dùng/gói/giao dịch; bảng thống kê tại `/studio/` dành cho staff.
 - Upload MP4/MKV/MOV/WebM vào kho riêng; worker FFmpeg kiểm tra nội dung và chuyển thành HLS H.264/AAC tối đa 720p.
@@ -14,7 +15,7 @@ Bản rebuild Django của hệ thống phim online. Nằm riêng trong `python_
 - Xem chung: tài khoản đăng nhập, VIP tạo tối đa 3 phòng hoạt động, tối đa 10 thành viên hoạt động/phòng, timeout hiện diện 30 giây, có nút rời phòng, phòng tồn tại 6 giờ, chủ phòng điều khiển phim, chat, loại thành viên, kết thúc phòng. Đồng bộ bằng polling 2 giây.
 - Lệnh nhập Laravel chỉ đọc source, mặc định dry-run, giữ mapping để chạy lại không nhân bản dữ liệu.
 
-Đây là nền tảng chạy được để tiếp tục phát triển. Chưa có DRM thương mại, chuyển mã nhiều chất lượng, phụ đề, thông báo tập mới, CDN/object storage, hoàn tiền tự động hoặc đăng ký VIP tự gia hạn. Các phim, artwork và giá gói tạo bởi `seed_demo` là minh họa; không đi kèm video thương mại.
+Đây là nền tảng chạy được để tiếp tục phát triển. Chưa có DRM thương mại, chuyển mã nhiều chất lượng, thông báo tập mới, CDN/object storage, hoàn tiền tự động hoặc đăng ký VIP tự gia hạn. Các phim, artwork và giá gói tạo bởi `seed_demo` là minh họa; không đi kèm video thương mại.
 
 ## Chạy trên máy
 
@@ -88,6 +89,22 @@ python manage.py seed_trailer_demo
 Lệnh thêm đoạn trích **16 giây** từ Big Buck Bunny, ghi công Blender Foundation và CC BY 3.0; đây là clip demo, không phải trailer chính thức. Chạy lại giữ nguyên trailer đã có; không tạo tập phim, cấp quyền hoặc tự gắn nhãn chiếu rạp. Bản phim đầy đủ vẫn cần upload/xử lý riêng. Nguồn tài sản tại [static/imagery/SOURCES.md](static/imagery/SOURCES.md).
 
 Bản khảo sát giao diện Chợ Phim, phạm vi kiểm chứng và thứ tự cải thiện nằm tại [docs/CHOPHIM_REVIEW.md](docs/CHOPHIM_REVIEW.md).
+
+## Phụ đề và điều khiển trình phát
+
+Chạy `python manage.py migrate` để áp dụng `0008_subtitle`. Trong admin → **Phụ đề** → Thêm, chọn tập phim, mã ngôn ngữ (`vi`, `en`, `en-US`…), tên hiển thị và file `.srt` hoặc `.vtt` mã hóa UTF-8. Hỗ trợ nhiều ngôn ngữ, mỗi ngôn ngữ một track trên mỗi tập. Khi sửa thông tin, bỏ trống file để giữ phụ đề hiện tại; upload file mới để thay nội dung. Quyền quản lý phụ đề được cấp riêng trong Django admin.
+
+Giới hạn 2 MiB, 10.000 câu, tối đa 16.000 ký tự/câu. Mốc kết thúc phải sau bắt đầu và các câu theo thứ tự thời gian. SRT được đổi thành WebVTT; chỉ nhận văn bản thuần, bỏ cue settings/IDs và không hỗ trợ STYLE/REGION. Nội dung chuẩn hóa lưu trong database, không tạo file phụ đề public. Endpoint phụ đề yêu cầu cùng quyền xem phim (đăng nhập, tập ready, phim công khai và VIP khi cần), có `no-store` và `nosniff`.
+
+Trình phát có mục **CC → ngôn ngữ/Tắt phụ đề**, mặc định tắt. Phụ đề có mặt trên trang xem và phòng xem chung, lựa chọn phụ đề của mỗi người độc lập. Không có nhận dạng lời thoại, dịch tự động hoặc tải phụ đề từ website bên ngoài. [docs/examples/subtitles-demo.vi.srt](docs/examples/subtitles-demo.vi.srt) là file minh họa 20 giây dành cho clip màu tạo bằng `make_demo_video`, không phải bản dịch lời thoại phim.
+
+Nút ±10 giây và phím ←/→ khi focus trong trình phát cập nhật vị trí ngay, giới hạn trong thời lượng/vùng có thể tua. Thao tác liên tiếp cộng dồn; lần làm mới nguồn HLS giữ vị trí vừa chọn. Phím mũi tên không can thiệp ô nhập/chọn ngôn ngữ. Trong phòng xem chung, chỉ chủ phòng được tua và điều khiển vị trí chung; khách vẫn chọn phụ đề/âm lượng riêng.
+
+## Điểm IMDb
+
+Migration `0009_movie_imdb` thêm **Mã phim IMDb**, **Điểm IMDb** và **Ngày đối chiếu điểm IMDb** vào Movie. Nhập ID dạng `tt1254207`, điểm 1,0–10,0 và ngày kiểm tra nguồn; có thể để trống khi chưa có dữ liệu. Không nhập ngày tương lai hoặc điểm thiếu ID. Liên kết đến IMDb được tạo cố định từ ID, không nhận URL tùy ý.
+
+Điểm có nguồn được hiển thị trên card, hero, xem nhanh và trang chi tiết. Điểm IMDb dùng thang 10, tách với đánh giá Lumière thang 5; thiếu dữ liệu thì ẩn, không sinh điểm mẫu. Điểm hiện do quản trị cập nhật thủ công, không tự đồng bộ hoặc gọi API khi người dùng mở trang. Tham khảo [Ratings FAQ của IMDb](https://help.imdb.com/article/imdb/track-movies-tv/ratings-faq/G67Y87TFYYP6TWAV). Nếu tích hợp nguồn tự động cho dịch vụ thương mại, sử dụng nguồn được cấp phép phù hợp theo [hướng dẫn dữ liệu IMDb](https://help.imdb.com/article/imdb/track-movies-tv/can-i-use-your-ratings-on-my-website/GU66FTMF7DHVZBHZ).
 
 ## VNPay
 
@@ -182,6 +199,8 @@ python manage.py makemigrations --check --dry-run
 python manage.py test cinema
 # Chạy thêm bộ ca chấp nhận từ đợt audit.
 python manage.py test cinema cinema.audit_experience_cases
+# Kiểm tra tương tác tua, làm mới nguồn và xem nhanh bằng Node (nếu đã cài).
+node --test tests/*.test.cjs
 ```
 
-Bộ test kiểm tra quyền video, chữ ký/phiên/hạn token, VIP hết hạn, CSRF, XSS escaping, quyền điều khiển phòng, giới hạn phòng, callback VNPay, dữ liệu nhập, trailer/upload/URL và bộ lọc nội dung. Local UI/video cần thêm kiểm tra trình duyệt với file thật; test tổng hợp không chứng minh chống tải tuyệt đối.
+Bộ test kiểm tra quyền video/phụ đề, chữ ký/phiên/hạn token, VIP hết hạn, CSRF, XSS escaping, quyền điều khiển phòng, giới hạn phòng, callback VNPay, dữ liệu nhập, trailer/upload/URL, điểm IMDb và bộ lọc nội dung. Local UI/video cần thêm kiểm tra trình duyệt với file thật; test tổng hợp không chứng minh chống tải tuyệt đối.
