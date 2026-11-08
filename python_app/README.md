@@ -6,7 +6,7 @@ Bản rebuild Django của hệ thống phim online. Nằm riêng trong `python_
 
 - Giao diện sáng/tối responsive, khám phá/tìm kiếm/lọc phim, chi tiết phim, tủ phim và lịch sử xem.
 - Trailer công khai bằng MP4 hoặc YouTube; phân biệt phim chiếu rạp, bản phim sẵn sàng và video giới thiệu.
-- Phụ đề SRT/WebVTT theo từng tập, chọn ngôn ngữ/tắt bằng CC; metadata IMDb có liên kết nguồn và ngày đối chiếu.
+- Phụ đề SRT/WebVTT theo từng tập; CC luôn có lối vào, nhận dạng lời thoại và dịch Anh ↔ Việt bằng dịch vụ local tùy chọn; metadata IMDb có liên kết nguồn và ngày đối chiếu.
 - Đăng ký, đăng nhập, đăng xuất bằng POST, đổi/quên mật khẩu, hồ sơ và kiểm soát quyền quản trị.
 - Đánh giá 1–5, bình luận, báo lỗi video và quản trị Django cho phim/tập phim/người dùng/gói/giao dịch; bảng thống kê tại `/studio/` dành cho staff.
 - Upload MP4/MKV/MOV/WebM vào kho riêng; worker FFmpeg kiểm tra nội dung và chuyển thành HLS H.264/AAC tối đa 720p.
@@ -96,9 +96,46 @@ Chạy `python manage.py migrate` để áp dụng `0008_subtitle`. Trong admin 
 
 Giới hạn 2 MiB, 10.000 câu, tối đa 16.000 ký tự/câu. Mốc kết thúc phải sau bắt đầu và các câu theo thứ tự thời gian. SRT được đổi thành WebVTT; chỉ nhận văn bản thuần, bỏ cue settings/IDs và không hỗ trợ STYLE/REGION. Nội dung chuẩn hóa lưu trong database, không tạo file phụ đề public. Endpoint phụ đề yêu cầu cùng quyền xem phim (đăng nhập, tập ready, phim công khai và VIP khi cần), có `no-store` và `nosniff`.
 
-Trình phát có mục **CC → ngôn ngữ/Tắt phụ đề**, mặc định tắt. Phụ đề có mặt trên trang xem và phòng xem chung, lựa chọn phụ đề của mỗi người độc lập. Không có nhận dạng lời thoại, dịch tự động hoặc tải phụ đề từ website bên ngoài. [docs/examples/subtitles-demo.vi.srt](docs/examples/subtitles-demo.vi.srt) là file minh họa 20 giây dành cho clip màu tạo bằng `make_demo_video`, không phải bản dịch lời thoại phim.
+Nút **CC / Phụ đề** luôn xuất hiện trên thanh điều khiển, kể cả tập chưa có track. Bảng phụ đề có lựa chọn ngôn ngữ/tắt, **Tạo phụ đề từ âm thanh** và **Dịch tự động**. Chọn phụ đề của mỗi người độc lập trên cả trang xem và phòng xem chung. [docs/examples/subtitles-demo.vi.srt](docs/examples/subtitles-demo.vi.srt) là file minh họa 20 giây dành cho clip màu tạo bằng `make_demo_video`, không phải bản dịch lời thoại phim.
 
 Nút ±10 giây và phím ←/→ khi focus trong trình phát cập nhật vị trí ngay, giới hạn trong thời lượng/vùng có thể tua. Thao tác liên tiếp cộng dồn; lần làm mới nguồn HLS giữ vị trí vừa chọn. Phím mũi tên không can thiệp ô nhập/chọn ngôn ngữ. Trong phòng xem chung, chỉ chủ phòng được tua và điều khiển vị trí chung; khách vẫn chọn phụ đề/âm lượng riêng.
+
+## Phụ đề tự động và dịch local
+
+Chạy `migrate` trước khi dùng phiên bản này để tạo bảng công việc dịch/nhận dạng. Hai tác vụ chạy ngoài web request; trình phát hiện trạng thái chờ, đang xử lý, hoàn tất hoặc lỗi. Worker giữ lại kết quả có cùng nguồn và phiên bản model, không tạo một bản dịch mới sau mỗi lần bấm. Endpoint tạo/xem kết quả đều kiểm tra quyền xem phim và CSRF cho thao tác POST.
+
+- **Chưa có phụ đề:** trong CC, chọn ngôn ngữ lời thoại (tự nhận biết/Anh/Việt) rồi bấm **Tạo phụ đề tự động**. Server đọc file gốc trong `PRIVATE_MEDIA_ROOT`, nhận dạng thành phụ đề đúng mốc thời gian; khi có kết quả có thể chọn để xem hoặc dịch tiếp.
+- **Đã có phụ đề gốc:** chọn track nguồn và ngôn ngữ đích rồi bấm **Dịch tự động**. Cấu hình local đóng gói hỗ trợ Anh ↔ Việt; bản dịch giữ các mốc thời gian. Nội dung từ nguồn thiếu lời thoại hoặc chỉ có nhạc không được tự coi là có câu dịch.
+- Phụ đề được tạo/dịch bằng máy có thể nhận nhầm tên, bỏ sót lời nói hoặc dịch sai; tên track có nhãn tự động. Quản trị nên đối chiếu trước khi dùng làm bản phụ đề chính thức. Model `tiny` ưu tiên thử nghiệm CPU, không bảo đảm chất lượng của model lớn hoặc bản dịch do người kiểm duyệt.
+
+Nhận dạng giữ track đã có cùng ngôn ngữ, kể cả bản do quản trị tải lên; không ghi đè khi đổi phiên bản model. Nếu muốn thay bằng kết quả nhận dạng mới, quản trị cần chủ động xóa track cũ, rồi tạo lại. Bản dịch tham chiếu nội dung track nguồn; sửa nguồn sẽ làm bản kết quả cũ hết hiệu lực.
+
+Nhận dạng dùng [faster-whisper](https://github.com/SYSTRAN/faster-whisper#usage); dịch dùng model [Argos Translate](https://argos-translate.readthedocs.io/en/latest/source/examples.html) qua CTranslate2. Tách hai môi trường Python 3.12 khỏi `.venv` Django; không cài các model/dependencies lớn vào web runtime. `requirements-speech.txt` khóa `faster-whisper==1.2.1` và `av==18.1.0` vì PyAV 19 thay đổi đối số `metadata_errors` của `av.open`; tương thích này được theo dõi tại [faster-whisper #1495](https://github.com/SYSTRAN/faster-whisper/pull/1495).
+
+Thiết lập lần đầu, ví dụ bằng `uv` (hoặc tạo venv/cài pip tương đương):
+
+```bash
+cd python_app
+uv venv --python 3.12 .translation-venv
+uv pip install --python .translation-venv/bin/python -r requirements-translation.txt
+uv venv --python 3.12 .speech-venv
+uv pip install --python .speech-venv/bin/python -r requirements-speech.txt
+```
+
+Trong `.env`, đặt `SPEECH_API_URL=http://127.0.0.1:5002`, `SPEECH_MODEL_VERSION=faster-whisper-tiny-v1`, `TRANSLATION_API_URL=http://127.0.0.1:5001`, `TRANSLATION_PROVIDER_VERSION=argos-en-vi-1.9` và `TRANSLATION_TARGETS=vi,en` như `.env.example`. Để trống URL tương ứng nếu muốn tắt một dịch vụ. Restart server web sau khi thay cấu hình; helper và web phải dùng cùng database, `PRIVATE_MEDIA_ROOT` và token nếu có.
+
+Mở một terminal cho `./run-local.sh`, rồi trong terminal thứ hai chạy:
+
+```bash
+# Lần đầu: cho phép tải model nhận dạng và hai model dịch từ nguồn chính thức.
+./run-caption-services.sh --download-models
+# Những lần sau, khi model đã có:
+./run-caption-services.sh
+```
+
+Helper dùng lại dịch vụ khỏe đã chạy ở cổng 5001/5002, khởi động phần còn thiếu và hai worker `process_translations --watch`, `process_transcriptions --watch`. `./run-caption-services.sh --check` chỉ kiểm tra môi trường/cấu hình/health. Ctrl+C dừng các tiến trình do lần chạy helper đó tạo, giữ dịch vụ có sẵn; log nằm trong thư mục bị Git ignore `reports/caption-services/`. Helper không mở trình phát, không tự tạo tài khoản và không khởi động lại web server. Nếu chạy worker thủ công, không cần đồng thời dùng thêm helper.
+
+Model dịch nằm ở `.translation-data`, model lời thoại ở `.speech-models`; hai venv và các model không đưa vào Git. Lần tải model đầu cần Internet; khi đã cài, hai dịch vụ local xử lý văn bản/audio trên máy và không gửi nội dung phim ra dịch vụ ngoài. Service lời thoại chỉ chấp nhận file trong kho riêng tư, tối đa 3 giờ; bảo đảm file gốc vẫn còn. Đây là helper phát triển local, giữ các cổng loopback; triển khai dài hạn cần process manager, giới hạn tài nguyên và giám sát worker.
 
 ## Điểm IMDb
 

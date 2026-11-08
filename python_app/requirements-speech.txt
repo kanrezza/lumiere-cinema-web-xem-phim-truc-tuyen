@@ -1,0 +1,4 @@
+# Optional offline service; use a separate Python 3.12 environment.
+faster-whisper==1.2.1
+# This faster-whisper release uses metadata_errors, removed in PyAV 19.
+av==18.1.0

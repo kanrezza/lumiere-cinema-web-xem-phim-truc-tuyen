@@ -1,4 +1,8 @@
 .venv/
+.translation-venv/
+.translation-data/
+.speech-venv/
+.speech-models/
 .env
 __pycache__/
 *.pyc

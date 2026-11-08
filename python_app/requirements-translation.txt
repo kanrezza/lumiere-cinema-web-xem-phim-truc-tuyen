@@ -1,0 +1,4 @@
+# Optional, isolated local service. Keep this out of the Django web environment.
+argostranslate==1.11.0
+ctranslate2==4.8.5
+sentencepiece==0.2.3
