@@ -11,8 +11,8 @@
     <input class="player-range" type="range" min="0" max="100" value="0" step="1" aria-label="Vị trí phát">
     <div class="player-controls-row">
       <button type="button" class="player-control player-toggle" data-player-action="play" aria-label="Phát"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span class="player-pause-symbol" aria-hidden="true">Ⅱ</span></button>
-      <button type="button" class="player-control" data-player-action="back" aria-label="Lùi 10 giây"><span class="player-skip" aria-hidden="true">−10</span></button>
-      <button type="button" class="player-control" data-player-action="forward" aria-label="Tua 10 giây"><span class="player-skip" aria-hidden="true">+10</span></button>
+      <button type="button" class="player-control player-seek" data-player-action="back" aria-label="Lùi 10 giây" title="Lùi 10 giây"><svg class="player-seek-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10a9 9 0 1 1 .8 6.6M3 4v6h6"/><text x="12.5" y="15">10</text></svg></button>
+      <button type="button" class="player-control player-seek" data-player-action="forward" aria-label="Tua 10 giây" title="Tua 10 giây"><svg class="player-seek-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10a9 9 0 1 1 .8 6.6M3 4v6h6" transform="translate(24 0) scale(-1 1)"/><text x="11.5" y="15">10</text></svg></button>
       <span class="player-time"><span data-player-time>0:00</span> / <span data-player-duration>0:00</span></span>
       <div class="player-end-controls">
         <button type="button" class="player-caption-toggle" data-caption-toggle aria-label="Phụ đề" aria-haspopup="dialog" aria-expanded="false" aria-controls="caption-panel"><span aria-hidden="true">CC</span><span>Phụ đề</span></button>
