@@ -6,8 +6,18 @@
  document.getElementById('copy-invite').addEventListener('click', async () => {try {await navigator.clipboard.writeText(location.href); status.textContent = 'Đã sao chép liên kết mời.';} catch {status.textContent = 'Liên kết mời: ' + location.href;}});
  async function send(data) {try {return await postForm(room.dataset.state, data);} catch(error) {status.textContent = error.message; throw error;}}
  if (isHost) {
-  ['play','pause','seeked'].forEach(name => video.addEventListener(name, () => {if (!applying && video.dataset.loading !== 'true' && Number.isFinite(video.duration)) send({action:'sync', position:video.currentTime, playing:!video.paused}).catch(() => {});}));
-  setInterval(() => {if (!stopped && video.dataset.loading !== 'true' && Number.isFinite(video.duration)) send({action:'sync', position:video.currentTime, playing:!video.paused && video.readyState >= 3}).catch(() => {});}, 6000);
+  // Serialize host updates so a slower old seek cannot arrive after a new one.
+  let pendingSync = null, sendingSync = false;
+  const sync = async () => {
+   if (stopped || applying || video.dataset.loading === 'true' || !Number.isFinite(video.duration) || !Number.isFinite(video.currentTime)) return;
+   pendingSync = {action:'sync', position:video.currentTime, playing:!video.paused && !video.ended};
+   if (sendingSync) return;
+   sendingSync = true;
+   try {while (pendingSync && !stopped) {const next = pendingSync; pendingSync = null; try {await send(next);} catch {}}}
+   finally {sendingSync = false;}
+  };
+  ['play','pause','seeked','ended'].forEach(name => video.addEventListener(name, sync));
+  setInterval(sync, 6000);
   document.getElementById('close-room').addEventListener('click', async () => {if (confirm('Kết thúc phòng cho tất cả thành viên?')) {await send({action:'close'}); location.href = '/library/';}});
  }
  document.getElementById('chat-form').addEventListener('submit', async e => {e.preventDefault(); const input = e.target.elements.content; if (!input.value.trim()) return; try {await send({action:'chat', content:input.value}); input.value = '';} catch {}});
@@ -20,7 +30,8 @@
    const data = await response.json();
    if (!isHost && video.readyState >= 1) {
     applying = true;
-    if (Math.abs(video.currentTime - data.position) > 2) video.currentTime = data.position;
+    const position = Number(data.position);
+    if (Number.isFinite(position) && Number.isFinite(video.duration) && Math.abs(video.currentTime - position) > 2) video.currentTime = Math.max(0, Math.min(video.duration, position));
     if (data.playing && video.paused) await video.play().catch(() => {status.textContent = 'Nhấn phát để tham gia buổi chiếu.';});
     if (!data.playing && !video.paused) video.pause();
     applying = false;

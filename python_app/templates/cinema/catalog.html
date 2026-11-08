@@ -14,7 +14,7 @@
     <div class="feature-content">
       <p class="feature-kicker"><span class="feature-line"></span>LUMIÈRE SELECT<span class="feature-edition">0{{ forloop.counter }} / 0{{ featured_movies|length }}</span></p>
       <h1 class="feature-title">{{ film.title }}</h1>
-      <div class="film-meta"><span>{{ film.year }}</span>{% if film.duration_minutes %}<span>{{ film.duration_minutes }} phút</span>{% endif %}<span>{{ film.get_kind_display }}</span>{% if film.is_vip %}<b class="mint">VIP</b>{% endif %}</div>
+      <div class="film-meta"><span>{{ film.year }}</span>{% if film.duration_minutes %}<span>{{ film.duration_minutes }} phút</span>{% endif %}<span>{{ film.get_kind_display }}</span>{% if film.is_vip %}<b class="mint">VIP</b>{% endif %}{% if film.has_imdb_rating %}<a class="imdb-rating" href="{{ film.imdb_url }}" target="_blank" rel="noopener noreferrer" aria-label="Điểm IMDb {{ film.imdb_rating|floatformat:1 }} trên 10 của {{ film.title }} — mở nguồn IMDb"><span class="imdb-wordmark">IMDb</span><span class="imdb-score">{{ film.imdb_rating|floatformat:1 }}<small>/10</small></span></a>{% endif %}</div>
       <p class="feature-description">{{ film.description|truncatechars:170 }}</p>
       <div class="actions">
         {% if film.ready_episode_id %}

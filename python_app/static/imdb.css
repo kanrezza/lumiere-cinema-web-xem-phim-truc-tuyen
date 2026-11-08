@@ -1,0 +1,33 @@
+/* Source ratings keep their 10-point scale separate from Lumière reviews. */
+.imdb-rating { display: inline-flex; align-items: center; gap: 7px; width: fit-content; min-height: 28px; padding: 4px 7px; border: 1px solid #e4bd5b42; border-radius: 5px; background: #1b1912; color: #f8e9bd; font-size: 11px; line-height: 1.3; text-decoration: none; white-space: nowrap; }
+.imdb-rating[hidden] { display: none!important; }
+.imdb-wordmark { display: inline-block; padding: 2px 4px; border-radius: 3px; background: #eac65c; color: #201b0c; font-size: 10px; font-weight: 800; line-height: 1.2; letter-spacing: -.3px; }
+.imdb-score { font-weight: 600; font-variant-numeric: tabular-nums; }
+.imdb-score small { color: #c9c0a7; font-size: 9px; font-weight: 400; margin-left: 2px; }
+.imdb-source-arrow { opacity: .7; font-size: 11px; }
+.imdb-rating:hover { color: #fff5d8; border-color: #eac65c; background: #282214; }
+.imdb-rating:focus-visible { outline: 2px solid #eac65c; outline-offset: 3px; }
+.imdb-rating--compact { min-height: 24px; padding: 3px 5px; gap: 5px; font-size: 10px; }
+.imdb-rating--compact .imdb-wordmark { font-size: 9px; }
+.film-meta .imdb-rating { margin-left: 1px; }
+.film-meta .community-rating { display: inline-flex; gap: 5px; align-items: center; }
+.film-meta .community-rating > span { font-size: 10px; font-weight: 400; }
+.quickview-ratings { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 15px; }
+.quickview-ratings .quickview-availability { margin: 0; }
+.quickview-ratings .imdb-rating { min-height: 26px; padding: 4px 6px; font-size: 10px; }
+.imdb-fact small { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+html[data-theme="light"] .imdb-rating { background: #fff8e2; border-color: #dac58c; color: #5d4917; }
+html[data-theme="light"] .imdb-score small { color: #786537; }
+html[data-theme="light"] .imdb-rating:hover { background: #fff0bd; border-color: #9d7720; color: #4f3b0f; }
+/* Hero artwork retains its dark palette in either interface theme. */
+html[data-theme="light"] .detail-hero .imdb-rating,
+html[data-theme="light"] .cinema-stage .imdb-rating { background: #1b1912d9; border-color: #e4bd5b70; color: #f8e9bd; }
+html[data-theme="light"] .detail-hero .imdb-score small,
+html[data-theme="light"] .cinema-stage .imdb-score small { color: #c9c0a7; }
+@media (max-width: 600px) {
+  .imdb-rating { gap: 5px; font-size: 10px; }
+  .imdb-wordmark { font-size: 9px; }
+  .imdb-rating--compact { font-size: 9px; }
+  .imdb-rating--compact .imdb-wordmark { font-size: 8px; }
+  .imdb-fact small { font-size: 10px; }
+}

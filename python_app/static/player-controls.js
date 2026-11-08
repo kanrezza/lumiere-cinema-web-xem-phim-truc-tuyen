@@ -3,6 +3,7 @@
   const video = document.getElementById('player');
   if (!video) return;
   const wrap = video.closest('.player-wrap');
+  if (!wrap) return;
   const controls = wrap.querySelector('.player-controls');
   const center = wrap.querySelector('.player-center');
   const range = wrap.querySelector('.player-range');
@@ -10,40 +11,139 @@
   const playButton = wrap.querySelector('.player-toggle');
   const muteButton = wrap.querySelector('[data-player-action=mute]');
   const fullscreenButton = wrap.querySelector('[data-player-action=fullscreen]');
+  const subtitles = wrap.querySelector('.player-subtitles');
   const status = document.getElementById('player-status');
+  const room = document.getElementById('room');
+  const canSeek = wrap.dataset.canSeek !== 'false' && (!room || room.dataset.host === 'true');
   if (!controls || !range) return;
-  const time = seconds => {const safe = Math.max(0,Math.floor(Number(seconds)||0)); return `${Math.floor(safe/60)}:${String(safe%60).padStart(2,'0')}`;};
+  let pendingSeek = null;
+  let selectedSubtitle = 'off';
+  const subtitleElements = Array.from(video.querySelectorAll('track[data-subtitle]'));
+  const tell = message => {if (status) status.textContent = message;};
+  const finite = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+  const time = seconds => {const safe = Math.max(0, Math.floor(finite(seconds) + 1e-3)); return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`;};
   const updateTime = () => {
-    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    const duration = Math.max(0, finite(video.duration));
+    const position = pendingSeek === null ? Math.max(0, finite(video.currentTime)) : pendingSeek;
     range.max = duration || 100;
-    range.value = video.currentTime || 0;
-    range.setAttribute('aria-valuetext', `${time(video.currentTime)} trên ${time(duration)}`);
-    wrap.querySelector('[data-player-time]').textContent = time(video.currentTime);
+    range.value = position;
+    range.disabled = !canSeek || video.readyState < 1 || duration <= 0;
+    range.setAttribute('aria-valuetext', `${time(position)} trên ${time(duration)}`);
+    wrap.querySelector('[data-player-time]').textContent = time(position);
     wrap.querySelector('[data-player-duration]').textContent = time(duration);
   };
-  const updatePlaying = () => {wrap.classList.toggle('is-playing',!video.paused&&!video.ended); playButton.setAttribute('aria-label',video.paused?'Phát':'Tạm dừng'); center.setAttribute('aria-label',video.ended?'Phát lại phim':'Phát phim');};
-  const togglePlay = async () => {if (video.paused) {try {await video.play();} catch (_) {status.textContent='Chưa thể phát. Hãy thử lại khi video tải xong.';}} else video.pause();};
-  for (const button of wrap.querySelectorAll('[data-player-action]')) button.addEventListener('click',async () => {
-    switch(button.dataset.playerAction) {
-      case 'play': await togglePlay(); break;
-      case 'back': if(Number.isFinite(video.duration)) video.currentTime=Math.max(0,video.currentTime-10); break;
-      case 'forward': if(Number.isFinite(video.duration)) video.currentTime=Math.min(video.duration,video.currentTime+10); break;
-      case 'mute': video.muted=!video.muted; break;
-      case 'fullscreen':
-        try {if(document.fullscreenElement) await document.exitFullscreen(); else if(wrap.requestFullscreen) await wrap.requestFullscreen(); else if(video.webkitEnterFullscreen) video.webkitEnterFullscreen();} catch (_) {status.textContent='Không thể mở toàn màn hình trong trình duyệt này.';}
-        break;
+  const updatePlaying = () => {
+    wrap.classList.toggle('is-playing', !video.paused && !video.ended);
+    if (playButton) playButton.setAttribute('aria-label', video.paused ? 'Phát' : 'Tạm dừng');
+    if (center) center.setAttribute('aria-label', video.ended ? 'Phát lại phim' : 'Phát phim');
+  };
+  const seekTo = target => {
+    if (!canSeek || video.readyState < 1 || !Number.isFinite(video.duration) || video.duration <= 0 || !Number.isFinite(target)) return false;
+    target = Math.max(0, Math.min(video.duration, target));
+    // HLS may expose several seekable windows. Never assign a time inside a gap.
+    const windows = [];
+    for (let index = 0; index < video.seekable.length; index++) {
+      const start = Math.max(0, video.seekable.start(index));
+      const end = Math.min(video.duration, video.seekable.end(index));
+      if (Number.isFinite(start) && Number.isFinite(end) && start <= end) windows.push([start, end]);
     }
+    if (windows.length && !windows.some(([start, end]) => target >= start && target <= end)) {
+      target = windows.flat().reduce((nearest, boundary) => Math.abs(boundary - target) < Math.abs(nearest - target) ? boundary : nearest);
+    }
+    const previous = pendingSeek;
+    try {
+      // Assigning the current time again may not emit seeking/seeked. Do not
+      // leave a pending target that would freeze the clock at the boundary.
+      const unchanged = !video.seeking && Math.abs(finite(video.currentTime) - target) < 0.001;
+      pendingSeek = unchanged ? null : target;
+      if (!unchanged) video.currentTime = target;
+      updateTime();
+      video.dispatchEvent(new CustomEvent('lumiere:seek', {detail: {position: target}}));
+      tell(`Đã tua đến ${time(target)}.`);
+      return true;
+    } catch (_) {
+      pendingSeek = previous;
+      updateTime();
+      tell('Chưa thể tua ở vị trí này. Hãy đợi video tải xong rồi thử lại.');
+      return false;
+    }
+  };
+  const skip = amount => seekTo((pendingSeek === null ? finite(video.currentTime) : pendingSeek) + amount);
+  const togglePlay = async () => {
+    if (video.paused) {try {await video.play();} catch (_) {tell('Chưa thể phát. Hãy thử lại khi video tải xong.');}}
+    else video.pause();
+  };
+  const positionCues = element => {
+    // Keep native WebVTT captions above the custom controls, including while
+    // paused. Uploaded tracks are normalized without authored cue placement.
+    const line = wrap.clientWidth > 0 && wrap.clientWidth <= 600 ? -2 : -5;
+    for (const cue of Array.from(element.track.cues || [])) {cue.snapToLines = true; cue.line = line;}
+  };
+  const applySubtitles = () => {
+    const selected = selectedSubtitle === 'off' ? -1 : Number(selectedSubtitle);
+    subtitleElements.forEach((element, index) => {element.track.mode = index === selected ? 'showing' : 'disabled'; positionCues(element);});
+    if (subtitles) subtitles.value = selectedSubtitle;
+  };
+  if (subtitles) {
+    subtitles.value = 'off';
+    subtitles.addEventListener('change', () => {
+      const value = subtitles.value;
+      selectedSubtitle = value === 'off' || (/^\d+$/.test(value) && Number(value) < subtitleElements.length) ? value : 'off';
+      applySubtitles();
+    });
+    video.textTracks.addEventListener('addtrack', applySubtitles);
+    for (const track of subtitleElements) {
+      track.addEventListener('load', () => positionCues(track));
+      track.addEventListener('error', () => {
+        if (track.track.mode === 'showing') tell('Không tải được phụ đề đã chọn. Bạn có thể tắt hoặc chọn ngôn ngữ khác.');
+      });
+    }
+    applySubtitles();
+    window.addEventListener('resize', applySubtitles);
+  }
+  for (const button of wrap.querySelectorAll('[data-player-action]')) {
+    if (['back', 'forward'].includes(button.dataset.playerAction)) button.disabled = !canSeek;
+    button.addEventListener('click', async () => {
+      switch (button.dataset.playerAction) {
+        case 'play': await togglePlay(); break;
+        case 'back': skip(-10); break;
+        case 'forward': skip(10); break;
+        case 'mute': video.muted = !video.muted; break;
+        case 'fullscreen':
+          try {if (document.fullscreenElement) await document.exitFullscreen(); else if (wrap.requestFullscreen) await wrap.requestFullscreen(); else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();}
+          catch (_) {tell('Không thể mở toàn màn hình trong trình duyệt này.');}
+          break;
+      }
+    });
+  }
+  range.addEventListener('input', () => {seekTo(Number(range.value));});
+  wrap.addEventListener('keydown', event => {
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    if (event.target.closest('input, select, textarea, [contenteditable="true"], [role="textbox"]')) return;
+    if (skip(event.key === 'ArrowLeft' ? -10 : 10)) event.preventDefault();
   });
-  range.addEventListener('input',()=>{if(Number.isFinite(video.duration)) video.currentTime=Math.max(0,Math.min(video.duration,Number(range.value)));updateTime();});
-  volume.addEventListener('input',()=>{video.volume=Number(volume.value);video.muted=video.volume===0;});
-  video.addEventListener('volumechange',()=>{volume.value=video.muted?0:video.volume;muteButton.setAttribute('aria-label',video.muted?'Bật tiếng':'Tắt tiếng');});
-  const ready = () => {controls.hidden=false;center.hidden=false;video.controls=false;wrap.querySelector('[data-player-quality]').textContent=video.videoHeight?`${video.videoHeight}p`:'';updateTime();updatePlaying();};
-  video.addEventListener('loadedmetadata',ready);
-  if(video.readyState>=1) ready();
-  video.addEventListener('timeupdate',updateTime);
-  video.addEventListener('play',updatePlaying);
-  video.addEventListener('pause',updatePlaying);
-  video.addEventListener('ended',updatePlaying);
-  video.addEventListener('error',()=>{video.controls=true;controls.hidden=true;center.hidden=true;});
-  document.addEventListener('fullscreenchange',()=>{fullscreenButton.setAttribute('aria-label',document.fullscreenElement?'Thoát toàn màn hình':'Toàn màn hình');});
+  if (volume) volume.addEventListener('input', () => {video.volume = Number(volume.value); video.muted = video.volume === 0;});
+  video.addEventListener('volumechange', () => {
+    if (volume) volume.value = video.muted ? 0 : video.volume;
+    if (muteButton) muteButton.setAttribute('aria-label', video.muted ? 'Bật tiếng' : 'Tắt tiếng');
+  });
+  const ready = () => {
+    controls.hidden = false;
+    if (center) center.hidden = false;
+    video.controls = false;
+    const quality = wrap.querySelector('[data-player-quality]');
+    if (quality) quality.textContent = video.videoHeight ? `${video.videoHeight}p` : '';
+    updateTime(); updatePlaying(); applySubtitles();
+  };
+  video.addEventListener('loadedmetadata', ready);
+  video.addEventListener('durationchange', updateTime);
+  if (video.readyState >= 1) ready();
+  video.addEventListener('timeupdate', updateTime);
+  video.addEventListener('seeked', () => {pendingSeek = null; updateTime(); updatePlaying();});
+  video.addEventListener('emptied', () => {pendingSeek = null; controls.hidden = true; if (center) center.hidden = true; updateTime();});
+  video.addEventListener('play', updatePlaying);
+  video.addEventListener('pause', updatePlaying);
+  video.addEventListener('ended', updatePlaying);
+  video.addEventListener('error', () => {pendingSeek = null; video.controls = true; controls.hidden = true; if (center) center.hidden = true;});
+  document.addEventListener('fullscreenchange', () => {if (fullscreenButton) fullscreenButton.setAttribute('aria-label', document.fullscreenElement ? 'Thoát toàn màn hình' : 'Toàn màn hình'); applySubtitles();});
 })();

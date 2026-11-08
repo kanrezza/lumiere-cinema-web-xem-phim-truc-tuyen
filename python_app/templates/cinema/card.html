@@ -1,4 +1,4 @@
-{% load static cinema_format %}
+{% load static cinema_format l10n %}
 <article class="movie-card">
   <a class="movie-card-link" href="{% url 'movie' movie.slug %}">
     <div class="poster {% if portrait %}portrait-poster{% endif %} art-{{ movie.artwork }}">
@@ -16,9 +16,10 @@
     <div class="card-title"><h3>{{ movie.title }}</h3><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></div>
     <p>{{ movie.year }}<span>·</span>{{ movie.get_kind_display }}{% if movie.duration_minutes %}<span>·</span>{{ movie.duration_minutes }} phút{% endif %}</p>
   </a>
-  {% if movie.is_cinema_release or movie.has_trailer %}<div class="card-content-tags">
+  {% if movie.is_cinema_release or movie.has_trailer or movie.has_imdb_rating %}<div class="card-content-tags">
     {% if movie.is_cinema_release %}<span class="cinema-tag">Chiếu rạp</span>{% endif %}
     {% if movie.has_trailer %}<a class="card-trailer-link" href="{% url 'trailer' movie.slug %}" aria-label="Xem trailer {{ movie.title }}"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Xem trailer</a>{% endif %}
+    {% if movie.has_imdb_rating %}<a class="imdb-rating imdb-rating--compact" href="{{ movie.imdb_url }}" target="_blank" rel="noopener noreferrer" aria-label="Điểm IMDb {{ movie.imdb_rating|floatformat:1 }} trên 10 của {{ movie.title }} — mở nguồn IMDb"><span class="imdb-wordmark">IMDb</span><span class="imdb-score">{{ movie.imdb_rating|floatformat:1 }}<small>/10</small></span></a>{% endif %}
   </div>{% endif %}
   <button class="quickview-trigger" type="button" aria-label="Xem nhanh {{ movie.title }}" aria-haspopup="dialog" aria-controls="movie-quickview" hidden
     data-movie-title="{{ movie.title }}"
@@ -35,6 +36,8 @@
     data-movie-play-label="{% if movie.is_vip and not user.is_vip and not user.is_staff %}Xem với VIP{% elif not user.is_authenticated %}Đăng nhập để xem{% else %}Xem ngay{% endif %}"
     data-movie-cinema="{% if movie.is_cinema_release %}1{% else %}0{% endif %}"
     data-movie-trailer="{% if movie.has_trailer %}{% url 'trailer' movie.slug %}{% endif %}"
+    data-movie-imdb-id="{% if movie.has_imdb_rating %}{{ movie.imdb_id }}{% endif %}"
+    data-movie-imdb-rating="{% if movie.has_imdb_rating %}{{ movie.imdb_rating|unlocalize }}{% endif %}"
     data-movie-vip="{% if movie.is_vip %}1{% else %}0{% endif %}">
     <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span>Xem nhanh</span>
   </button>

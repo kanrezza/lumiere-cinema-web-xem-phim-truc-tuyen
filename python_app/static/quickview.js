@@ -15,6 +15,8 @@
   const vip = dialog.querySelector('#quickview-vip');
   const cinema = dialog.querySelector('#quickview-cinema');
   const trailer = dialog.querySelector('#quickview-trailer');
+  const imdb = dialog.querySelector('#quickview-imdb');
+  const imdbScore = dialog.querySelector('#quickview-imdb-score');
   const close = dialog.querySelector('.quickview-close');
   let returnFocus = null;
   let addedScrollLock = false;
@@ -41,6 +43,19 @@
     trailer.hidden = !movie.movieTrailer;
     if (movie.movieTrailer) trailer.href = movie.movieTrailer;
     else trailer.removeAttribute('href');
+    const score = Number(movie.movieImdbRating);
+    const validImdb = /^tt[0-9]{7,10}$/.test(movie.movieImdbId || '') && /^[0-9]+(?:\.[0-9])?$/.test(movie.movieImdbRating || '') && Number.isFinite(score) && score >= 1 && score <= 10;
+    if (imdb && imdbScore) {
+      imdb.hidden = !validImdb;
+      imdbScore.textContent = validImdb ? score.toLocaleString('vi-VN', {minimumFractionDigits:1, maximumFractionDigits:1}) : '';
+      if (validImdb) {
+        imdb.href = `https://www.imdb.com/title/${movie.movieImdbId}/`;
+        imdb.setAttribute('aria-label', `Điểm IMDb ${imdbScore.textContent} trên 10 — mở nguồn IMDb`);
+      } else {
+        imdb.removeAttribute('href');
+        imdb.setAttribute('aria-label', 'Mở điểm và thông tin trên IMDb');
+      }
+    }
     const hasPlayback = movie.movieReady === '1' && Boolean(movie.moviePlay);
     play.hidden = !hasPlayback;
     if (hasPlayback) play.href = movie.moviePlay;
