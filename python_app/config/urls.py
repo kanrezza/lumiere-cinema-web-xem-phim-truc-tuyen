@@ -5,6 +5,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from cinema import views as v
 from cinema.forms import LoginForm
+from cinema.subtitle_views import subtitle
 urlpatterns = [
     path('', v.landing, name='landing'), path('browse/', v.catalog, name='catalog'), path('movies/<slug:slug>/', v.movie_detail, name='movie'),
     path('movies/<slug:slug>/trailer/', v.movie_trailer, name='trailer'),
@@ -12,6 +13,7 @@ urlpatterns = [
     path('library/', v.library, name='library'), path('profile/', v.profile, name='profile'), path('profile/avatar/', v.profile_avatar, name='profile_avatar'),
     path('movies/<int:pk>/save/', v.watchlist_toggle, name='save'), path('movies/<int:pk>/comment/', v.comment, name='comment'), path('movies/<int:pk>/rate/', v.rate, name='rate'),
     path('watch/<int:pk>/', v.watch, name='watch'), path('watch/<int:pk>/progress/', v.progress, name='progress'), path('watch/<int:pk>/report/', v.report, name='report'),
+    path('watch/<int:pk>/subtitles/<int:subtitle_pk>.vtt', subtitle, name='subtitle'),
     path('watch/<int:pk>/ticket/', v.stream_ticket, name='ticket'), path('stream/<int:pk>/<str:filename>/', v.stream, name='stream'),
     path('vip/', v.plans, name='plans'), path('checkout/<int:pk>/', v.checkout, name='checkout'), path('checkout/', v.checkout, name='checkout_selected'), path('payments/ipn/', v.ipn, name='ipn'), path('payments/return/', v.payment_return, name='payment_return'),
     path('watch/<int:pk>/room/', v.create_room, name='create_room'), path('rooms/<uuid:pk>/', v.room, name='room'), path('rooms/<uuid:pk>/join/', v.join_room, name='join_room'), path('rooms/<uuid:pk>/state/', v.room_state, name='room_state'),

@@ -1,14 +1,18 @@
 import uuid
+import re
+from decimal import Decimal, InvalidOperation
+from datetime import date
 from pathlib import Path
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from .storage import PrivateVideoStorage
-from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
+from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator, RegexValidator
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from .search import normalize_search
 from .trailers import validate_trailer_file, validate_youtube_url, youtube_embed_url
+from .subtitles import subtitle_language_validator
 
 private_storage = PrivateVideoStorage()
 
@@ -80,6 +84,9 @@ class Movie(SearchableModel):
     year = models.PositiveIntegerField(default=2026)
     country = models.CharField(max_length=100, default='Việt Nam')
     kind = models.CharField(max_length=20, choices=[('movie', 'Phim lẻ'), ('series', 'Phim bộ')], default='movie')
+    imdb_id = models.CharField('Mã phim IMDb', max_length=12, blank=True, validators=[RegexValidator(r'\Att[0-9]{7,10}\Z', 'Nhập mã IMDb như tt1254207, không dán URL.')], help_text='Mã title trên IMDb. Liên kết nguồn được tạo từ mã này.')
+    imdb_rating = models.DecimalField('Điểm IMDb', max_digits=3, decimal_places=1, null=True, blank=True, validators=[MinValueValidator(Decimal('1.0')), MaxValueValidator(Decimal('10.0'))], help_text='Điểm 1,0–10,0 do quản trị đối chiếu từ IMDb; để trống nếu chưa có dữ liệu.')
+    imdb_rating_checked_at = models.DateField('Ngày đối chiếu điểm IMDb', null=True, blank=True)
     is_cinema_release = models.BooleanField('Phim chiếu rạp', default=False, help_text='Phân loại phim điện ảnh; không khẳng định phim hiện đang chiếu ngoài rạp.')
     trailer_url = models.URLField('Liên kết trailer YouTube', max_length=500, blank=True, validators=[validate_youtube_url], help_text='Chọn liên kết YouTube HTTPS hoặc upload MP4 bên dưới, không dùng đồng thời cả hai.')
     trailer_file = models.FileField('File trailer MP4', upload_to=trailer_path, blank=True, validators=[FileExtensionValidator(['mp4']), validate_trailer_file], help_text='Trailer công khai, tối đa 50 MB / 5 phút, MP4 H.264 và AAC. Video phim đầy đủ vẫn upload ở Tập phim và lưu riêng tư.')
@@ -95,8 +102,30 @@ class Movie(SearchableModel):
 
     def clean(self):
         super().clean()
+        errors = {}
         if self.trailer_url and self.trailer_file:
-            raise ValidationError({'trailer_url': 'Chỉ chọn một nguồn trailer: YouTube hoặc file MP4.', 'trailer_file': 'Xóa nguồn còn lại trước khi lưu.'})
+            errors.update({'trailer_url': 'Chỉ chọn một nguồn trailer: YouTube hoặc file MP4.', 'trailer_file': 'Xóa nguồn còn lại trước khi lưu.'})
+        if self.imdb_rating is not None and not self.imdb_url:
+            errors['imdb_id'] = 'Cần mã IMDb hợp lệ để xác định nguồn điểm.'
+        if self.imdb_rating_checked_at:
+            if self.imdb_rating is None:
+                errors['imdb_rating_checked_at'] = 'Chỉ nhập ngày đối chiếu khi có điểm IMDb.'
+            elif isinstance(self.imdb_rating_checked_at, date) and self.imdb_rating_checked_at > timezone.localdate():
+                errors['imdb_rating_checked_at'] = 'Ngày đối chiếu không được ở tương lai.'
+        if errors:
+            raise ValidationError(errors)
+
+    @property
+    def imdb_url(self):
+        return f'https://www.imdb.com/title/{self.imdb_id}/' if isinstance(self.imdb_id, str) and re.fullmatch(r'tt[0-9]{7,10}', self.imdb_id) else ''
+
+    @property
+    def has_imdb_rating(self):
+        try:
+            score = Decimal(str(self.imdb_rating))
+            return bool(self.imdb_url and score.is_finite() and Decimal('1') <= score <= Decimal('10'))
+        except (InvalidOperation, ValueError, TypeError):
+            return False
 
     @property
     def trailer_embed_url(self):
@@ -123,6 +152,28 @@ class Episode(models.Model):
         ordering = ['number']
         constraints = [models.UniqueConstraint(fields=['movie', 'number'], name='unique_episode')]
     def __str__(self): return f'{self.movie} — {self.number}'
+
+class Subtitle(models.Model):
+    episode = models.ForeignKey(Episode, on_delete=models.CASCADE, related_name='subtitles', verbose_name='Tập phim')
+    language = models.CharField('Mã ngôn ngữ', max_length=35, validators=[subtitle_language_validator], help_text='Ví dụ: vi, en hoặc en-US.')
+    label = models.CharField('Tên hiển thị', max_length=80, help_text='Ví dụ: Tiếng Việt hoặc English.')
+    content = models.TextField('WebVTT đã chuẩn hóa', editable=False)
+
+    class Meta:
+        ordering = ['language', 'pk']
+        constraints = [models.UniqueConstraint(fields=['episode', 'language'], name='unique_episode_subtitle_language')]
+        verbose_name = 'Phụ đề'
+        verbose_name_plural = 'Phụ đề'
+
+    def clean(self):
+        super().clean()
+        self.language = self.language.strip().lower()
+        self.label = self.label.strip()
+        if not self.label or any(ord(char) < 32 for char in self.label) or '<' in self.label or '>' in self.label:
+            raise ValidationError({'label': 'Tên phụ đề cần là văn bản thuần, không chứa mã HTML hoặc ký tự điều khiển.'})
+
+    def __str__(self):
+        return f'{self.episode} · {self.label}'
 
 class Watchlist(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
