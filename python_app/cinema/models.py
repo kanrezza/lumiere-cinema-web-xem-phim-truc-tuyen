@@ -259,3 +259,44 @@ class LegacyRecord(models.Model):
     target_id = models.PositiveBigIntegerField()
     class Meta:
         constraints = [models.UniqueConstraint(fields=['source', 'table', 'source_id'], name='unique_legacy_record')]
+
+
+class SubtitleTranslation(models.Model):
+    """Versioned, private translations never overwrite a curated subtitle."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    subtitle = models.ForeignKey(Subtitle, on_delete=models.CASCADE, related_name='translations')
+    source_hash = models.CharField(max_length=64, editable=False)
+    source_language = models.CharField(max_length=35, editable=False)
+    target_language = models.CharField(max_length=35, editable=False)
+    provider_key = models.CharField(max_length=64, editable=False)
+    source_content = models.TextField(editable=False)
+    content = models.TextField(blank=True, editable=False)
+    status = models.CharField(max_length=12, default='pending', choices=[('pending', 'Đang chờ'), ('processing', 'Đang dịch'), ('ready', 'Sẵn sàng'), ('failed', 'Lỗi')])
+    error = models.CharField(max_length=300, blank=True)
+    requested_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['created_at', 'pk']
+        constraints = [models.UniqueConstraint(fields=['subtitle', 'source_hash', 'target_language', 'provider_key'], name='unique_subtitle_translation_version')]
+
+
+class SubtitleTranscription(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    episode = models.ForeignKey(Episode, on_delete=models.CASCADE, related_name='transcriptions')
+    source_key = models.CharField(max_length=64, editable=False)
+    language = models.CharField(max_length=12, default='auto')
+    detected_language = models.CharField(max_length=35, blank=True)
+    status = models.CharField(max_length=12, default='pending', choices=[('pending', 'Đang chờ'), ('processing', 'Đang nhận dạng'), ('ready', 'Sẵn sàng'), ('failed', 'Lỗi')])
+    subtitle = models.ForeignKey(Subtitle, on_delete=models.SET_NULL, null=True, blank=True)
+    error = models.CharField(max_length=300, blank=True)
+    requested_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['created_at', 'pk']
+        constraints = [models.UniqueConstraint(fields=['episode', 'source_key', 'language'], name='unique_episode_transcription_version')]

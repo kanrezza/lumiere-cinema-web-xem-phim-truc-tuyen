@@ -77,3 +77,16 @@ FILE_UPLOAD_HANDLERS = ['cinema.uploads.BoundedUploadHandler', 'django.core.file
 AUTHENTICATION_BACKENDS = ['cinema.backends.EmailOrUsernameBackend']
 TRUST_PROXY = os.getenv('TRUST_PROXY', '0') == '1'
 TRUSTED_PROXY_IPS = os.getenv('TRUSTED_PROXY_IPS', '127.0.0.1,::1').split(',')
+
+# Optional local speech service. Original movie files never leave this host.
+SPEECH_API_URL = os.getenv('SPEECH_API_URL', '').rstrip('/')
+SPEECH_API_TOKEN = os.getenv('SPEECH_API_TOKEN', '')
+SPEECH_MODEL_VERSION = os.getenv('SPEECH_MODEL_VERSION', 'faster-whisper-tiny-v1')
+SPEECH_TIMEOUT = int(os.getenv('SPEECH_TIMEOUT', '1800'))
+
+# Empty by default: subtitle text is never sent to an unconfigured service.
+TRANSLATION_API_URL = os.getenv('TRANSLATION_API_URL', '')
+TRANSLATION_API_KEY = os.getenv('TRANSLATION_API_KEY', '')
+TRANSLATION_PROVIDER_VERSION = os.getenv('TRANSLATION_PROVIDER_VERSION', 'libretranslate-v1')
+TRANSLATION_TARGETS = tuple(value.strip().lower() for value in os.getenv('TRANSLATION_TARGETS', 'vi,en').split(',') if value.strip())
+TRANSLATION_TIMEOUT = 60
