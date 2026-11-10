@@ -1,0 +1,2 @@
+{% extends 'admin/change_form.html' %}{% load admin_urls studio_navigation %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Tổng quan</a> <span aria-hidden="true">/</span> {% if has_view_permission %}<a href="{% url opts|admin_urlname:'changelist' %}">{{ opts|studio_model_label }}</a>{% else %}{{ opts|studio_model_label }}{% endif %} <span aria-hidden="true">/</span> {% if add %}Thêm mới{% else %}Chỉnh sửa{% endif %}</div>{% endblock %}

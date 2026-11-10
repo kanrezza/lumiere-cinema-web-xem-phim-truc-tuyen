@@ -1,0 +1,2 @@
+{% load admin_urls studio_navigation %}
+{% if has_add_permission %}<li>{% url cl.opts|admin_urlname:'add' as add_url %}<a href="{% add_preserved_filters add_url is_popup to_field %}" class="addlink"><span aria-hidden="true">＋</span> Thêm {{ cl.opts.model_name|studio_model_label:'singular' }}</a></li>{% endif %}
