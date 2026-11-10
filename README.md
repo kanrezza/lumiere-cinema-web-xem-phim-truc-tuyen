@@ -1,6 +1,5 @@
 # Hệ Thống Quản Lý Phim Online (Lumière)
 
-> **Bản rebuild Python/Django:** xem [hướng dẫn trong python_app](python_app/README.md). Bản Laravel bên dưới được giữ để đối chiếu và chuyển dữ liệu.
 
 Hệ thống cho phép người dùng xem và khám phá phim trực tuyến, đồng thời cung cấp bộ công cụ quản trị toàn diện cho Admin.
 
