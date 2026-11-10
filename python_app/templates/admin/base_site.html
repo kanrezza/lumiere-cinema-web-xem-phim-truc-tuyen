@@ -1,0 +1,32 @@
+{% extends 'admin/base.html' %}{% load static studio_navigation %}
+{% block title %}{{ title }} · Lumière Studio{% endblock %}
+{% block dark-mode-vars %}
+  <meta name="theme-color" content="#0b0d0e">
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+  <script src="{% static 'theme.js' %}?v=light-dark-1"></script>
+{% endblock %}
+{% block responsive %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'studio.css' %}?v=studio-5">
+  <link rel="stylesheet" href="{% static 'studio-dashboard.css' %}?v=studio-5">
+  <script src="{% static 'studio.js' %}?v=studio-5" defer></script>
+{% endblock %}
+{% block bodyclass %}{{ block.super }} studio-shell{% endblock %}
+{% block header %}
+  {% include 'studio/icons.html' %}
+  <header id="header" class="studio-topbar">
+    {% if has_permission %}<button type="button" class="studio-menu-toggle studio-icon-button" data-studio-menu aria-controls="studio-sidebar" aria-expanded="false" aria-label="Mở menu quản trị"><svg class="studio-icon" aria-hidden="true"><use href="#s-menu"/></svg></button>{% endif %}
+    <a class="studio-mobile-brand" href="{% url 'admin:index' %}">lumière<span>.</span></a>
+    <div class="studio-workspace"><span class="studio-workspace-dot" aria-hidden="true"></span><span>Không gian quản trị</span><span class="studio-workspace-divider">/</span><strong>Lumière Studio</strong></div>
+    <div class="studio-topbar-actions">
+      {% include 'cinema/theme_toggle.html' %}
+      <a class="studio-site-link" href="{% url 'catalog' %}">Xem website <svg class="studio-icon" aria-hidden="true"><use href="#s-external"/></svg></a>
+      {% if has_permission %}
+      <details class="studio-account"><summary aria-label="Menu tài khoản {{ user.username }}"><span class="studio-avatar">{% if user.avatar %}<img src="{{ user.avatar.url }}" alt="">{% else %}{{ user.username|slice:':1'|upper }}{% endif %}</span><span class="studio-account-name">{{ user.username }}<small>Quản trị viên</small></span><svg class="studio-icon" aria-hidden="true"><use href="#s-chevron"/></svg></summary><div class="studio-account-dropdown"><a href="{% url 'profile' %}">Hồ sơ cá nhân</a><a href="{% url 'admin:password_change' %}">Đổi mật khẩu</a><form method="post" action="{% url 'admin:logout' %}">{% csrf_token %}<button type="submit">Đăng xuất</button></form></div></details>
+      {% endif %}
+    </div>
+  </header>
+{% endblock %}
+{% block nav-sidebar %}{% if has_permission %}{% include 'studio/sidebar.html' %}{% endif %}{% endblock %}
+{% block content_title %}{% if title %}<div class="studio-page-heading"><span class="studio-eyebrow">LUMIÈRE STUDIO</span><h1>{% studio_page_title %}</h1><p>Quản lý nội dung và hoạt động của Lumière.</p></div>{% endif %}{% endblock %}
+{% block footer %}<span>Lumière Studio</span><a href="{% url 'catalog' %}">Trở về rạp phim <span aria-hidden="true">↗</span></a>{% endblock %}

@@ -1,0 +1,12 @@
+{% load studio_navigation %}{% studio_menu as studio_sections %}
+<aside id="studio-sidebar" class="studio-sidebar" aria-label="Điều hướng quản trị">
+  <a class="studio-brand" href="{% url 'admin:index' %}" aria-label="Lumière Studio — Tổng quan"><span class="studio-brand-mark" aria-hidden="true">l<span>›</span></span><span>lumière<span class="studio-brand-period">.</span><small>STUDIO</small></span></a>
+  <button type="button" class="studio-sidebar-close studio-icon-button" data-studio-close aria-label="Đóng menu quản trị"><svg class="studio-icon" aria-hidden="true"><use href="#s-close"/></svg></button>
+  <nav>
+  {% for section in studio_sections %}
+    <div class="studio-nav-section"><p>{{ section.label }}</p>{% for item in section.items %}<a class="studio-nav-item{% if item.active %} is-active{% endif %}" href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}><svg class="studio-icon" aria-hidden="true"><use href="#s-{{ item.icon }}"/></svg><span>{{ item.label }}</span>{% if item.active %}<span class="studio-nav-current" aria-hidden="true"></span>{% endif %}</a>{% endfor %}</div>
+  {% endfor %}
+  </nav>
+  <div class="studio-sidebar-bottom"><span class="studio-sidebar-emblem" aria-hidden="true">L</span><div><strong>Chuyện phim, của bạn.</strong><small>Quản lý để mỗi buổi xem tốt hơn.</small></div><a href="{% url 'catalog' %}" aria-label="Trở về website"><svg class="studio-icon" aria-hidden="true"><use href="#s-external"/></svg></a></div>
+</aside>
+<button type="button" class="studio-sidebar-overlay" data-studio-close aria-label="Đóng menu quản trị" hidden></button>

@@ -597,12 +597,7 @@ def delete_comment(request, pk):
 @login_required
 def studio(request):
     if not request.user.is_staff: raise PermissionDenied
-    totals = Order.objects.filter(status='paid').aggregate(revenue=Sum('amount'), count=Count('id'))
-    return render(request, 'cinema/studio.html', {
-        'movies_count': Movie.objects.count(), 'users_count': User.objects.count(),
-        'vip_count':User.objects.filter(is_active=True, vip_until__gt=timezone.now()).count(),
-        'revenue':totals['revenue'] or 0, 'paid_count':totals['count'],
-        'episodes':Episode.objects.select_related('movie').order_by('-id')[:12],
-        'orders':Order.objects.select_related('user', 'plan').order_by('-created_at')[:10],
-        'reports':Report.objects.filter(resolved=False).select_related('episode__movie')[:10],
-    })
+    from django.contrib import admin
+    from .studio import build_dashboard_context
+    context = {**admin.site.each_context(request), **build_dashboard_context(request.user), 'title': 'Tổng quan hệ thống'}
+    return render(request, 'cinema/studio.html', context)
