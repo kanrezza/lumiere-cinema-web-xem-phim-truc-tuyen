@@ -92,6 +92,70 @@
       </div>
     </article>
   </div>
+  {% if can_view_comments or can_view_ratings %}
+  <section class="sd-panel sd-community-panel" aria-labelledby="sd-community-title">
+    <div class="sd-panel-heading">
+      <h2 id="sd-community-title">Hoạt động cộng đồng</h2>
+      {% if can_view_comments %}
+        <a class="sd-community-queue{% if pending_comments_count %} sd-community-queue-attention{% endif %}" href="{% url 'admin:cinema_comment_changelist' %}?moderation_status__exact=pending">
+          <strong>{{ pending_comments_count|vnd }}</strong> bình luận chờ duyệt <span aria-hidden="true">↗</span>
+        </a>
+      {% endif %}
+    </div>
+    <div class="sd-community-grid">
+      {% if can_view_comments %}
+      <section class="sd-community-column" aria-labelledby="sd-recent-comments-title">
+        <div class="sd-community-heading">
+          <h3 id="sd-recent-comments-title">Bình luận gần đây</h3>
+          <a class="sd-text-link" href="{% url 'admin:cinema_comment_changelist' %}">Tất cả bình luận <span aria-hidden="true">↗</span></a>
+        </div>
+        <ul class="sd-community-list">
+          {% for comment in recent_comments %}
+            <li>
+              <a class="sd-community-entry" href="{% url 'admin:cinema_comment_change' comment.pk %}">
+                <span class="sd-community-copy">
+                  <strong>{{ comment.movie.title }}</strong>
+                  <span class="sd-community-message">{{ comment.content|truncatechars:120 }}</span>
+                  <small>@{{ comment.user.username }} · <time datetime="{{ comment.created_at|date:'c' }}">{{ comment.created_at|date:'d/m/Y · H:i' }}</time></small>
+                </span>
+                <span class="sd-community-meta">
+                  <span class="sd-status sd-status-{{ comment.moderation_status }}">{{ comment.get_moderation_status_display }}</span>
+                  {% if comment.moderation_reason %}<small>{{ comment.get_moderation_reason_display }}</small>{% endif %}
+                </span>
+              </a>
+            </li>
+          {% empty %}
+            <li class="sd-community-empty">Chưa có bình luận nào trên trang chi tiết phim.</li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+      {% if can_view_ratings %}
+      <section class="sd-community-column" aria-labelledby="sd-recent-ratings-title">
+        <div class="sd-community-heading">
+          <h3 id="sd-recent-ratings-title">Đánh giá gần đây</h3>
+          <a class="sd-text-link" href="{% url 'admin:cinema_rating_changelist' %}">Tất cả đánh giá <span aria-hidden="true">↗</span></a>
+        </div>
+        <ul class="sd-community-list">
+          {% for rating in recent_ratings %}
+            <li>
+              <a class="sd-community-entry" href="{% url 'admin:cinema_rating_change' rating.pk %}">
+                <span class="sd-community-copy">
+                  <strong>{{ rating.movie.title }}</strong>
+                  <small>@{{ rating.user.username }}{% if rating.updated_at %} · <time datetime="{{ rating.updated_at|date:'c' }}">{{ rating.updated_at|date:'d/m/Y · H:i' }}</time>{% endif %}</small>
+                </span>
+                <span class="sd-community-score"><span aria-hidden="true">★</span> {{ rating.score }}/5 <span class="sd-visually-hidden">sao</span></span>
+              </a>
+            </li>
+          {% empty %}
+            <li class="sd-community-empty">Chưa có lượt chấm điểm nào từ người xem.</li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
   {% if can_manage_episodes %}
   <section class="sd-panel sd-library-panel" aria-labelledby="sd-library-title">
     {% url 'admin:cinema_episode_changelist' as video_list_url %}

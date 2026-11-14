@@ -1,0 +1,11 @@
+{% load i18n %}
+<details class="studio-community-filter" data-filter-title="{{ title }}" open>
+  <summary>{{ title }}</summary>
+  <ul>
+    {% for choice in choices %}
+    <li{% if choice.selected %} class="selected"{% endif %}>
+      <a href="{{ choice.query_string|iriencode }}"{% if choice.selected %} aria-current="true"{% endif %}>{{ choice.display }}</a>
+    </li>
+    {% endfor %}
+  </ul>
+</details>

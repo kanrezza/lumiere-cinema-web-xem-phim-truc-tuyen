@@ -1,9 +1,9 @@
 """Read-only dashboard summaries and permission-aware Studio navigation."""
-from django.db.models import Case, Count, Q, Sum, Value, When
+from django.db.models import Case, Count, F, Q, Sum, Value, When
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Episode, Movie, Order, Report, User
+from .models import Comment, Episode, Movie, Order, Rating, Report, User
 
 
 MODEL_LABELS = {
@@ -98,16 +98,18 @@ def build_dashboard_context(user):
         'revenue': None, 'paid_count': None,
         'ready_episodes_count': None, 'processing_episodes_count': None,
         'pending_episodes_count': None, 'active_episodes_count': None,
-        'failed_episodes_count': None, 'unresolved_reports_count': None,
+        'failed_episodes_count': None, 'unresolved_reports_count': None, 'pending_comments_count': None,
         'ready_count': None, 'processing_count': None, 'failed_count': None,
         'episodes': [], 'attention_episodes': [], 'orders': [], 'reports': [],
+        'recent_comments': [], 'recent_ratings': [],
     }
     for name, model in (
         ('movies', 'movie'), ('episodes', 'episode'), ('users', 'user'),
         ('plans', 'plan'), ('reports', 'report'),
     ):
         context[f'can_manage_{name}'] = can_view(user, model)
-    context['can_view_orders'] = can_view(user, 'order')
+    for model in ('order', 'comment', 'rating'):
+        context[f'can_view_{model}s'] = can_view(user, model)
     for model in ('movie', 'episode', 'actor'):
         context[f'can_add_{model}'] = can_add(user, model)
     context['can_add_movies'] = context['can_add_movie']
@@ -154,6 +156,15 @@ def build_dashboard_context(user):
             revenue=totals['revenue'] or 0, paid_count=totals['count'],
             orders=Order.objects.select_related('user', 'plan').order_by('-created_at')[:5],
         )
+    if context['can_view_comments']:
+        context.update(
+            pending_comments_count=Comment.objects.filter(moderation_status=Comment.Status.PENDING).count(),
+            recent_comments=Comment.objects.select_related('movie', 'user').order_by('-created_at', '-pk')[:4],
+        )
+    if context['can_view_ratings']:
+        context['recent_ratings'] = Rating.objects.select_related('movie', 'user').order_by(
+            F('updated_at').desc(nulls_last=True), '-pk',
+        )[:4]
     if context['can_manage_reports']:
         unresolved = Report.objects.filter(resolved=False)
         context.update(

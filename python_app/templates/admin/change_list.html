@@ -1,3 +1,34 @@
 {% extends 'admin/change_list.html' %}{% load admin_urls studio_navigation %}
 {% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Tổng quan</a> <span aria-hidden="true">/</span> {{ cl.opts|studio_model_label }}</div>{% endblock %}
-{% block result_list %}{% if cl.result_count %}{{ block.super }}{% else %}<div class="studio-empty-state"><svg class="studio-icon" aria-hidden="true"><use href="#s-search"/></svg><h2>{% if cl.query or cl.has_active_filters %}Không tìm thấy kết quả{% else %}Chưa có {{ cl.opts|studio_model_label:'singular' }}{% endif %}</h2><p>{% if cl.query or cl.has_active_filters %}Thử từ khóa khác hoặc bỏ bớt bộ lọc để xem thêm nội dung.{% else %}Nội dung sẽ xuất hiện ở đây khi được thêm vào hệ thống.{% endif %}</p>{% if cl.query or cl.has_active_filters %}<a href="{{ request.path }}">Xóa bộ lọc <span aria-hidden="true">→</span></a>{% endif %}</div>{% endif %}{% endblock %}
+{% block content_title %}
+  {% if community %}
+  <div class="studio-page-heading studio-community-heading">
+    <h1>{% studio_page_title %}</h1>
+    <p>{{ community.description }}</p>
+    {% if community.selected_movie %}<p class="studio-community-selected">Phim đang lọc <strong>{{ community.selected_movie }}</strong></p>{% endif %}
+  </div>
+  {% else %}{{ block.super }}{% endif %}
+{% endblock %}
+{% block search %}
+  {% if community.summary %}
+  <div class="studio-community-summary" aria-label="Tổng quan danh sách">
+    {% for metric in community.summary %}
+    {% if metric.url %}<a class="studio-community-metric" href="{{ metric.url }}"{% if metric.active %} aria-current="true"{% endif %}>
+    {% else %}<div class="studio-community-metric">{% endif %}
+      <span>{{ metric.label }}</span><strong>{{ metric.value }}</strong>
+    {% if metric.url %}</a>{% else %}</div>{% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}
+{% block result_list %}
+  {% if cl.result_count %}{{ block.super }}{% else %}
+  <div class="studio-empty-state{% if community %} studio-community-empty{% endif %}">
+    <svg class="studio-icon" aria-hidden="true"><use href="#s-search"/></svg>
+    <h2>{% if cl.query or cl.has_active_filters %}Không tìm thấy kết quả{% else %}Chưa có {{ cl.opts|studio_model_label:'singular' }}{% endif %}</h2>
+    <p>{% if cl.query or cl.has_active_filters %}Thử từ khóa khác hoặc bỏ bớt bộ lọc để xem thêm nội dung.{% else %}{{ community.empty_detail|default:'Nội dung sẽ xuất hiện ở đây khi được thêm vào hệ thống.' }}{% endif %}</p>
+    {% if cl.query or cl.has_active_filters %}<a href="{{ request.path }}">Xóa bộ lọc <span aria-hidden="true">→</span></a>{% endif %}
+  </div>
+  {% endif %}
+{% endblock %}
