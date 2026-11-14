@@ -275,6 +275,72 @@ test('watch-party host sync serializes requests and sends the latest queued seek
   assert.equal(sends[1].playing, false);
 });
 
+test('room polling keeps member controls stable across chat updates', async () => {
+  class RoomElement extends Element {
+    constructor(tag) {super(tag); this.children = [];}
+    get firstElementChild() {return this.children[0] ?? null;}
+    get nextElementSibling() {
+      return this.parentElement?.children[this.parentElement.children.indexOf(this) + 1] ?? null;
+    }
+    append(...nodes) {for (const node of nodes) this.insertBefore(node, null);}
+    insertBefore(node, before) {
+      node.remove();
+      this.children.splice(before ? this.children.indexOf(before) : this.children.length, 0, node);
+      node.parentElement = this;
+    }
+    remove() {
+      if (!this.parentElement) return;
+      this.parentElement.children.splice(this.parentElement.children.indexOf(this), 1);
+      this.parentElement = null;
+    }
+  }
+
+  const env = environment();
+  const room = new RoomElement(), messages = new RoomElement(), members = new RoomElement();
+  const count = new RoomElement(), empty = new RoomElement();
+  room.dataset = {host: 'true', user: '2', hostUser: '2', state: '/room-state'};
+  room.querySelector = selector => selector === '[data-room-member-count]' ? count : empty;
+  messages.append(empty);
+  const controls = new Map([
+    ['room', room], ['room-status', new RoomElement()], ['copy-invite', new RoomElement()],
+    ['close-room', new RoomElement()], ['chat-form', new RoomElement()],
+    ['chat-messages', messages], ['members', members],
+  ]);
+  const get = env.doc.getElementById;
+  env.doc.getElementById = id => controls.get(id) || get(id);
+  env.doc.createElement = tag => new RoomElement(tag);
+  const roster = [{user_id: 1, user__username: 'Khách'}, {user_id: 2, user__username: 'Chủ phòng'}];
+  let data = {members: roster, messages: []};
+  let nextPoll;
+  env.context.fetch = async () => ({ok: true, json: async () => data});
+  env.context.setTimeout = callback => {nextPoll = callback;};
+  env.load('room.js');
+  await tick();
+
+  const [host, guest] = members.children;
+  assert.equal(host.dataset.memberId, '2');
+  assert.equal(guest.dataset.memberId, '1');
+  assert.equal(count.textContent, '2');
+  assert.equal(empty.hidden, false);
+  const actions = guest.children[3];
+  const mute = new RoomElement('button');
+  actions.append(mute);
+
+  data = {members: roster, messages: [{id: 1, user: 'Chủ phòng', user_id: 2, content: '<em>Chào</em>'}]};
+  await nextPoll();
+  assert.equal(members.children[1], guest);
+  assert.equal(guest.children[3].children[1], mute);
+  assert.equal(empty.hidden, true);
+  assert.equal(messages.children[0].children[1].textContent, '<em>Chào</em>');
+  assert.equal(messages.children[0].dataset.own, 'true');
+
+  data = {members: [roster[1]], messages: data.messages};
+  await nextPoll();
+  assert.deepEqual(members.children, [host]);
+  assert.equal(count.textContent, '1');
+  assert.equal(messages.children.length, 1);
+});
+
 
 test('loaded caption cues sit above custom controls and retain native timing', () => {
   const env = environment(); env.load('player-controls.js');
