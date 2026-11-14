@@ -102,6 +102,10 @@ Nút **CC / Phụ đề** luôn xuất hiện trên thanh điều khiển, kể 
 
 Nút ±10 giây và phím ←/→ khi focus trong trình phát cập nhật vị trí ngay, giới hạn trong thời lượng/vùng có thể tua. Thao tác liên tiếp cộng dồn; lần làm mới nguồn HLS giữ vị trí vừa chọn. Phím mũi tên không can thiệp ô nhập/chọn ngôn ngữ. Trong phòng xem chung, chỉ chủ phòng được tua và điều khiển vị trí chung; khách vẫn chọn phụ đề/âm lượng riêng.
 
+Khi tạo phòng, chủ phòng có thể đặt mật khẩu và bật **Duyệt người vào phòng**. Có thể chỉnh cả hai trong **Duyệt thành viên và cài đặt phòng**. Nếu bật cả hai, khách nhập đúng mật khẩu trước khi gửi yêu cầu, rồi bấm tham gia sau khi được duyệt. Đổi mật khẩu yêu cầu khách đang chờ hoặc đã được duyệt nhưng chưa vào phòng xác minh lại.
+
+**Tham gia thoại** cho phép nghe phòng. Chỉ khi bấm **Bật mic** trình duyệt mới xin quyền dùng microphone. Chủ phòng có thể khóa mic từng thành viên. Khi được mở quyền nói, thành viên tự bật lại mic. WebRTC truyền âm thanh giữa các trình duyệt. Trên máy chủ cần HTTPS và có thể cấu hình `ROOM_VOICE_ICE_SERVERS` theo mẫu trong `.env.example` để hỗ trợ các mạng cần STUN/TURN. Localhost có thể thử kết nối trực tiếp.
+
 ## Phụ đề tự động và dịch local
 
 Chạy `migrate` trước khi dùng phiên bản này để tạo bảng công việc dịch/nhận dạng. Hai tác vụ chạy ngoài web request; trình phát hiện trạng thái chờ, đang xử lý, hoàn tất hoặc lỗi. Worker giữ lại kết quả có cùng nguồn và phiên bản model, không tạo một bản dịch mới sau mỗi lần bấm. Endpoint tạo/xem kết quả đều kiểm tra quyền xem phim và CSRF cho thao tác POST.

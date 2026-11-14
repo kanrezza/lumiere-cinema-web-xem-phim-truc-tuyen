@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
@@ -14,7 +15,13 @@ MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'django.contrib.s
 ROOT_URLCONF = 'config.urls'
 TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'DIRS': [BASE_DIR / 'templates'], 'APP_DIRS': True, 'OPTIONS': {'context_processors': ['django.template.context_processors.request', 'django.contrib.auth.context_processors.auth', 'django.contrib.messages.context_processors.messages']}}]
 WSGI_APPLICATION = 'config.wsgi.application'
-DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'db.sqlite3'}}
+# Claim the SQLite write lock up front so simultaneous room requests can wait instead
+# of failing when an atomic block upgrades from a member lookup to a write.
+DATABASES = {'default': {
+    'ENGINE': 'django.db.backends.sqlite3',
+    'NAME': BASE_DIR / 'db.sqlite3',
+    'OPTIONS': {'transaction_mode': 'IMMEDIATE'},
+}}
 if os.getenv('DB_NAME'):
     import pymysql
     pymysql.install_as_MySQLdb()
@@ -66,6 +73,12 @@ VNPAY_TMN_CODE = os.getenv('VNPAY_TMN_CODE', '')
 VNPAY_HASH_SECRET = os.getenv('VNPAY_HASH_SECRET', '')
 VNPAY_URL = os.getenv('VNPAY_URL', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html')
 PUBLIC_ORIGIN = os.getenv('PUBLIC_ORIGIN', 'http://127.0.0.1:8000').rstrip('/')
+try:
+    ROOM_VOICE_ICE_SERVERS = json.loads(os.getenv('ROOM_VOICE_ICE_SERVERS') or '[]')
+except ValueError as exc:
+    raise ImproperlyConfigured('ROOM_VOICE_ICE_SERVERS must be a JSON array of RTCIceServer entries.') from exc
+if not isinstance(ROOM_VOICE_ICE_SERVERS, list):
+    raise ImproperlyConfigured('ROOM_VOICE_ICE_SERVERS must be a JSON array of RTCIceServer entries.')
 
 PASSWORD_HASHERS = ['django.contrib.auth.hashers.PBKDF2PasswordHasher', 'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher', 'django.contrib.auth.hashers.BCryptSHA256PasswordHasher', 'cinema.hashers.LaravelBCryptPasswordHasher']
 

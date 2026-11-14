@@ -1,1 +1,92 @@
-{% extends 'base.html' %}{% load static %}{% block content %}<section class="content-section room-page" id="room" data-state="{% url 'room_state' room.pk %}" data-host="{{ is_host|yesno:'true,false' }}" data-user="{{ user.pk }}"><div class="section-heading"><div><div class="eyebrow"><span class="live-dot"></span> Phòng xem chung</div><h1>{{ room.name }}</h1><p class="muted">{{ episode.movie.title }} · Chủ phòng: {{ room.host.username }}</p></div><button class="btn secondary" id="copy-invite">Sao chép liên kết</button></div><div class="room-grid"><div>{% include 'cinema/player.html' %}<p class="notice">{% if is_host %}Bạn là chủ phòng. Thao tác phát, tạm dừng và tua sẽ đồng bộ cho cả phòng.{% else %}Chủ phòng điều khiển buổi chiếu. Nếu trình duyệt chặn tự phát, hãy nhấn phát một lần.{% endif %}</p><h3>Đang trong phòng</h3><div id="members" class="members"></div>{% if is_host %}<button id="close-room" class="btn small secondary">Kết thúc phòng</button>{% endif %}<form method="post" action="{% url 'leave_room' room.pk %}">{% csrf_token %}<button class="btn small secondary">Rời phòng</button></form><p id="room-status" role="status"></p></div><aside class="chat-panel"><h3>Trò chuyện <span class="live-dot"></span></h3><div id="chat-messages" aria-live="polite"></div><form id="chat-form">{% csrf_token %}<input name="content" required maxlength="500" placeholder="Nhập tin nhắn…" aria-label="Tin nhắn"><button aria-label="Gửi tin nhắn">↑</button></form></aside></div></section>{% endblock %}{% block scripts %}<script src="{% static 'vendor/hls.min.js' %}" defer></script><script src="{% static 'player.js' %}?v=watch-next-1" defer></script><script src="{% static 'player-controls.js' %}?v=watch-next-1" defer></script><script src="{% static 'caption-panel.js' %}?v=watch-next-1" defer></script><script src="{% static 'room.js' %}?v=captions-seek-2" defer></script>{% endblock %}
+{% extends 'base.html' %}{% load static l10n %}
+{% block title %}{{ room.name }} · Lumière{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=2">{% endblock %}
+{% block content %}
+<section class="content-section room-page watch-room" id="room"
+  data-state="{% url 'room_state' room.pk %}" data-host="{{ is_host|yesno:'true,false' }}"
+  data-user="{{ user.pk|unlocalize }}" data-host-user="{{ room.host_id|unlocalize }}" data-username="{{ user.username }}"
+  data-voice="{% url 'room_voice' room.pk %}" data-voice-action="{% url 'room_voice_action' room.pk %}"
+  {% if is_host %}data-admission="{% url 'room_admission' room.pk %}"{% endif %}>
+  <header class="room-header">
+    <div class="room-title">
+      <a class="room-back" href="{% url 'movie' episode.movie.slug %}"><span aria-hidden="true">←</span> Thông tin phim</a>
+      <h1>{{ room.name }}</h1>
+      <p>{{ episode.movie.title }}{% if episode.movie.kind == 'series' %} <span aria-hidden="true">·</span> Tập {{ episode.number }}{% endif %} <span aria-hidden="true">·</span> Chủ phòng {{ room.host.username }}</p>
+    </div>
+    <div class="room-header-actions">
+      <button class="btn secondary small" type="button" id="copy-invite"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M10 13a4 4 0 0 0 6 .5l4-4a4 4 0 0 0-6-6l-2 2m2 5.5a4 4 0 0 0-6-.5l-4 4a4 4 0 0 0 6 6l2-2"/></svg>Mời bạn</button>
+      {% if is_host %}
+      <button class="btn secondary small room-exit" type="button" id="close-room">Kết thúc phòng</button>
+      {% else %}
+      <form method="post" action="{% url 'leave_room' room.pk %}">{% csrf_token %}<button class="btn secondary small room-exit">Rời phòng</button></form>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="room-layout">
+    <div class="room-stage">
+      <div class="room-screen">{% include 'cinema/player.html' %}</div>
+      <div class="room-sync"><span class="live-dot" aria-hidden="true"></span><span>{% if is_host %}Điều khiển của bạn đồng bộ cho cả phòng{% else %}Đồng bộ với chủ phòng{% endif %}</span></div>
+      <p id="room-status" role="status"></p>
+      {% if is_host %}
+      <details class="room-access-panel">
+        <summary><span>Duyệt thành viên và cài đặt phòng</span><span class="room-count" data-room-pending-count aria-label="Số yêu cầu đang chờ">0</span></summary>
+        <section class="room-access-section" aria-labelledby="room-queue-heading">
+          <h2 id="room-queue-heading">Yêu cầu vào phòng</h2>
+          <p data-room-queue-empty>Chưa có yêu cầu.</p>
+          <ul data-room-queue class="room-queue"></ul>
+        </section>
+        <form data-room-access-form class="room-access-form room-access-section">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="settings">
+          <h2>Quyền vào phòng</h2>
+          <p data-room-password-status>{% if room.password_hash %}Phòng đang có mật khẩu.{% else %}Phòng chưa đặt mật khẩu.{% endif %}</p>
+          <label>Mật khẩu mới<input name="password" type="password" minlength="4" maxlength="128" autocomplete="new-password" placeholder="Giữ nguyên nếu để trống"></label>
+          <label class="room-check"><input type="checkbox" name="remove_password" {% if not room.password_hash %}disabled{% endif %}> Bỏ mật khẩu</label>
+          <label class="room-check"><input type="checkbox" name="requires_approval" {% if room.requires_approval %}checked{% endif %}> Duyệt người vào phòng</label>
+          <button class="btn secondary small">Lưu cài đặt</button>
+        </form>
+        <p data-room-access-status role="status"></p>
+      </details>
+      {% endif %}
+    </div>
+
+    <aside class="room-sidebar" aria-label="Thành viên và trò chuyện">
+      <section class="room-panel room-people" aria-labelledby="room-people-title">
+        <header><h2 id="room-people-title"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg> Thành viên</h2><span class="room-count" data-room-member-count>1</span></header>
+        <div id="members" aria-label="Thành viên đang ở trong phòng"></div>
+        <div class="room-voice-bar">
+          <div class="room-voice-actions">
+            <button class="btn small" type="button" data-voice-join aria-pressed="false"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 14v-2a9 9 0 0 1 18 0v2M3 15a3 3 0 0 1 3-3h1v8H6a3 3 0 0 1-3-3Zm18 0a3 3 0 0 0-3-3h-1v8h1a3 3 0 0 0 3-3Z"/></svg><span data-voice-label>Tham gia thoại</span></button>
+            <button class="btn secondary small" type="button" data-voice-mic aria-pressed="false" disabled><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0 0 14 0m-7 7v4m-3 0h6"/></svg><span data-voice-label>Bật mic</span></button>
+            <button class="btn secondary small" type="button" data-voice-play hidden>Nghe tiếng phòng</button>
+          </div>
+          <p data-voice-status role="status">Bạn có thể nghe trước rồi bật mic khi muốn nói.</p>
+          <div data-voice-audio hidden></div>
+        </div>
+      </section>
+      <section class="room-panel room-chat" aria-labelledby="room-chat-title">
+        <header><h2 id="room-chat-title"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-8 8H4l2-4a8 8 0 1 1 14-4ZM9 10h6m-6 4h4"/></svg> Trò chuyện</h2></header>
+        <div class="room-chat-content">
+          <p data-room-chat-empty>Gửi tin nhắn đầu tiên cho cả phòng.</p>
+          <div id="chat-messages" role="log" aria-label="Tin nhắn trong phòng"></div>
+        </div>
+        <form id="chat-form">
+          {% csrf_token %}
+          <input name="content" required maxlength="500" placeholder="Nhắn với cả phòng…" aria-label="Tin nhắn">
+          <button type="submit" aria-label="Gửi tin nhắn">↑</button>
+        </form>
+      </section>
+    </aside>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/hls.min.js' %}" defer></script>
+<script src="{% static 'player.js' %}?v=watch-next-1" defer></script>
+<script src="{% static 'player-controls.js' %}?v=watch-next-1" defer></script>
+<script src="{% static 'caption-panel.js' %}?v=watch-next-1" defer></script>
+<script src="{% static 'room.js' %}?v=2" defer></script>
+<script src="{% static 'room-voice.js' %}?v=1" defer></script>
+{% if is_host %}<script src="{% static 'room-admission.js' %}?v=1" defer></script>{% endif %}
+{% endblock %}

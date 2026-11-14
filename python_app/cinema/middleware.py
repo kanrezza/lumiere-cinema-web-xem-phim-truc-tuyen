@@ -29,7 +29,10 @@ class SecurityMiddleware:
         payment_url = urlsplit(settings.VNPAY_URL)
         payment_origin = f'{payment_url.scheme}://{payment_url.netloc}'
         response['Content-Security-Policy'] = f"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' {payment_origin}"
-        response['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+        match = getattr(request, 'resolver_match', None)
+        room_microphone = match and match.url_name == 'room' and getattr(response, 'allow_room_microphone', False)
+        microphone_policy = '(self)' if room_microphone else '()'
+        response['Permissions-Policy'] = f'camera=(), microphone={microphone_policy}, geolocation=()'
         if request.user.is_authenticated or request.path.startswith('/stream/'):
             response['Cache-Control'] = 'private, no-store'
         return response

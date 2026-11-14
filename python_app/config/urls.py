@@ -8,6 +8,7 @@ from cinema.forms import LoginForm
 from cinema.subtitle_views import subtitle
 from cinema.translation_views import subtitle_translate, subtitle_translation_status, subtitle_translation_track
 from cinema.transcription_views import generate as caption_generate, status as caption_generation_status
+from cinema import room_voice
 urlpatterns = [
     path('', v.landing, name='landing'), path('browse/', v.catalog, name='catalog'), path('movies/<slug:slug>/', v.movie_detail, name='movie'),
     path('movies/<slug:slug>/trailer/', v.movie_trailer, name='trailer'),
@@ -24,6 +25,9 @@ urlpatterns = [
     path('watch/<int:pk>/ticket/', v.stream_ticket, name='ticket'), path('stream/<int:pk>/<str:filename>/', v.stream, name='stream'),
     path('vip/', v.plans, name='plans'), path('checkout/<int:pk>/', v.checkout, name='checkout'), path('checkout/', v.checkout, name='checkout_selected'), path('payments/ipn/', v.ipn, name='ipn'), path('payments/return/', v.payment_return, name='payment_return'),
     path('watch/<int:pk>/room/', v.create_room, name='create_room'), path('rooms/<uuid:pk>/', v.room, name='room'), path('rooms/<uuid:pk>/join/', v.join_room, name='join_room'), path('rooms/<uuid:pk>/state/', v.room_state, name='room_state'),
+    path('rooms/<uuid:pk>/admission/', v.room_admission, name='room_admission'),
+    path('rooms/<uuid:pk>/voice/', room_voice.state, name='room_voice'),
+    path('rooms/<uuid:pk>/voice/action/', room_voice.command, name='room_voice_action'),
     path('countries/', v.countries, name='countries'), path('genres/', v.categories, name='categories'),
     path('actors/', v.actors, name='actors'), path('actors/<int:pk>/', v.actor_detail, name='actor'),
     path('history/clear/', v.clear_history, name='clear_history'), path('comments/<int:pk>/delete/', v.delete_comment, name='delete_comment'),

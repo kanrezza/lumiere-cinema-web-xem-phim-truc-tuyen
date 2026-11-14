@@ -1,1 +1,34 @@
-{% extends 'base.html' %}{% block content %}<section class="content-section empty"><div class="eyebrow">Phòng xem chung</div><h1>Tham gia phòng xem</h1><h2>{{ room.name }}</h2><p>{{ room.episode.movie.title }} · Chủ phòng: {{ room.host.username }}</p><form method="post" action="{% url 'join_room' room.pk %}">{% csrf_token %}<button class="btn">Tham gia phòng</button></form></section>{% endblock %}
+{% extends 'base.html' %}{% load static %}
+{% block title %}Tham gia phòng xem · Lumière{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=1">{% endblock %}
+{% block content %}
+<section class="content-section room-lobby">
+  <a class="room-back" href="{% url 'movie' room.episode.movie.slug %}">← Thông tin phim</a>
+  <article class="room-panel">
+    <span class="room-lobby-icon"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg></span>
+    <h1>{{ room.name }}</h1>
+    <p>{{ room.episode.movie.title }} · Chủ phòng {{ room.host.username }}</p>
+    {% if join_error %}<p class="room-lobby-error" role="alert">{{ join_error }}</p>{% endif %}
+    <div data-room-lobby="{% url 'room_admission' room.pk %}" data-lobby-status="{{ join_status|default:'' }}">
+      <section data-lobby-pending {% if join_status != 'pending' or not room.requires_approval %}hidden{% endif %}>
+        <h2>Đang chờ chủ phòng duyệt</h2><p role="status">Trang sẽ báo khi chủ phòng phản hồi.</p>
+        <a class="btn secondary small" href="{% url 'room' room.pk %}">Kiểm tra lại</a>
+      </section>
+      <section data-lobby-rejected {% if join_status != 'rejected' %}hidden{% endif %}>
+        <h2>Yêu cầu đã bị từ chối</h2><p>Chủ phòng đã từ chối yêu cầu vào phòng của bạn.</p>
+      </section>
+      {% if join_status != 'rejected' %}
+      <form method="post" action="{% url 'join_room' room.pk %}" class="room-access-form" data-lobby-form {% if join_status == 'pending' and room.requires_approval %}hidden{% endif %}>
+        {% csrf_token %}
+        <p data-lobby-approved role="status" {% if join_status != 'approved' %}hidden{% endif %}>Chủ phòng đã duyệt. Bạn có thể vào phòng.</p>
+        {% if room.password_hash %}
+        <label data-lobby-password {% if join_status == 'approved' %}hidden{% endif %}>Mật khẩu phòng<input name="password" type="password" maxlength="128" autocomplete="off" {% if join_status != 'approved' %}required{% endif %}></label>
+        {% endif %}
+        <button class="btn" data-lobby-submit>{% if room.requires_approval and join_status != 'approved' %}Gửi yêu cầu vào phòng{% else %}Tham gia phòng{% endif %}</button>
+      </form>
+      {% endif %}
+    </div>
+  </article>
+</section>
+{% endblock %}
+{% block scripts %}{% if join_status == 'pending' and room.requires_approval %}<script src="{% static 'room-admission.js' %}?v=1" defer></script>{% endif %}{% endblock %}

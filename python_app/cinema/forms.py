@@ -42,3 +42,9 @@ class AvatarForm(forms.Form):
 
 class LoginForm(AuthenticationForm):
     username = forms.CharField(label='Tên đăng nhập hoặc email', widget=forms.TextInput(attrs={'autofocus': True, 'autocomplete': 'username'}))
+
+
+class RoomAccessForm(forms.Form):
+    password = forms.CharField(required=False, min_length=4, max_length=128, strip=False,
+                               widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}))
+    requires_approval = forms.BooleanField(required=False)

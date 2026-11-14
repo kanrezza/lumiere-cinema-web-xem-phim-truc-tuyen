@@ -273,7 +273,24 @@ class Room(models.Model):
     playing = models.BooleanField(default=False)
     updated_at = models.DateTimeField(default=timezone.now)
     closed = models.BooleanField(default=False)
+    password_hash = models.CharField(max_length=128, blank=True, editable=False)
+    requires_approval = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+class RoomJoinRequest(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Chờ duyệt'
+        APPROVED = 'approved', 'Đã duyệt'
+        REJECTED = 'rejected', 'Từ chối'
+
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='join_requests')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    status = models.CharField(max_length=8, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['room', 'user'], name='unique_room_join_request')]
+        indexes = [models.Index(fields=['room', 'status', 'created_at'], name='room_approval_queue_idx')]
 
 class Membership(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='members')
@@ -281,7 +298,26 @@ class Membership(models.Model):
     banned = models.BooleanField(default=False)
     active = models.BooleanField(default=True)
     last_seen = models.DateTimeField(default=timezone.now)
+    voice_session = models.UUIDField(null=True, blank=True, editable=False)
+    voice_seen_at = models.DateTimeField(null=True, blank=True, editable=False)
+    voice_mic_on = models.BooleanField(default=False, editable=False)
+    voice_host_muted = models.BooleanField(default=False, editable=False)
     class Meta: constraints = [models.UniqueConstraint(fields=['room', 'user'], name='unique_membership')]
+
+
+class RoomVoiceSignal(models.Model):
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='+')
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='+')
+    sender_session = models.UUIDField()
+    recipient_session = models.UUIDField()
+    kind = models.CharField(max_length=9)
+    payload = models.JSONField()
+    expires_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['room', 'recipient', 'recipient_session', 'id'], name='room_voice_pending_idx')]
+
 
 class Chat(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE)

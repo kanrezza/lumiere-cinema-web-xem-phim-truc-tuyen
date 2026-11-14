@@ -1,12 +1,14 @@
 import math
 import re
-from contextlib import suppress
+from contextlib import nullcontext, suppress
 from datetime import timedelta
 from urllib.parse import urlencode
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.hashers import check_password, make_password
+from django.core.cache import cache
 from django.core import signing
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
@@ -19,7 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
-from .forms import RegisterForm, ProfileForm, AvatarForm
+from .forms import RegisterForm, ProfileForm, AvatarForm, RoomAccessForm
 from .avatars import is_managed_avatar
 from .models import *
 from .payments import checkout_url, process_ipn
@@ -507,12 +509,21 @@ def create_room(request, pk):
     episode = get_object_or_404(Episode.objects.select_related('movie'), pk=pk)
     require_watch(request.user, episode)
     if not request.user.is_vip and not request.user.is_staff: raise PermissionDenied('VIP mới có thể tạo phòng.')
+    form = RoomAccessForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, 'Mật khẩu phòng cần từ 4 đến 128 ký tự.')
+        return redirect(reverse('watch', args=[pk]) + '#watch-together')
+    password = form.cleaned_data['password']
+    password_hash = make_password(password) if password else ''
     with transaction.atomic():
         User.objects.select_for_update().get(pk=request.user.pk)
         if Room.objects.filter(host=request.user, closed=False, created_at__gt=timezone.now() - timedelta(hours=6)).count() >= 3:
             messages.error(request, 'Bạn đã có 3 phòng đang hoạt động.')
             return redirect('watch', pk=pk)
-        room = Room.objects.create(host=request.user, episode=episode, name=request.POST.get('name', '').strip()[:100] or episode.movie.title[:100])
+        room = Room.objects.create(
+            host=request.user, episode=episode, name=request.POST.get('name', '').strip()[:100] or episode.movie.title[:100],
+            password_hash=password_hash, requires_approval=form.cleaned_data['requires_approval'],
+        )
         Membership.objects.create(room=room, user=request.user)
     return redirect('room', pk=room.pk)
 
@@ -531,8 +542,26 @@ def room(request, pk):
     room = accessible_room(request, pk)
     member = Membership.objects.filter(room=room, user=request.user).first()
     if member and member.banned: raise PermissionDenied('Bạn đã bị loại khỏi phòng.')
-    if not member or not member.active: return render(request, 'cinema/join.html', {'room': room})
-    return render(request, 'cinema/room.html', {'room': room, 'episode': room.episode, 'is_host': room.host_id == request.user.pk, 'position': room.position})
+    if not member or not member.active:
+        return room_lobby(request, room)
+    response = render(request, 'cinema/room.html', {'room': room, 'episode': room.episode, 'is_host': room.host_id == request.user.pk, 'position': room.position})
+    response.allow_room_microphone = True
+    return response
+
+
+def room_lobby(request, room, error='', status=200):
+    join_status = RoomJoinRequest.objects.filter(room=room, user=request.user).values_list('status', flat=True).first()
+    return render(request, 'cinema/join.html', {'room': room, 'join_status': join_status, 'join_error': error}, status=status)
+
+
+def room_password_attempt_allowed(room_id, user_id):
+    key = f'room-password:{room_id}:{user_id}'
+    if cache.add(key, 1, timeout=60):
+        return True
+    try:
+        return cache.incr(key) <= 8
+    except ValueError:
+        return cache.add(key, 1, timeout=60)
 
 
 @login_required
@@ -542,10 +571,73 @@ def join_room(request, pk):
         room = accessible_room(request, pk, lock=True)
         member = Membership.objects.filter(room=room, user=request.user).first()
         if member and member.banned: raise PermissionDenied
+        if member and member.active:
+            return redirect('room', pk=pk)
+        admission = RoomJoinRequest.objects.filter(room=room, user=request.user).first()
+        if admission and admission.status == RoomJoinRequest.Status.REJECTED:
+            return room_lobby(request, room, status=403)
+        if room.requires_approval and admission and admission.status == RoomJoinRequest.Status.PENDING:
+            return redirect('room', pk=pk)
+        approved = admission and admission.status == RoomJoinRequest.Status.APPROVED
+        if room.password_hash and not approved:
+            if not room_password_attempt_allowed(room.pk, request.user.pk):
+                return room_lobby(request, room, 'Bạn đã thử quá nhiều lần. Hãy đợi một phút.', 429)
+            password = request.POST.get('password', '')
+            if not 4 <= len(password) <= 128 or not check_password(password, room.password_hash):
+                return room_lobby(request, room, 'Mật khẩu phòng không đúng.', 400)
+        if room.requires_approval and not approved:
+            RoomJoinRequest.objects.get_or_create(room=room, user=request.user)
+            return redirect('room', pk=pk)
         if room.members.filter(banned=False, active=True, last_seen__gt=timezone.now() - timedelta(seconds=30)).exclude(user=request.user).count() >= 10:
-            return HttpResponse('Phòng đã đủ 10 thành viên.', status=409)
-        Membership.objects.update_or_create(room=room, user=request.user, defaults={'active': True, 'last_seen': timezone.now()})
+            return room_lobby(request, room, 'Phòng đã đủ 10 thành viên.', 409)
+        Membership.objects.update_or_create(room=room, user=request.user, defaults={
+            'active': True, 'last_seen': timezone.now(), 'voice_session': None, 'voice_seen_at': None, 'voice_mic_on': False,
+        })
+        if admission:
+            admission.delete()
     return redirect('room', pk=pk)
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def room_admission(request, pk):
+    with transaction.atomic() if request.method == 'POST' else nullcontext():
+        room = accessible_room(request, pk, lock=request.method == 'POST')
+        if room.host_id != request.user.pk:
+            if request.method != 'GET':
+                raise PermissionDenied
+            status = room.join_requests.filter(user=request.user).values_list('status', flat=True).first()
+            return JsonResponse({'status': status, 'requires_approval': room.requires_approval})
+        if request.method == 'POST':
+            action = request.POST.get('action')
+            if action in ('approve', 'reject'):
+                try:
+                    entry_id = int(request.POST.get('request', ''))
+                except ValueError:
+                    entry_id = 0
+                if not 0 < entry_id < 2**63:
+                    return JsonResponse({'error': 'Yêu cầu vào phòng không hợp lệ.'}, status=400)
+                entry = get_object_or_404(room.join_requests, pk=entry_id, status=RoomJoinRequest.Status.PENDING)
+                entry.status = RoomJoinRequest.Status.APPROVED if action == 'approve' else RoomJoinRequest.Status.REJECTED
+                entry.save(update_fields=['status'])
+            elif action == 'settings':
+                form = RoomAccessForm(request.POST)
+                remove_password = request.POST.get('remove_password') == 'on'
+                if not form.is_valid() or (remove_password and form.cleaned_data['password']):
+                    return JsonResponse({'error': 'Nhập mật khẩu mới từ 4 đến 128 ký tự hoặc chọn bỏ mật khẩu.'}, status=400)
+                password = form.cleaned_data['password']
+                if password or remove_password:
+                    room.password_hash = make_password(password) if password else ''
+                    room.join_requests.exclude(status=RoomJoinRequest.Status.REJECTED).delete()
+                room.requires_approval = form.cleaned_data['requires_approval']
+                room.save(update_fields=['password_hash', 'requires_approval'])
+            else:
+                return JsonResponse({'error': 'Thao tác không hợp lệ.'}, status=400)
+        pending = room.join_requests.filter(status=RoomJoinRequest.Status.PENDING).order_by('created_at', 'pk')
+        return JsonResponse({
+            'has_password': bool(room.password_hash), 'requires_approval': room.requires_approval,
+            'pending': list(pending.values('pk', 'user__username')[:30]), 'pending_count': pending.count(),
+        })
 
 
 @login_required
@@ -566,10 +658,18 @@ def room_state(request, pk):
                 if room.host_id != request.user.pk: raise PermissionDenied
                 if action == 'close':
                     room.closed = True
+                    room.members.update(voice_session=None, voice_seen_at=None, voice_mic_on=False)
+                    RoomVoiceSignal.objects.filter(room=room).delete()
                 elif action == 'kick':
                     try: target = int(request.POST.get('user', ''))
                     except (ValueError, TypeError): return JsonResponse({'error': 'Thành viên không hợp lệ'}, status=400)
-                    Membership.objects.filter(room=room, user_id=target, banned=False).exclude(user=room.host).update(banned=True, active=False)
+                    if not 0 < target < 2**63:
+                        return JsonResponse({'error': 'Thành viên không hợp lệ'}, status=400)
+                    removed = Membership.objects.filter(room=room, user_id=target, banned=False).exclude(user=room.host).update(
+                        banned=True, active=False, voice_session=None, voice_seen_at=None, voice_mic_on=False,
+                    )
+                    if removed:
+                        RoomVoiceSignal.objects.filter(room=room).filter(Q(sender_id=target) | Q(recipient_id=target)).delete()
                 elif action == 'sync':
                     try: position = float(request.POST.get('position', 0))
                     except ValueError: return JsonResponse({'error': 'Vị trí không hợp lệ'}, status=400)
@@ -583,17 +683,24 @@ def room_state(request, pk):
         member.save(update_fields=['last_seen'])
         position = min(room.episode.duration, room.position + ((timezone.now() - room.updated_at).total_seconds() if room.playing else 0))
         chats = list(Chat.objects.filter(room=room).select_related('user').order_by('-id')[:60])
-        return JsonResponse({'position': position, 'playing': room.playing, 'closed': room.closed, 'members': list(room.members.filter(banned=False, active=True, last_seen__gt=timezone.now() - timedelta(seconds=30)).values('user_id', 'user__username')), 'messages': [{'id': c.pk, 'user': c.user.username, 'content': c.content} for c in reversed(chats)]})
+        return JsonResponse({'position': position, 'playing': room.playing, 'closed': room.closed, 'members': list(room.members.filter(banned=False, active=True, last_seen__gt=timezone.now() - timedelta(seconds=30)).values('user_id', 'user__username')), 'messages': [{'id': c.pk, 'user_id': c.user_id, 'user': c.user.username, 'content': c.content} for c in reversed(chats)]})
 
 
 @login_required
 @require_POST
 def leave_room(request, pk):
-    room = get_object_or_404(Room, pk=pk)
-    Membership.objects.filter(room=room, user=request.user).update(active=False)
-    if room.host_id == request.user.pk:
-        room.closed = True
-        room.save(update_fields=['closed'])
+    with transaction.atomic():
+        room = get_object_or_404(Room.objects.select_for_update(), pk=pk)
+        members = room.members.all()
+        signals = RoomVoiceSignal.objects.filter(room=room)
+        if room.host_id == request.user.pk:
+            room.closed = True
+            room.save(update_fields=['closed'])
+        else:
+            members = members.filter(user=request.user)
+            signals = signals.filter(Q(sender=request.user) | Q(recipient=request.user))
+        members.update(active=False, voice_session=None, voice_seen_at=None, voice_mic_on=False)
+        signals.delete()
     return redirect('library')
 
 
