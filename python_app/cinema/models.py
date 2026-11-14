@@ -184,6 +184,7 @@ class History(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     episode = models.ForeignKey(Episode, on_delete=models.CASCADE)
     position = models.FloatField(default=0)
+    hidden_from_continue = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
     class Meta:
         ordering = ['-updated_at']

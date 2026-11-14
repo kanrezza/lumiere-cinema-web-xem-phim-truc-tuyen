@@ -1,6 +1,9 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from .models import Category, Episode, History, Movie, Rating, Watchlist
 
@@ -74,6 +77,77 @@ class CatalogExperienceTests(TestCase):
         self.assertEqual(cards[0].remaining_minutes, 8)
         History.objects.filter(user=self.viewer, episode=self.episode).update(position=596)
         self.assertEqual(self.client.get(reverse('catalog')).context['continue_watching'], [])
+
+    def test_latest_unfinished_episode_drives_the_shelf_detail_and_quickview(self):
+        self.ready.kind = 'series'
+        self.ready.save(update_fields=['kind'])
+        later = Episode.objects.create(movie=self.ready, number=3, title='Tập ba', status='ready', duration=600)
+        finished = Episode.objects.create(movie=self.ready, number=4, title='Tập bốn', status='ready', duration=600)
+        History.objects.create(user=self.viewer, episode=self.episode, position=90)
+        History.objects.create(user=self.viewer, episode=later, position=120)
+        History.objects.create(user=self.viewer, episode=finished, position=600)
+        self.client.force_login(self.viewer)
+
+        response = self.client.get(reverse('catalog'))
+        self.assertEqual([item.episode_id for item in response.context['continue_watching']], [later.pk])
+        self.assertLess(response.content.index(b'id="continue-watching"'), response.content.index('Mới trên Lumière'.encode()))
+        self.assertContains(response, f'data-movie-play="{reverse("watch", args=[later.pk])}"')
+        self.assertContains(response, 'data-movie-play-label="Xem tiếp"')
+
+        detail = self.client.get(reverse('movie', args=[self.ready.slug]))
+        self.assertEqual(detail.context['resume_episode'], later)
+        self.assertContains(detail, f'{reverse("watch", args=[later.pk])}?start=1')
+        self.assertContains(detail, 'Xem tiếp tập 3')
+
+    def test_hiding_a_title_keeps_its_history_and_only_applies_to_the_viewer(self):
+        later = Episode.objects.create(movie=self.ready, number=3, title='Tập ba', status='ready', duration=600)
+        first_history = History.objects.create(user=self.viewer, episode=self.episode, position=90)
+        second_history = History.objects.create(user=self.viewer, episode=later, position=120)
+        other_history = History.objects.create(user=self.other, episode=later, position=35)
+        self.client.force_login(self.viewer)
+        hide_url = reverse('hide_continue', args=[self.ready.pk])
+        self.assertEqual(self.client.get(hide_url).status_code, 405)
+        self.assertRedirects(self.client.post(hide_url, {'source': 'library'}), reverse('library'))
+
+        library = self.client.get(reverse('library'))
+        self.assertEqual(library.context['continue_watching'], [])
+        self.assertEqual([item.position for item in library.context['history']], [120, 90])
+        self.assertEqual(library.context['history'][0].updated_at, second_history.updated_at)
+        self.assertEqual(library.context['history'][1].updated_at, first_history.updated_at)
+        self.assertContains(library, 'Lịch sử xem')
+        other_history.refresh_from_db()
+        self.assertFalse(other_history.hidden_from_continue)
+
+        self.assertEqual(self.client.post(reverse('progress', args=[later.pk]), {'position': 140}).status_code, 200)
+        resumed = self.client.get(reverse('catalog')).context['continue_watching']
+        self.assertEqual([(item.episode_id, item.position) for item in resumed], [(later.pk, 140)])
+
+    def test_expired_vip_cannot_resume_premium_progress(self):
+        self.ready.is_vip = True
+        self.ready.save(update_fields=['is_vip'])
+        self.viewer.vip_until = timezone.now() - timedelta(days=1)
+        self.viewer.save(update_fields=['vip_until'])
+        History.objects.create(user=self.viewer, episode=self.episode, position=90)
+        self.client.force_login(self.viewer)
+
+        self.assertEqual(self.client.get(reverse('catalog')).context['continue_watching'], [])
+        detail = self.client.get(reverse('movie', args=[self.ready.slug]))
+        self.assertIsNone(detail.context['resume_episode'])
+        self.assertContains(detail, 'Xem với VIP')
+        self.assertEqual(self.client.get(reverse('watch', args=[self.episode.pk]), {'start': '1'}).status_code, 403)
+
+    def test_start_over_only_changes_the_requested_playback_position(self):
+        history = History.objects.create(user=self.viewer, episode=self.episode, position=149)
+        self.client.force_login(self.viewer)
+        watch_url = reverse('watch', args=[self.episode.pk])
+        resume = self.client.get(watch_url)
+        self.assertEqual(resume.context['position'], 149)
+        self.assertEqual(resume.context['start_over_url'], f'{watch_url}?start=1')
+        restart = self.client.get(watch_url, {'start': '1'})
+        self.assertEqual(restart.context['position'], 0)
+        self.assertEqual(restart.context['start_over_url'], '')
+        history.refresh_from_db()
+        self.assertEqual(history.position, 149)
 
     def test_detail_and_library_provide_real_watch_targets_and_bounded_progress(self):
         response = self.client.get(reverse('movie', args=[self.ready.slug]))

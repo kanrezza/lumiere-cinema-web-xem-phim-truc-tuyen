@@ -1,0 +1,40 @@
+{% load static %}
+{% if continue_watching %}
+<section class="film-shelf continue-shelf" id="continue-watching" aria-labelledby="continue-watching-title" data-shelf>
+  <div class="shelf-heading">
+    <h2 id="continue-watching-title">Xem tiếp</h2>
+    <div class="shelf-actions">
+      {% if source == 'catalog' %}<a class="shelf-more" href="{% url 'library' %}">Tủ phim <span aria-hidden="true">↗</span></a>{% endif %}
+      {% if continue_watching|length > 1 %}
+        <button class="shelf-arrow previous" type="button" data-shelf-dir="-1" aria-label="Cuộn Xem tiếp sang trái"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        <button class="shelf-arrow" type="button" data-shelf-dir="1" aria-label="Cuộn Xem tiếp sang phải"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+      {% endif %}
+    </div>
+  </div>
+  <div class="film-row">
+    {% for item in continue_watching %}
+      {% with movie=item.episode.movie %}
+        <article class="continue-card">
+          <a class="continue-link" href="{% url 'watch' item.episode_id %}">
+            <div class="continue-art">
+              {% if movie.backdrop %}<img src="{{ movie.backdrop.url }}" alt="" loading="lazy">
+              {% elif movie.poster %}<img src="{{ movie.poster.url }}" alt="" loading="lazy">
+              {% else %}<img src="{% static 'imagery/' %}{{ movie.artwork }}.jpg" alt="" loading="lazy">{% endif %}
+              <span class="continue-play"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg></span>
+              <progress value="{{ item.progress_percent }}" max="100" aria-label="Tiến độ {{ movie.title }}"></progress>
+            </div>
+            <div class="continue-copy">
+              <h3>{{ movie.title }}</h3>
+              <p>{% if movie.kind == 'series' %}Tập {{ item.episode.number }} · {% endif %}Còn {{ item.remaining_minutes }} phút</p>
+            </div>
+          </a>
+          <form class="continue-actions" method="post" action="{% url 'hide_continue' movie.pk %}">
+            {% csrf_token %}<input type="hidden" name="source" value="{{ source }}">
+            <button type="submit" aria-label="Bỏ {{ movie.title }} khỏi Xem tiếp">Bỏ khỏi Xem tiếp</button>
+          </form>
+        </article>
+      {% endwith %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

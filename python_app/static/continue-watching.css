@@ -1,0 +1,60 @@
+.continue-card .continue-link {
+  display: block;
+  color: inherit;
+}
+
+.continue-card .continue-copy p {
+  color: var(--muted);
+}
+
+.continue-actions button {
+  min-height: 28px;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.continue-actions button:hover,
+.continue-actions button:focus-visible {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.continue-shelf .film-row > .continue-card:only-child {
+  display: block;
+}
+
+.continue-card:only-child .continue-link {
+  display: grid;
+  grid-template-columns: minmax(105px, 40%) minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.library-history {
+  padding-block: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.library-history summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.library-history ul {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding-left: 18px;
+}
+
+.library-history-meta {
+  margin-inline-start: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}

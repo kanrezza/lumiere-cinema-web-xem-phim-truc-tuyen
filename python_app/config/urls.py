@@ -27,6 +27,7 @@ urlpatterns = [
     path('countries/', v.countries, name='countries'), path('genres/', v.categories, name='categories'),
     path('actors/', v.actors, name='actors'), path('actors/<int:pk>/', v.actor_detail, name='actor'),
     path('history/clear/', v.clear_history, name='clear_history'), path('comments/<int:pk>/delete/', v.delete_comment, name='delete_comment'),
+    path('history/<int:pk>/hide/', v.hide_continue, name='hide_continue'),
     path('rooms/<uuid:pk>/leave/', v.leave_room, name='leave_room'), path('studio/', v.studio, name='studio'),
     path('admin/', admin.site.urls),
 ]

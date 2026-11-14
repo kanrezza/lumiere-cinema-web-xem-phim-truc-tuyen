@@ -34,14 +34,41 @@ def require_watch(user, episode):
     if not can_watch(user, episode): raise PermissionDenied('Bạn chưa có quyền xem hoặc video chưa sẵn sàng.')
 
 
-def catalog_movies():
+def public_history(user):
+    if not user.is_authenticated or not user.is_active:
+        return History.objects.none()
+    return History.objects.filter(
+        user=user, episode__movie__published=True, episode__status='ready',
+    ).order_by('-updated_at', '-pk')
+
+
+def unfinished_history(user):
+    history = public_history(user).filter(
+        episode__duration__gt=0, position__gt=0, position__lt=F('episode__duration') - 1,
+    )
+    if user.is_authenticated and not (user.is_vip or user.is_staff):
+        history = history.filter(episode__movie__is_vip=False)
+    return history
+
+
+def continue_cards(user, limit):
+    visible = unfinished_history(user).filter(hidden_from_continue=False)
+    latest = visible.filter(episode__movie_id=OuterRef('episode__movie_id')).values('pk')[:1]
+    return history_cards(visible.filter(pk=Subquery(latest)).select_related('episode__movie')[:limit])
+
+
+def catalog_movies(user=None):
     """Public movie cards carry a real playback target, never a placeholder URL."""
     ready = Episode.objects.filter(movie_id=OuterRef('pk'), status='ready').order_by('number', 'pk')
-    return Movie.objects.filter(published=True).prefetch_related('categories').annotate(
+    movies = Movie.objects.filter(published=True).prefetch_related('categories').annotate(
         score=Avg('ratings__score'),
         ready_episode_id=Subquery(ready.values('pk')[:1]),
         duration_minutes=Cast(Ceil(Subquery(ready.values('duration')[:1]) / 60.0), IntegerField()),
     ).order_by('-created_at', '-pk')
+    if user is not None and user.is_authenticated and user.is_active:
+        resume = unfinished_history(user).filter(episode__movie_id=OuterRef('pk'))
+        movies = movies.annotate(resume_episode_id=Subquery(resume.values('episode_id')[:1]))
+    return movies
 
 
 
@@ -106,7 +133,6 @@ def history_cards(history):
         position = min(duration, max(0, item.position))
         item.progress_percent = round(position / duration * 100) if duration else 0
         item.remaining_minutes = math.ceil((duration - position) / 60)
-        item.position_minutes = int(position // 60)
     return cards
 
 
@@ -140,7 +166,7 @@ def landing(request):
     # Existing bookmarked filter links remain useful after moving discovery.
     if any(request.GET.get(key) for key in ('q', 'category', 'country', 'actor', 'year', 'kind', 'sort', 'page', 'access', 'availability', 'release', 'trailer')):
         return redirect(reverse('catalog') + '?' + request.GET.urlencode())
-    movies = catalog_movies()
+    movies = catalog_movies(request.user)
     return render(request, 'cinema/landing.html', {
         'landing_movies': list(movies[:7]),
         'featured': movies.filter(is_vip=False, ready_episode_id__isnull=False).first() or movies.filter(ready_episode_id__isnull=False).first() or movies.first(),
@@ -151,7 +177,7 @@ def landing(request):
     })
 
 def catalog(request):
-    movies = catalog_movies()
+    movies = catalog_movies(request.user)
     featured = movies.filter(ready_episode_id__isnull=False).first()
     categories = list(public_categories())
     country_groups = public_country_groups()
@@ -217,11 +243,7 @@ def catalog(request):
             shelves.append({'title': genre.name, 'subtitle': '', 'movies': selections, 'href': reverse('catalog') + '?' + urlencode({'category': genre.slug})})
             if len(shelves) >= 4:
                 break
-        if request.user.is_authenticated:
-            continue_watching = history_cards(History.objects.filter(
-                user=request.user, episode__movie__published=True, episode__status='ready',
-                episode__duration__gt=0, position__gt=0, position__lt=F('episode__duration') - 1,
-            ).select_related('episode__movie')[:12])
+        continue_watching = continue_cards(request.user, 12)
     return render(request, 'cinema/catalog.html', {
         'page': Paginator(filtered.distinct(), 12).get_page(request.GET.get('page')),
         'featured': featured, 'categories': categories, 'q': q, 'category': category,
@@ -246,12 +268,16 @@ def register(request):
 
 
 def movie_detail(request, slug):
-    movie = get_object_or_404(catalog_movies().prefetch_related('actors'), slug=slug)
+    movies = catalog_movies(request.user)
+    movie = get_object_or_404(movies.prefetch_related('actors'), slug=slug)
     episodes = list(movie.episodes.all())
     first_ready_episode = next((episode for episode in episodes if episode.status == 'ready'), None)
-    related = catalog_movies().filter(categories__in=movie.categories.all()).exclude(pk=movie.pk).distinct()[:8]
+    resume_episode_id = getattr(movie, 'resume_episode_id', None)
+    resume_episode = next((episode for episode in episodes if episode.pk == resume_episode_id), None)
+    related = movies.filter(categories__in=movie.categories.all()).exclude(pk=movie.pk).distinct()[:8]
     return render(request, 'cinema/movie.html', {
         'movie': movie, 'episodes': episodes, 'first_ready_episode': first_ready_episode,
+        'resume_episode': resume_episode,
         'comments': movie.comments.select_related('user')[:50], 'score': movie.score,
         'saved': request.user.is_authenticated and Watchlist.objects.filter(user=request.user, movie=movie).exists(),
         'related': related,
@@ -297,8 +323,9 @@ def rate(request, pk):
 @login_required
 def library(request):
     return render(request, 'cinema/library.html', {
-        'movies': catalog_movies().filter(watchlist__user=request.user),
-        'history': history_cards(History.objects.filter(user=request.user, episode__movie__published=True, episode__status='ready').select_related('episode__movie')[:30]),
+        'movies': catalog_movies(request.user).filter(watchlist__user=request.user),
+        'continue_watching': continue_cards(request.user, 30),
+        'history': history_cards(public_history(request.user).select_related('episode__movie')[:30]),
     })
 
 
@@ -356,10 +383,13 @@ def watch(request, pk):
     episode = get_object_or_404(Episode.objects.select_related('movie'), pk=pk)
     require_watch(request.user, episode)
     history = History.objects.filter(user=request.user, episode=episode).first()
+    restarting = request.GET.get('start') == '1'
+    position = history.position if history and not restarting and 0 < history.position < episode.duration - 1 else 0
     episodes = list(episode.movie.episodes.filter(status='ready'))
     next_episode = next((item for item in episodes if item.number > episode.number), None)
     return render(request, 'cinema/watch.html', {
-        'episode': episode, 'position': history.position if history else 0,
+        'episode': episode, 'position': position,
+        'start_over_url': reverse('watch', args=[episode.pk]) + '?start=1' if position > 0 else '',
         'episodes': episodes, 'next_episode': next_episode,
         'duration_minutes': math.ceil(max(0, episode.duration) / 60),
     })
@@ -373,7 +403,10 @@ def progress(request, pk):
     try: position = float(request.POST.get('position', 0))
     except ValueError: return JsonResponse({'error': 'Vị trí không hợp lệ'}, status=400)
     if not math.isfinite(position) or not 0 <= position <= episode.duration + 1: return JsonResponse({'error': 'Vị trí không hợp lệ'}, status=400)
-    History.objects.update_or_create(user=request.user, episode=episode, defaults={'position': position})
+    defaults = {'position': position}
+    if position > 0:
+        defaults['hidden_from_continue'] = False
+    History.objects.update_or_create(user=request.user, episode=episode, defaults=defaults)
     return JsonResponse({'ok': True})
 
 
@@ -573,7 +606,18 @@ def actor_detail(request, pk):
     actor = get_object_or_404(Actor.objects.annotate(
         film_count=Count('movie', filter=Q(movie__published=True), distinct=True),
     ).filter(film_count__gt=0), pk=pk)
-    return render(request, 'cinema/actor.html', {'actor': actor, 'movies': catalog_movies().filter(actors=actor)})
+    return render(request, 'cinema/actor.html', {'actor': actor, 'movies': catalog_movies(request.user).filter(actors=actor)})
+
+
+@login_required
+@require_POST
+def hide_continue(request, pk):
+    hidden = History.objects.filter(
+        user=request.user, episode__movie_id=pk, hidden_from_continue=False,
+    ).update(hidden_from_continue=True)
+    if hidden:
+        messages.success(request, 'Đã bỏ phim khỏi mục Xem tiếp.')
+    return redirect('library' if request.POST.get('source') == 'library' else 'catalog')
 
 
 @login_required

@@ -9,6 +9,7 @@
       {% if movie.is_vip %}<span class="vip-badge">VIP</span>{% endif %}
       {% if not movie.ready_episode_id %}<span class="card-availability card-availability--preparing">Đang chuẩn bị</span>
       {% elif movie.is_vip and not user.is_vip and not user.is_staff %}<span class="card-availability card-availability--vip">Xem với VIP</span>
+      {% elif movie.resume_episode_id %}<span class="card-availability">Đang xem</span>
       {% elif user.is_authenticated %}<span class="card-availability">Có thể xem</span>
       {% else %}<span class="card-availability">Đã có phim</span>{% endif %}
       <span class="poster-hover" aria-hidden="true"><span><svg class="icon"><use href="#i-info"/></svg>Chi tiết phim</span></span>
@@ -27,13 +28,13 @@
     data-movie-kind="{{ movie.get_kind_display }}"
     data-movie-duration="{{ movie.duration_minutes|default:'' }}"
     data-movie-ready="{% if movie.ready_episode_id %}1{% else %}0{% endif %}"
-    data-movie-status="{% if not movie.ready_episode_id %}Đang chuẩn bị{% elif movie.is_vip and not user.is_vip and not user.is_staff %}Xem với VIP{% else %}Đã có phim{% endif %}"
+    data-movie-status="{% if not movie.ready_episode_id %}Đang chuẩn bị{% elif movie.is_vip and not user.is_vip and not user.is_staff %}Xem với VIP{% elif movie.resume_episode_id %}Đang xem{% else %}Đã có phim{% endif %}"
     data-movie-status-message="{% if not movie.ready_episode_id %}Phim chưa sẵn sàng để phát. Bạn có thể xem thông tin phim trong lúc chờ cập nhật.{% elif movie.is_vip and not user.is_vip and not user.is_staff %}Phim đã sẵn sàng. Cần gói VIP còn hiệu lực để xem.{% elif not user.is_authenticated %}Phim đã sẵn sàng. Đăng nhập để bắt đầu xem và lưu tiến độ.{% endif %}"
     data-movie-description="{{ movie.description|first_paragraph|truncatechars:360 }}"
     data-movie-image="{% if movie.backdrop %}{{ movie.backdrop.url }}{% elif movie.poster %}{{ movie.poster.url }}{% else %}{% static 'imagery/' %}{{ movie.artwork }}.jpg{% endif %}"
     data-movie-detail="{% url 'movie' movie.slug %}"
-    data-movie-play="{% if movie.ready_episode_id %}{% if movie.is_vip and not user.is_vip and not user.is_staff %}{% url 'plans' %}{% else %}{% url 'watch' movie.ready_episode_id %}{% endif %}{% endif %}"
-    data-movie-play-label="{% if movie.is_vip and not user.is_vip and not user.is_staff %}Xem với VIP{% elif not user.is_authenticated %}Đăng nhập để xem{% else %}Xem ngay{% endif %}"
+    data-movie-play="{% if movie.ready_episode_id %}{% if movie.is_vip and not user.is_vip and not user.is_staff %}{% url 'plans' %}{% else %}{% url 'watch' movie.resume_episode_id|default:movie.ready_episode_id %}{% endif %}{% endif %}"
+    data-movie-play-label="{% if movie.is_vip and not user.is_vip and not user.is_staff %}Xem với VIP{% elif not user.is_authenticated %}Đăng nhập để xem{% elif movie.resume_episode_id %}Xem tiếp{% else %}Xem ngay{% endif %}"
     data-movie-cinema="{% if movie.is_cinema_release %}1{% else %}0{% endif %}"
     data-movie-trailer="{% if movie.has_trailer %}{% url 'trailer' movie.slug %}{% endif %}"
     data-movie-imdb-id="{% if movie.has_imdb_rating %}{{ movie.imdb_id }}{% endif %}"
