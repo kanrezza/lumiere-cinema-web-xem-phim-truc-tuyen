@@ -1,5 +1,5 @@
 """Read-only dashboard summaries and permission-aware Studio navigation."""
-from django.db.models import Count, Q, Sum
+from django.db.models import Case, Count, Q, Sum, Value, When
 from django.urls import reverse
 from django.utils import timezone
 
@@ -97,9 +97,10 @@ def build_dashboard_context(user):
         'users_count': None, 'vip_count': None,
         'revenue': None, 'paid_count': None,
         'ready_episodes_count': None, 'processing_episodes_count': None,
+        'pending_episodes_count': None, 'active_episodes_count': None,
         'failed_episodes_count': None, 'unresolved_reports_count': None,
         'ready_count': None, 'processing_count': None, 'failed_count': None,
-        'episodes': [], 'orders': [], 'reports': [],
+        'episodes': [], 'attention_episodes': [], 'orders': [], 'reports': [],
     }
     for name, model in (
         ('movies', 'movie'), ('episodes', 'episode'), ('users', 'user'),
@@ -131,14 +132,21 @@ def build_dashboard_context(user):
     if context['can_manage_episodes']:
         totals = Episode.objects.aggregate(
             ready=Count('pk', filter=Q(status='ready')),
-            processing=Count('pk', filter=Q(status__in=('pending', 'processing'))),
+            pending=Count('pk', filter=Q(status='pending')),
+            processing=Count('pk', filter=Q(status='processing')),
             failed=Count('pk', filter=Q(status='failed')),
         )
+        processing_count = totals['pending'] + totals['processing']
+        episodes = Episode.objects.select_related('movie')
+        attention_episodes = episodes.filter(status__in=('failed', 'processing', 'pending')).order_by(
+            Case(When(status='failed', then=Value(0)), default=Value(1)), '-pk',
+        )
         context.update(
-            ready_episodes_count=totals['ready'], processing_episodes_count=totals['processing'],
+            ready_episodes_count=totals['ready'], processing_episodes_count=processing_count,
+            pending_episodes_count=totals['pending'], active_episodes_count=totals['processing'],
             failed_episodes_count=totals['failed'], ready_count=totals['ready'],
-            processing_count=totals['processing'], failed_count=totals['failed'],
-            episodes=Episode.objects.select_related('movie').order_by('-id')[:8],
+            processing_count=processing_count, failed_count=totals['failed'],
+            episodes=episodes.order_by('-pk')[:6], attention_episodes=attention_episodes[:4],
         )
     if context['can_view_orders']:
         totals = Order.objects.filter(status='paid').aggregate(revenue=Sum('amount'), count=Count('pk'))

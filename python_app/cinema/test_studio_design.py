@@ -158,6 +158,44 @@ class StudioContextTests(TestCase):
                 self.assertEqual(response.context['revenue'], 59000)
                 self.assertEqual(response.context['paid_count'], 1)
 
+    def test_dashboard_work_links_open_the_matching_admin_lists(self):
+        self.client.force_login(self.admin)
+        dashboard = self.client.get(reverse('studio'))
+        self.assertEqual(dashboard.context['pending_episodes_count'], 1)
+        self.assertEqual(dashboard.context['active_episodes_count'], 1)
+        self.assertEqual(
+            [episode.status for episode in dashboard.context['attention_episodes']],
+            ['failed', 'processing', 'pending'],
+        )
+        for name, query, attribute, value in (
+            ('episode', 'status__exact=failed', 'status', 'failed'),
+            ('episode', 'status__exact=processing', 'status', 'processing'),
+            ('episode', 'status__exact=pending', 'status', 'pending'),
+            ('episode', 'status__exact=ready', 'status', 'ready'),
+            ('movie', 'published__exact=0', 'published', False),
+            ('report', 'resolved__exact=0', 'resolved', False),
+        ):
+            url = reverse(f'admin:cinema_{name}_changelist') + '?' + query
+            with self.subTest(url=url):
+                self.assertContains(dashboard, f'href="{url}"')
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual([getattr(row, attribute) for row in response.context['cl'].result_list], [value])
+        self.assertContains(dashboard, 'Tải video lên')
+        self.assertContains(dashboard, 'Thêm phim mới')
+
+    def test_dashboard_upload_permission_does_not_expose_video_inventory(self):
+        self.client.force_login(self.grant('add_episode', 'view_movie'))
+        response = self.client.get(reverse('studio'))
+        self.assertContains(response, 'Tải video lên')
+        self.assertNotContains(response, 'Thêm phim mới')
+        self.assertNotContains(response, 'Video cần theo dõi')
+        self.assertNotContains(response, '?status__exact=failed')
+        self.assertNotContains(response, '?resolved__exact=0')
+        self.assertEqual(response.context['attention_episodes'], [])
+        self.assertIsNone(response.context['pending_episodes_count'])
+        self.assertEqual(self.client.get(reverse('admin:cinema_episode_add')).status_code, 200)
+
     def test_anonymous_users_are_redirected_to_the_appropriate_login(self):
         response = self.client.get(reverse('studio'))
         self.assertRedirects(response, reverse('login') + '?next=' + reverse('studio'), fetch_redirect_response=False)
