@@ -23,6 +23,15 @@
   let nativeFullscreen = false;
   let subtitleElements = Array.from(video.querySelectorAll('track[data-subtitle]'));
   const boundSubtitleElements = new WeakSet();
+  const subtitleKey = wrap.dataset.viewer && `lumiere:subtitle:${wrap.dataset.viewer}`;
+  const languageOf = element => element?.srclang?.toLowerCase() || '';
+  const rememberSubtitle = () => {
+    if (!subtitleKey) return;
+    const language = selectedSubtitle === 'off' ? 'off' : languageOf(subtitleElements[Number(selectedSubtitle)]);
+    if (language) {
+      try { window.localStorage.setItem(subtitleKey, language); } catch { /* Captions still work without storage. */ }
+    }
+  };
   const tell = message => {if (status) status.textContent = message;};
   const finite = value => Number.isFinite(Number(value)) ? Number(value) : 0;
   const time = seconds => {const safe = Math.max(0, Math.floor(finite(seconds) + 1e-3)); return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`;};
@@ -107,11 +116,24 @@
     renderCaptions();
   };
   if (subtitles) {
-    subtitles.value = 'off';
+    if (subtitleKey) {
+      try {
+        const preferred = window.localStorage.getItem(subtitleKey);
+        if (preferred && preferred !== 'off') {
+          let index = subtitleElements.findIndex(element => languageOf(element) === preferred);
+          if (index < 0) {
+            const primary = preferred.split('-')[0];
+            index = subtitleElements.findIndex(element => languageOf(element).split('-')[0] === primary);
+          }
+          if (index >= 0) selectedSubtitle = String(index);
+        }
+      } catch { /* Leave captions off when storage is unavailable. */ }
+    }
     subtitles.addEventListener('change', () => {
       const value = subtitles.value;
       selectedSubtitle = value === 'off' || (/^\d+$/.test(value) && Number(value) < subtitleElements.length) ? value : 'off';
       applySubtitles();
+      rememberSubtitle();
     });
     video.textTracks.addEventListener('addtrack', applySubtitles);
     video.addEventListener('lumiere:captions-changed', event => {
@@ -119,6 +141,7 @@
       const selected = String(event.detail?.selected ?? selectedSubtitle);
       selectedSubtitle = /^\d+$/.test(selected) && Number(selected) < subtitleElements.length ? selected : 'off';
       applySubtitles();
+      if (event.detail?.remember) rememberSubtitle();
     });
     applySubtitles();
     window.addEventListener('resize', applySubtitles);

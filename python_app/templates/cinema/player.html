@@ -1,7 +1,7 @@
 {% load l10n %}
 {% with subtitles=episode.subtitles.all %}
-<div class="player-wrap" tabindex="0" role="group" aria-label="Trình phát phim" data-can-seek="{% if room and not is_host %}false{% else %}true{% endif %}">
-  <video id="player" controls playsinline preload="metadata" controlslist="nodownload" disablepictureinpicture {% if episode.movie.backdrop %}poster="{{ episode.movie.backdrop.url }}"{% endif %} data-ticket="{% url 'ticket' episode.pk %}" data-progress="{% url 'progress' episode.pk %}" data-position="{{ position|default:0|unlocalize }}" data-duration="{{ episode.duration|unlocalize }}">
+<div class="player-wrap" tabindex="0" role="group" aria-label="Trình phát phim" data-viewer="{{ user.pk|unlocalize }}" data-can-seek="{% if room and not is_host %}false{% else %}true{% endif %}">
+  <video id="player" controls playsinline preload="metadata" controlslist="nodownload" disablepictureinpicture {% if episode.movie.backdrop %}poster="{{ episode.movie.backdrop.url }}"{% endif %} data-ticket="{% url 'ticket' episode.pk %}" data-progress="{% url 'progress' episode.pk %}" data-position="{{ position|default:0|unlocalize }}" data-duration="{{ episode.duration|unlocalize }}"{% if not room and request.GET.play == '1' %} data-play-on-ready="true"{% endif %}>
     {% for subtitle in subtitles %}<track data-subtitle data-subtitle-id="{{ subtitle.pk }}" kind="subtitles" src="{% url 'subtitle' episode.pk subtitle.pk %}" srclang="{{ subtitle.language }}" label="{{ subtitle.label }}">{% endfor %}
   </video>
   <div class="player-caption-display" data-caption-display aria-hidden="true" hidden><span data-caption-text></span></div>
@@ -23,6 +23,18 @@
       </div>
     </div>
   </div>
+  {% if next_episode and not room %}
+  <section class="player-next" aria-labelledby="player-next-title" data-next-episode hidden>
+    <p class="player-next-label">Tập tiếp theo</p>
+    <h2 id="player-next-title">Tập {{ next_episode.number }} · {{ next_episode.title }}</h2>
+    <p class="player-next-countdown" data-next-countdown hidden>Tự phát sau <span data-next-seconds>7</span> giây</p>
+    <div class="player-next-actions">
+      <a class="btn small" href="{% url 'watch' next_episode.pk %}?play=1" data-next-link>Phát tập kế</a>
+      <button type="button" class="btn small secondary" data-next-cancel hidden>Hủy tự phát</button>
+    </div>
+    <span class="sr-only" role="status" data-next-announcement></span>
+  </section>
+  {% endif %}
   <section class="caption-panel" id="caption-panel" role="dialog" aria-modal="false" aria-labelledby="caption-panel-title" data-caption-panel data-caption-scope="/watch/{{ episode.pk }}/" hidden>
     <div class="caption-panel-heading"><h2 id="caption-panel-title">Phụ đề</h2><button type="button" class="caption-close" data-caption-close aria-label="Đóng phụ đề">×</button></div>
     <label class="caption-field" for="caption-selection">Phụ đề hiển thị</label>

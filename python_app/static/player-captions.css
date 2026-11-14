@@ -25,6 +25,19 @@
 .caption-translation-status { min-height: 18px; overflow-wrap: anywhere; }
 .caption-translation-status[data-error="true"] { color: #ffb9a5; }
 .player-wrap video::cue { color: #fff; background: #000c; font-family: Arial, sans-serif; font-size: clamp(13px, 1.6vw, 20px); text-shadow: 0 1px 2px #000; }
+.player-next { position: absolute; right: 20px; bottom: 86px; z-index: 6; width: min(320px, calc(100% - 40px)); padding: 18px; border: 1px solid #ffffff38; border-radius: 12px; background: #14181df7; color: #fff; box-shadow: 0 12px 32px #0008; }
+.player-next[hidden] { display: none; }
+.player-next-label, .player-next-countdown { margin: 0; color: #c9cdd2; font-size: 12px; }
+.player-next h2 { margin: 4px 0 10px; color: #fff; font-size: 18px; line-height: 1.35; overflow-wrap: anywhere; }
+.player-next-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.player-next-actions .btn { min-height: 38px; }
+.player-next-actions .btn.secondary { border-color: #ffffff50; background: #252a30; color: #fff; }
+.player-next-actions .btn.secondary:hover { background: #383e47; }
+.watch-actions { flex-wrap: wrap; }
+.watch-episode-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 20px; margin-bottom: 12px; }
+.watch-episode-heading h2 { margin: 0; }
+.watch-autoplay { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; cursor: pointer; }
+.watch-autoplay input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
 @media (max-width: 600px) {
   .player-wrap { display: grid; grid-template-columns: minmax(0, 1fr); }
   .player-wrap video { grid-area: 1 / 1; }
@@ -35,6 +48,7 @@
   .player-controls-row { flex-wrap: wrap; gap: 9px; }
   .player-end-controls { gap: 9px; flex-basis: 100%; justify-content: flex-end; }
   .player-caption-toggle { margin-right: auto; }
+  .player-next { grid-area: 3 / 1; position: relative; inset: auto; width: auto; margin: 0 12px 12px; box-shadow: none; }
   .caption-panel { inset: 10px 10px auto; width: auto; max-height: calc(100% - 20px); padding: 15px; }
   .caption-panel-heading { top: -15px; margin: -15px -15px 12px; padding: 10px 15px; }
   .caption-panel-heading h2 { font-size: 15px; }

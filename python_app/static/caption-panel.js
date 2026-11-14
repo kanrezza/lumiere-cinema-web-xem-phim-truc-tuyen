@@ -39,9 +39,9 @@
   document.addEventListener('click', event => {if (!panel.hidden && !panel.contains(event.target) && !toggle.contains(event.target)) closePanel(false);});
   document.addEventListener('focusin', event => {if (!panel.hidden && !panel.contains(event.target) && !toggle.contains(event.target)) closePanel(false);});
 
-  const refreshSelection = selected => {
+  const refreshSelection = (selected, remember = false) => {
     selection.disabled = video.querySelectorAll('track[data-subtitle]').length === 0;
-    video.dispatchEvent(new CustomEvent('lumiere:captions-changed', {detail: {selected: String(selected)}}));
+    video.dispatchEvent(new CustomEvent('lumiere:captions-changed', {detail: {selected: String(selected), remember}}));
   };
   const sourceOption = () => Array.from(source.options).find(option => option.value === source.value);
   const updateTranslateButton = () => {translateButton.disabled = !source.value || states.some(state => state.button === translateButton && state.busy);};
@@ -96,7 +96,7 @@
       const empty = panel.querySelector('[data-caption-empty]'); if (empty) empty.hidden = true;
       chooseDifferentTarget(); updateTranslateButton();
     }
-    selection.disabled = false; selection.value = String(index); refreshSelection(index);
+    selection.disabled = false; selection.value = String(index); refreshSelection(index, true);
   };
   const stateFor = (button, status) => {const state = {button, status, busy: false, generation: 0, controller: null, timer: null}; states.push(state); return state;};
   const cancel = state => {

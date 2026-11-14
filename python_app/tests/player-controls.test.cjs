@@ -113,6 +113,29 @@ test('caption switch shows only the chosen DOM subtitle track and survives sourc
   env.video.fire('emptied'); env.video.fire('loadedmetadata'); assert.equal(env.subtitleTracks[1].track.mode, 'showing'); assert.equal(env.subtitleSelect.value, '1');
   env.subtitleSelect.value = 'off'; env.subtitleSelect.fire('change'); assert.equal(env.subtitleTracks[1].track.mode, 'disabled'); assert.equal(env.metadataTrack.mode, 'hidden');
 });
+test('subtitle preference follows the language to another episode on the same account', () => {
+  const settings = new Map();
+  const storage = {getItem: key => settings.get(key), setItem: (key, value) => settings.set(key, value)};
+  function player(viewer, languages) {
+    const env = environment();
+    env.wrap.dataset.viewer = viewer;
+    env.win.localStorage = storage;
+    languages.forEach((language, index) => {env.subtitleTracks[index].srclang = language;});
+    env.load('player-controls.js');
+    return env;
+  }
+  const first = player('4', ['en', 'vi']);
+  first.subtitleSelect.value = '1';
+  first.subtitleSelect.fire('change');
+  assert.equal(player('4', ['en', 'fr']).subtitleSelect.value, 'off');
+  const second = player('4', ['vi', 'en']);
+  assert.equal(second.subtitleSelect.value, '0');
+  assert.equal(second.subtitleTracks[0].track.mode, 'showing');
+  assert.equal(player('5', ['vi', 'en']).subtitleSelect.value, 'off');
+  second.subtitleSelect.value = 'off';
+  second.subtitleSelect.fire('change');
+  assert.equal(player('4', ['vi', 'en']).subtitleSelect.value, 'off');
+});
 test('player works when no subtitle selector exists', () => {
   const env = environment({subtitles: false}); env.load('player-controls.js'); env.actions[2].fire('click'); assert.equal(env.video.currentTime, 33);
 });
@@ -157,6 +180,70 @@ test('source refresh preserves a seek made while the ticket request is pending',
   env.video.setActualTime(40); env.intervals.find(interval => interval.delay === 480000).callback();
   env.video.setActualTime(60); env.video.dispatchEvent(new env.context.CustomEvent('lumiere:seek', {detail: {position: 60}}));
   resolveTicket({url: '/refresh.m3u8'}); await tick(); env.video.fire('loadedmetadata'); assert.equal(env.video.currentTime, 60); assert.equal(env.video.dataset.loading, 'false');
+});
+test('loading a resume position without playing does not write progress', async () => {
+  const env = environment(), saves = [];
+  env.context.postForm = async (url, data) => {
+    if (url === '/progress') saves.push(data.position);
+    return {url: '/demo.m3u8'};
+  };
+  env.video.canPlayType = () => 'maybe';
+  env.context.csrfToken = () => 'token';
+  env.context.navigator.sendBeacon = (_url, fields) => saves.push(Number(fields.get('position')));
+  env.load('player.js');
+  await tick();
+  env.video.fire('loadedmetadata');
+  env.video.fire('pause');
+  env.win.fire('pagehide');
+  assert.deepEqual(saves, []);
+  env.video.fire('playing');
+  env.video.setActualTime(18);
+  env.video.fire('pause');
+  env.win.fire('pagehide');
+  assert.deepEqual(saves, [18, 18]);
+});
+
+test('next episode waits for opt-in, can be canceled, and never starts from a hidden tab', () => {
+  const env = environment();
+  const panel = new Element(), setting = new Element();
+  const toggle = new Element('input'), cancel = new Element('button'), next = new Element('a');
+  const countdown = new Element(), seconds = new Element(), announcement = new Element();
+  env.doc.querySelector = selector => selector === '[data-next-episode]' ? panel : setting;
+  setting.querySelector = () => toggle;
+  const controls = new Map([
+    ['[data-next-link]', next], ['[data-next-cancel]', cancel], ['[data-next-countdown]', countdown],
+    ['[data-next-seconds]', seconds], ['[data-next-announcement]', announcement],
+  ]);
+  panel.querySelector = selector => controls.get(selector);
+  next.href = '/watch/5/?play=1';
+  next.focus = () => {};
+  let activeTimer;
+  const navigations = [];
+  env.win.setInterval = callback => {activeTimer = callback; return 1;};
+  env.win.clearInterval = () => {activeTimer = undefined;};
+  env.win.location = {assign: href => navigations.push(href)};
+  env.load('watch-next.js');
+  env.video.ended = true;
+  env.video.fire('ended');
+  assert.equal(panel.hidden, false);
+  assert.equal(activeTimer, undefined);
+  toggle.checked = true;
+  toggle.fire('change');
+  env.video.fire('ended');
+  assert.equal(seconds.textContent, '7');
+  cancel.fire('click');
+  assert.equal(activeTimer, undefined);
+  assert.equal(cancel.hidden, true);
+  env.video.fire('ended');
+  env.doc.hidden = true;
+  env.doc.fire('visibilitychange');
+  assert.equal(activeTimer, undefined);
+  env.doc.hidden = false;
+  env.video.fire('ended');
+  for (let second = 0; second < 6; second += 1) activeTimer();
+  assert.deepEqual(navigations, []);
+  activeTimer();
+  assert.deepEqual(navigations, [next.href]);
 });
 test('retry removes stale metadata callbacks from failed sources', async () => {
   const env = environment(); let request = 0; const handlers = [];

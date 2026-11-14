@@ -4,6 +4,10 @@
  const status = document.getElementById('player-status'); const retry = document.getElementById('retry-player');
  let hls, first = true, loading = false, stopped = false, generation = 0, removeReady = () => {};
  let requestedPosition = null;
+ let hasPlayed = false;
+ const canSaveProgress = () => hasPlayed && !stopped && video.currentTime > 0 && video.dataset.loading !== 'true';
+ const saveProgress = () => {if (canSaveProgress()) postForm(video.dataset.progress, {position:video.currentTime}).catch(() => {});};
+ video.addEventListener('playing', () => {hasPlayed = true;});
  const safePosition = value => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0;
  video.addEventListener('lumiere:seek', event => {if (loading || video.dataset.loading === 'true') requestedPosition = safePosition(event.detail.position);});
  async function loadSource() {
@@ -25,8 +29,11 @@
     position = requestedPosition ?? position;
     try {video.currentTime = Math.min(position, video.duration);} catch (_) {return;}
     removeReady();
-    if (playing) video.play().catch(() => {});
+    const playOnReady = first && video.dataset.playOnReady === 'true';
     status.textContent = 'Sẵn sàng phát'; first = false; retry.hidden = true; video.dataset.loading = 'false';
+    if (playing || playOnReady) video.play().catch(() => {
+     if (playOnReady && !stopped && currentGeneration === generation) status.textContent = 'Nhấn Phát để bắt đầu tập này.';
+    });
    };
    video.addEventListener('loadedmetadata', ready);
    video.addEventListener('durationchange', ready);
@@ -45,8 +52,8 @@
  retry.addEventListener('click', loadSource);
  loadSource();
  setInterval(loadSource, 480000);
- setInterval(() => {if (video.currentTime > 0 && !video.paused && video.dataset.loading !== 'true') postForm(video.dataset.progress, {position:video.currentTime}).catch(() => {});}, 15000);
- window.addEventListener('pagehide', () => {if (video.currentTime > 0 && video.dataset.loading !== 'true') navigator.sendBeacon(video.dataset.progress, new URLSearchParams({position:video.currentTime, csrfmiddlewaretoken:csrfToken()}));});
- video.addEventListener('ended', () => {if (video.currentTime > 0 && video.dataset.loading !== 'true') postForm(video.dataset.progress, {position:video.currentTime}).catch(() => {});});
- video.addEventListener('pause', () => {if (video.currentTime > 0 && video.dataset.loading !== 'true') postForm(video.dataset.progress, {position:video.currentTime}).catch(() => {});});
+ setInterval(() => {if (!video.paused) saveProgress();}, 15000);
+ window.addEventListener('pagehide', () => {if (canSaveProgress()) navigator.sendBeacon(video.dataset.progress, new URLSearchParams({position:video.currentTime, csrfmiddlewaretoken:csrfToken()}));});
+ video.addEventListener('ended', saveProgress);
+ video.addEventListener('pause', saveProgress);
 })();
