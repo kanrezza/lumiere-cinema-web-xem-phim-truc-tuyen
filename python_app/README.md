@@ -43,6 +43,8 @@ python manage.py runserver 127.0.0.1:8000
 
 Có thể chạy `python manage.py make_demo_video` để tạo clip kiểm tra 20 giây cho phim minh họa **Sau hoàng hôn** (chỉ hoạt động với `DEBUG=1`). Sau khi thiết lập, `./run-local.sh` nạp `.env` và mở server local.
 
+Chạy `python manage.py make_demo_series` để tạo **Trạm ánh sáng (Demo)**, gồm hai clip màu 30 giây do FFmpeg tạo và phụ đề Việt/Anh để thử xem tiếp, đổi tập và ghi nhớ phụ đề. Lệnh yêu cầu `DEBUG=1`, xử lý clip qua worker HLS hiện có và công khai phim khi cả hai tập sẵn sàng. Chạy lại sẽ giữ file nguồn và phụ đề đã có.
+
 Mở `http://127.0.0.1:8000/`; admin tại `/admin/`. Không tạo tài khoản admin/mật khẩu mặc định. `DB_NAME` trống dùng SQLite riêng trong `python_app/db.sqlite3`. `seed_demo` chỉ thêm dữ liệu mẫu, không xóa dữ liệu đang có. Email quên mật khẩu khi `DEBUG=1` hiện trong terminal; triển khai thật cần SMTP.
 
 ## Upload và phát phim
