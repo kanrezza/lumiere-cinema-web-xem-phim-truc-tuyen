@@ -191,16 +191,52 @@ class History(models.Model):
         constraints = [models.UniqueConstraint(fields=['user', 'episode'], name='unique_history')]
 
 class Comment(models.Model):
+    class Status(models.TextChoices):
+        PUBLISHED = 'published', 'Đang hiển thị'
+        PENDING = 'pending', 'Chờ duyệt'
+        HIDDEN = 'hidden', 'Đã ẩn'
+
+    class Reason(models.TextChoices):
+        REGIONAL = 'regional', 'Phân biệt vùng miền'
+        COUNTRY_PARTY = 'country_party', 'Xúc phạm đất nước hoặc tổ chức chính trị'
+        HARASSMENT = 'harassment', 'Công kích, quấy rối'
+        SENSITIVE = 'sensitive', 'Nội dung nhạy cảm'
+        PROFANITY = 'profanity', 'Chửi bới, tục tĩu'
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='comments')
     content = models.CharField(max_length=1000)
     created_at = models.DateTimeField(auto_now_add=True)
+    moderation_status = models.CharField(max_length=12, choices=Status.choices, default=Status.PUBLISHED, db_index=True)
+    moderation_reason = models.CharField(max_length=16, choices=Reason.choices, blank=True, default='')
+    moderation_matches = models.JSONField(default=dict, editable=False)
     class Meta: ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        from .moderation import classify_comment_v1
+
+        fields = kwargs.get('update_fields')
+        if fields is None or 'content' in fields:
+            previous = None
+            if not self._state.adding:
+                comments = type(self).objects.using(kwargs.get('using') or self._state.db)
+                previous = comments.filter(pk=self.pk).values_list('content', 'moderation_status').first()
+            if previous is None or previous[0] != self.content:
+                self.moderation_matches = classify_comment_v1(self.content)
+                self.moderation_reason = next(iter(self.moderation_matches), '')
+                if self.moderation_matches and self.moderation_status != self.Status.HIDDEN:
+                    self.moderation_status = self.Status.PENDING
+                elif previous and previous[1] == self.Status.PENDING and self.moderation_status == self.Status.PENDING:
+                    self.moderation_status = self.Status.PUBLISHED
+                if fields is not None:
+                    kwargs['update_fields'] = set(fields) | {'moderation_status', 'moderation_reason', 'moderation_matches'}
+        super().save(*args, **kwargs)
 
 class Rating(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='ratings')
     score = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    updated_at = models.DateTimeField(auto_now=True, null=True)
     class Meta: constraints = [models.UniqueConstraint(fields=['user', 'movie'], name='unique_rating')]
 
 class Report(models.Model):

@@ -278,7 +278,9 @@ def movie_detail(request, slug):
     return render(request, 'cinema/movie.html', {
         'movie': movie, 'episodes': episodes, 'first_ready_episode': first_ready_episode,
         'resume_episode': resume_episode,
-        'comments': movie.comments.select_related('user')[:50], 'score': movie.score,
+        'comments': movie.comments.filter(moderation_status=Comment.Status.PUBLISHED).select_related('user')[:50],
+        'pending_comments': movie.comments.filter(user=request.user, moderation_status=Comment.Status.PENDING)[:3] if request.user.is_authenticated else [],
+        'score': movie.score,
         'saved': request.user.is_authenticated and Watchlist.objects.filter(user=request.user, movie=movie).exists(),
         'related': related,
     })
@@ -306,8 +308,11 @@ def watchlist_toggle(request, pk):
 def comment(request, pk):
     movie = get_object_or_404(Movie, pk=pk, published=True)
     content = request.POST.get('content', '').strip()
-    if 1 <= len(content) <= 1000: Comment.objects.create(user=request.user, movie=movie, content=content)
-    return redirect('movie', slug=movie.slug)
+    if 1 <= len(content) <= 1000:
+        submitted = Comment.objects.create(user=request.user, movie=movie, content=content)
+        if submitted.moderation_status == Comment.Status.PENDING:
+            messages.info(request, 'Bình luận đã được gửi và đang chờ duyệt.')
+    return redirect(reverse('movie', args=[movie.slug]) + '#discussion')
 
 
 @login_required
@@ -632,7 +637,10 @@ def clear_history(request):
 @require_POST
 def delete_comment(request, pk):
     comment = get_object_or_404(Comment.objects.select_related('movie'), pk=pk)
-    if comment.user_id != request.user.pk and not request.user.is_staff: raise PermissionDenied
+    if comment.user_id != request.user.pk and not request.user.has_perm('cinema.delete_comment'):
+        if comment.moderation_status != Comment.Status.PUBLISHED:
+            raise Http404
+        raise PermissionDenied
     slug = comment.movie.slug
     comment.delete()
     return redirect('movie', slug=slug)
