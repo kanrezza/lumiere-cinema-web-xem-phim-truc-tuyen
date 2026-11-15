@@ -7,6 +7,11 @@ export default defineConfig({
     outDir: '../static/bundles/catalog',
     emptyOutDir: true,
     manifest: 'manifest.json',
-    rollupOptions: { input: 'src/catalog/main.ts' },
+    rollupOptions: {
+      input: {
+        results: 'src/catalog/main.ts',
+        home: 'src/home/main.ts',
+      },
+    },
   },
 })

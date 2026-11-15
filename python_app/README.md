@@ -1,6 +1,6 @@
 # Hướng dẫn kỹ thuật Lumière
 
-Lumière dùng Python và Django cho máy chủ, Vue 3 và TypeScript cho kết quả khám phá phim, và Django Templates cho giao diện dựng trên máy chủ. Xem [README chính](../README.md) để cài đặt nhanh. Tài liệu này giải thích các tính năng, tích hợp và cách vận hành ứng dụng trong `python_app/`.
+Lumière dùng Python và Django cho máy chủ, Django Templates để dựng nội dung ban đầu và Vue 3 với TypeScript cho tương tác trên trang Khám phá. Tài liệu này trình bày các tính năng, tích hợp và cách vận hành ứng dụng. [Hướng dẫn cài đặt nhanh](../README.md)
 
 ## Đã có trong bản này
 

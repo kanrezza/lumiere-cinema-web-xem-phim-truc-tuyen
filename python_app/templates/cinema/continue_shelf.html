@@ -6,8 +6,7 @@
     <div class="shelf-actions">
       {% if source == 'catalog' %}<a class="shelf-more" href="{% url 'library' %}">Tủ phim <span aria-hidden="true">↗</span></a>{% endif %}
       {% if continue_watching|length > 1 %}
-        <button class="shelf-arrow previous" type="button" data-shelf-dir="-1" aria-label="Cuộn Xem tiếp sang trái"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
-        <button class="shelf-arrow" type="button" data-shelf-dir="1" aria-label="Cuộn Xem tiếp sang phải"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        {% include 'cinema/shelf_arrows.html' with shelf_title='Xem tiếp' %}
       {% endif %}
     </div>
   </div>

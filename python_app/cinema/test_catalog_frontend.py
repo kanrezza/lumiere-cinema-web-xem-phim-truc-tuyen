@@ -1,5 +1,7 @@
 import json
 import re
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from urllib.parse import parse_qs, urlsplit
 
 from django.contrib.auth import get_user_model
@@ -88,8 +90,33 @@ class CatalogFrontendTests(TestCase):
         self.assertIn('&lt;/script&gt;', result['gridHtml'])
         self.assertIn(reverse('movie', args=[movie.slug]), result['gridHtml'])
 
-    def test_unfiltered_browse_keeps_normal_shelves_without_the_frontend(self):
+    def test_unfiltered_browse_keeps_normal_shelves_without_the_results_frontend(self):
         response = self.client.get(reverse('catalog'), headers={'X-Lumiere-Catalog': 'vue'})
         self.assertIn('text/html', response.headers['Content-Type'])
         self.assertContains(response, 'data-shelf')
         self.assertNotContains(response, 'data-catalog-app')
+
+    def test_catalog_loads_the_correct_bundle_and_falls_back_when_it_is_missing(self):
+        catalog = reverse('catalog')
+        with TemporaryDirectory() as temp, self.settings(BASE_DIR=Path(temp)):
+            bundle = Path(temp) / 'static/bundles/catalog'
+            assets = bundle / 'assets'
+            assets.mkdir(parents=True)
+            (bundle / 'manifest.json').write_text(json.dumps({
+                'src/home/main.ts': {'file': 'assets/home-test.js'},
+                'src/catalog/main.ts': {'file': 'assets/results-test.js'},
+            }), encoding='utf-8')
+            self.assertNotContains(self.client.get(catalog), 'data-feature-vue')
+            self.assertNotContains(self.client.get(catalog), 'data-shelf-vue')
+            (assets / 'home-test.js').touch()
+            (assets / 'results-test.js').touch()
+
+            home = self.client.get(catalog)
+            self.assertContains(home, '/bundles/catalog/assets/home-test.js')
+            self.assertContains(home, 'data-feature-vue')
+            self.assertContains(home, 'data-shelf-vue')
+            self.assertNotContains(home, '/bundles/catalog/assets/results-test.js')
+
+            results = self.client.get(catalog, {'sort': 'newest'})
+            self.assertContains(results, '/bundles/catalog/assets/results-test.js')
+            self.assertNotContains(results, '/bundles/catalog/assets/home-test.js')

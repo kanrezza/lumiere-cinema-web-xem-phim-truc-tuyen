@@ -23,22 +23,28 @@
   const menu = document.querySelector('.account-menu');
   document.addEventListener('click', event => {if (menu?.open && !menu.contains(event.target)) menu.open = false;});
   document.addEventListener('keydown', event => {if (event.key === 'Escape' && menu?.open) {menu.open = false; menu.querySelector('summary').focus();}});
-  for (const shelf of document.querySelectorAll('[data-shelf]')) {
-    const row = shelf.querySelector('.film-row');
-    const buttons = [...shelf.querySelectorAll('[data-shelf-dir]')];
-    if (!row || !buttons.length) continue;
-    const update = () => {for (const button of buttons) button.disabled = Number(button.dataset.shelfDir) < 0 ? row.scrollLeft <= 2 : row.scrollLeft + row.clientWidth >= row.scrollWidth - 2;};
-    for (const button of buttons) button.addEventListener('click', () => row.scrollBy({left:Number(button.dataset.shelfDir)*row.clientWidth*.85,behavior:document.body.classList.contains('motion-paused')?'auto':'smooth'}));
-    row.addEventListener('scroll',update,{passive:true});
-    if (window.ResizeObserver) new ResizeObserver(update).observe(row); else addEventListener('resize',update);
-    update();
-  }
+  // The Vue module runs before DOMContentLoaded. If it did not mount, use the original controls.
+  document.addEventListener('DOMContentLoaded', () => {
+    for (const shelf of document.querySelectorAll('[data-shelf]')) {
+      if (shelf.querySelector('[data-vue-shelf-mounted]')) continue;
+      const row = shelf.querySelector('.film-row');
+      const buttons = [...shelf.querySelectorAll('[data-shelf-dir]')];
+      if (!row || !buttons.length) continue;
+      const controls = shelf.querySelector('.shelf-control-mount');
+      if (controls) controls.hidden = false;
+      const update = () => {for (const button of buttons) button.disabled = Number(button.dataset.shelfDir) < 0 ? row.scrollLeft <= 2 : row.scrollLeft + row.clientWidth >= row.scrollWidth - 2;};
+      for (const button of buttons) button.addEventListener('click', () => row.scrollBy({left:Number(button.dataset.shelfDir)*row.clientWidth*.85,behavior:document.body.classList.contains('motion-paused')?'auto':'smooth'}));
+      row.addEventListener('scroll',update,{passive:true});
+      if (window.ResizeObserver) new ResizeObserver(update).observe(row); else addEventListener('resize',update);
+      update();
+    }
+  }, {once: true});
 })();
 
 // Feature selection is manual; only the short, muted public teaser auto-plays.
-(() => {
+document.addEventListener('DOMContentLoaded', () => {
   const stage = document.querySelector('[data-feature-stage]');
-  if (!stage) return;
+  if (!stage || stage.dataset.featureEnhanced === 'vue') return;
   const tabs = [...stage.querySelectorAll('[role="tab"]')];
   const panels = [...stage.querySelectorAll('[role="tabpanel"]')];
   const controls = stage.querySelector('[data-feature-controls]');
@@ -119,4 +125,4 @@
   }
   preview?.addEventListener('error', () => {preview.classList.remove('is-playing'); manuallyPaused = true; syncPreview();});
   syncPreview();
-})();
+}, {once: true});
