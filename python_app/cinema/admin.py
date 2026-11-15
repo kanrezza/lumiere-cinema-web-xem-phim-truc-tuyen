@@ -191,10 +191,16 @@ class EpisodeAdmin(LocalizedAdminMixin, admin.ModelAdmin):
     def asset_identifier(self, obj): return str(obj.asset_id)
 
     def save_model(self, request, obj, form, change):
-        if 'source' in form.changed_data:
+        fields = set(form.changed_data)
+        if 'source' in fields:
             obj.status = 'pending'
             obj.error = ''
-        super().save_model(request, obj, form, change)
+            fields.update(('status', 'error'))
+        if not change:
+            super().save_model(request, obj, form, change)
+        elif fields:
+            # A metadata form can remain open while FFmpeg updates status and duration.
+            obj.save(update_fields=fields)
 
     # Original file URLs are never rendered; replacement requires a new episode.
     def get_exclude(self, request, obj=None): return ('source',) if obj and obj.source else ()

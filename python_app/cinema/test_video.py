@@ -2,6 +2,7 @@
 import io
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from unittest import skipUnless
@@ -15,6 +16,7 @@ from django.core.management import call_command
 from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 
+from .admin import EpisodeAdmin
 from .models import Episode, Movie
 
 
@@ -153,6 +155,82 @@ class VideoPipelineTests(TestCase):
         with patch('cinema.management.commands.process_videos.subprocess.run') as run:
             self.process(episode)
         run.assert_not_called()
+
+    def test_interrupted_transcode_can_be_retried_without_failed_flag(self):
+        self.upload()
+        episode = Episode.objects.get()
+        output = self.private_root / 'hls' / str(episode.asset_id)
+
+        def interrupt(_source, staging):
+            (staging / 'index.m3u8').write_text('incomplete output')
+            self.assertFalse(output.exists())
+            raise KeyboardInterrupt
+
+        with patch('cinema.management.commands.process_videos.Command.encode', side_effect=interrupt):
+            with self.assertRaises(KeyboardInterrupt):
+                self.process(episode)
+        episode.refresh_from_db()
+        self.assertEqual(episode.status, 'pending')
+        self.assertTrue(Path(episode.source.path).is_file())
+        self.assertFalse(output.exists())
+
+        self.process(episode)
+        self.assertEqual(episode.status, 'ready', episode.error)
+        self.assertIn('#EXT-X-ENDLIST', (output / 'index.m3u8').read_text())
+
+    def test_worker_recovers_a_killed_workers_episode_and_partial_output(self):
+        self.upload()
+        episode = Episode.objects.get()
+        Episode.objects.filter(pk=episode.pk).update(status='processing')
+        hls = self.private_root / 'hls'
+        work_root = hls / '.processing'
+        stale = work_root / str(episode.asset_id) / 'previous-attempt'
+        stale.mkdir(parents=True)
+        (stale / 'index.m3u8').write_text('incomplete staging output')
+        output = hls / str(episode.asset_id)
+        output.mkdir()
+        (output / 'seg99999.ts').write_bytes(b'incomplete legacy output')
+
+        with subprocess.Popen(
+            [sys.executable, '-c', 'import fcntl, sys, time; '
+             'lock = open(sys.argv[1], "ab"); fcntl.flock(lock, fcntl.LOCK_EX); '
+             'print("locked", flush=True); time.sleep(30)',
+             str(work_root / f'{episode.asset_id}.lock')],
+            stdout=subprocess.PIPE, text=True,
+        ) as worker:
+            try:
+                self.assertEqual(worker.stdout.readline().strip(), 'locked')
+                with patch('cinema.management.commands.process_videos.subprocess.run') as run:
+                    self.process(episode)
+                run.assert_not_called()
+                self.assertEqual(episode.status, 'processing')
+                self.assertTrue(stale.exists())
+            finally:
+                worker.kill()
+                worker.wait(timeout=5)
+
+        self.process(episode)
+        self.assertEqual(episode.status, 'ready', episode.error)
+        self.assertIn('#EXT-X-ENDLIST', (output / 'index.m3u8').read_text())
+        self.assertFalse((output / 'seg99999.ts').exists())
+        self.assertFalse(stale.exists())
+
+    def test_metadata_save_preserves_worker_state_changed_during_request(self):
+        self.upload()
+        episode = Episode.objects.get()
+        save_model = EpisodeAdmin.save_model
+
+        def finish_processing(model_admin, request, obj, form, change):
+            Episode.objects.filter(pk=obj.pk).update(status='ready', duration=2.2)
+            save_model(model_admin, request, obj, form, change)
+
+        with patch.object(EpisodeAdmin, 'save_model', finish_processing):
+            response = self.client.post(reverse('admin:cinema_episode_change', args=[episode.pk]), {
+                'movie': self.movie.pk, 'number': 1, 'title': 'Renamed episode', '_save': 'Save',
+            })
+        self.assertEqual(response.status_code, 302)
+        episode.refresh_from_db()
+        self.assertEqual((episode.title, episode.status, episode.duration), ('Renamed episode', 'ready', 2.2))
 
     def test_unsupported_extension_is_rejected_before_file_is_saved(self):
         response = self.upload(b'<?php echo 1; ?>', filename='payload.php')
