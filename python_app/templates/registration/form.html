@@ -14,15 +14,16 @@
     <form method="post">
       {% csrf_token %}
       {{ form.as_p }}
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
       <button class="btn full">{% if request.resolver_match.url_name == 'register' %}Tạo tài khoản{% else %}{{ button|default:'Tiếp tục' }}{% endif %}</button>
     </form>
     <p class="auth-links">
       {% if request.resolver_match.url_name == 'login' %}
-        <a href="{% url 'register' %}">Tạo tài khoản</a>
+        <a href="{% url 'register' %}{% if next %}?next={{ next|urlencode:'' }}{% endif %}">Tạo tài khoản</a>
         <span>·</span>
         <a href="{% url 'password_reset' %}">Quên mật khẩu?</a>
       {% else %}
-        <a href="{% url 'login' %}">Quay lại đăng nhập</a>
+        <a href="{% url 'login' %}{% if next %}?next={{ next|urlencode:'' }}{% endif %}">Quay lại đăng nhập</a>
       {% endif %}
     </p>
   </div>

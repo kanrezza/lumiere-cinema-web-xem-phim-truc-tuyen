@@ -39,6 +39,7 @@
         <form data-room-access-form class="room-access-form room-access-section">
           {% csrf_token %}
           <input type="hidden" name="action" value="settings">
+          <input type="hidden" name="settings_version" value="{{ room_access_version }}">
           <h2>Quyền vào phòng</h2>
           <p data-room-password-status>{% if room.password_hash %}Phòng đang có mật khẩu.{% else %}Phòng chưa đặt mật khẩu.{% endif %}</p>
           <label>Mật khẩu mới<input name="password" type="password" minlength="4" maxlength="128" autocomplete="new-password" placeholder="Giữ nguyên nếu để trống"></label>
@@ -88,5 +89,5 @@
 <script src="{% static 'caption-panel.js' %}?v=watch-next-1" defer></script>
 <script src="{% static 'room.js' %}?v=2" defer></script>
 <script src="{% static 'room-voice.js' %}?v=1" defer></script>
-{% if is_host %}<script src="{% static 'room-admission.js' %}?v=1" defer></script>{% endif %}
+{% if is_host %}<script src="{% static 'room-admission.js' %}?v=2" defer></script>{% endif %}
 {% endblock %}

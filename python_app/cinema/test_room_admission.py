@@ -61,14 +61,43 @@ class RoomAdmissionTests(TestCase):
         RoomJoinRequest.objects.create(room=room, user=self.guest, status=RoomJoinRequest.Status.APPROVED)
         RoomJoinRequest.objects.create(room=room, user=self.other)
         endpoint = reverse('room_admission', args=[room.pk])
-        response = self.host_client.post(endpoint, {'action': 'settings', 'password': 'mật khẩu mới', 'requires_approval': 'on'})
+        current = self.host_client.get(endpoint).json()['settings_version']
+        response = self.host_client.post(endpoint, {
+            'action': 'settings', 'password': 'mật khẩu mới', 'requires_approval': 'on', 'settings_version': current,
+        })
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.json()['settings_version'], current)
         self.assertFalse(room.join_requests.exists())
         join = reverse('join_room', args=[room.pk])
         self.assertEqual(self.client.post(join, {'password': 'đèn chiếu 27'}).status_code, 400)
         self.assertFalse(room.members.filter(user=self.guest).exists())
         self.client.post(join, {'password': 'mật khẩu mới'})
         self.assertEqual(room.join_requests.get().status, RoomJoinRequest.Status.PENDING)
+
+    def test_stale_host_settings_cannot_overwrite_other_tab(self):
+        room = self.make_room()
+        endpoint = reverse('room_admission', args=[room.pk])
+        page = reverse('room', args=[room.pk])
+        old_version = self.host_client.get(endpoint).json()['settings_version']
+        self.assertContains(self.host_client.get(page), f'name="settings_version" value="{old_version}"')
+        saved = self.host_client.post(endpoint, {'action': 'settings', 'settings_version': old_version})
+        self.assertEqual(saved.status_code, 200)
+        new_version = saved.json()['settings_version']
+        self.assertNotEqual(new_version, old_version)
+
+        stale = self.host_client.post(endpoint, {
+            'action': 'settings', 'password': 'mật khẩu từ tab cũ', 'requires_approval': 'on',
+            'settings_version': old_version,
+        })
+        self.assertEqual(stale.status_code, 409)
+        self.assertEqual(stale.json()['settings_version'], new_version)
+        self.assertFalse(stale.json()['requires_approval'])
+        missing_version = self.host_client.post(endpoint, {'action': 'settings', 'requires_approval': 'on'})
+        self.assertEqual(missing_version.status_code, 409)
+        self.assertEqual(missing_version.json()['settings_version'], new_version)
+        room.refresh_from_db()
+        self.assertFalse(room.requires_approval)
+        self.assertTrue(check_password('đèn chiếu 27', room.password_hash))
 
     def test_rejected_guest_cannot_join_or_view_other_requests(self):
         room = self.make_room(password='', approval='on')

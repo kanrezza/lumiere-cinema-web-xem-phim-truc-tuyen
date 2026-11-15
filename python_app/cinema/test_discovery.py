@@ -79,11 +79,16 @@ class DiscoveryTests(TestCase):
         self.assertEqual(genre_page.context['page'].paginator.count, 4)
 
     def test_country_and_genre_directory_search_is_based_on_real_names(self):
-        response = self.client.get(reverse('countries'), {'q': 'viỆT'})
-        self.assertEqual([item['name'] for item in response.context['items']], ['Việt Nam'])
-        self.assertEqual(response.context['total_count'], 2)
-        response = self.client.get(reverse('categories'), {'q': 'hài'})
-        self.assertEqual([item['name'] for item in response.context['items']], ['Hài hước'])
+        for route, query, expected in (
+            ('countries', 'viỆT', 'Việt Nam'),
+            ('countries', 'VIET   NAM', 'Việt Nam'),
+            ('categories', 'hài', 'Hài hước'),
+            ('categories', 'hai huoc', 'Hài hước'),
+        ):
+            with self.subTest(route=route, query=query):
+                response = self.client.get(reverse(route), {'q': query})
+                self.assertEqual([item['name'] for item in response.context['items']], [expected])
+                self.assertEqual(response.context['total_count'], 2)
 
     def test_combined_country_actor_category_kind_and_rating_filters(self):
         response = self.client.get(reverse('catalog'), {

@@ -55,13 +55,27 @@
   const empty = room.querySelector('[data-room-queue-empty]');
   const passwordStatus = room.querySelector('[data-room-password-status]');
   const save = form.querySelector('button');
+  const {requires_approval: approval, password, remove_password: removePassword, settings_version: version} = form.elements;
+  let savedApproval = approval.checked;
   let queueKey;
 
-  function settings(data) {
-    form.elements.requires_approval.checked = data.requires_approval;
-    form.elements.remove_password.checked = false;
-    form.elements.remove_password.disabled = !data.has_password;
+  function settings(data, preserveEdits = false) {
+    if (!preserveEdits || approval.checked === savedApproval) approval.checked = data.requires_approval;
+    savedApproval = data.requires_approval;
+    if (!preserveEdits) password.value = '';
+    if (!preserveEdits || !data.has_password) removePassword.checked = false;
+    removePassword.disabled = !data.has_password;
+    version.value = data.settings_version;
     passwordStatus.textContent = data.has_password ? 'Phòng đang có mật khẩu.' : 'Phòng chưa đặt mật khẩu.';
+  }
+
+  function refreshSettings(data) {
+    if (data.settings_version === version.value) return;
+    if (approval.checked !== savedApproval || password.value || removePassword.checked) {
+      status.textContent = 'Cài đặt phòng vừa thay đổi. Bản chỉnh sửa của bạn vẫn được giữ.';
+      return;
+    }
+    settings(data);
   }
 
   function renderQueue(data) {
@@ -95,6 +109,7 @@
     revision += 1;
     pendingAction = true;
     save.disabled = true;
+    form.inert = data.action === 'settings';
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -103,18 +118,18 @@
       });
       if (response.redirected) throw new Error('Phiên đăng nhập đã hết hạn.');
       const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || 'Không thể cập nhật phòng. Hãy thử lại.');
       if (stopped) return;
+      if (response.status === 409 && data.action === 'settings' && result.settings_version) settings(result, true);
+      if (!response.ok) throw new Error(result.error || 'Không thể cập nhật phòng. Hãy thử lại.');
       renderQueue(result);
-      if (data.action === 'settings') {
-        settings(result);
-        form.elements.password.value = '';
-      }
+      if (data.action === 'settings') settings(result);
+      else refreshSettings(result);
       status.textContent = {approve: 'Đã duyệt yêu cầu.', reject: 'Đã từ chối yêu cầu.', settings: 'Đã lưu cài đặt phòng.'}[data.action];
     } catch (error) {
       status.textContent = error.message;
     } finally {
       pendingAction = false;
+      form.inert = false;
       save.disabled = false;
     }
   }
@@ -137,7 +152,10 @@
       }
       if (response.ok) {
         const data = await response.json();
-        if (!stopped && !pendingAction && before === revision) renderQueue(data);
+        if (!stopped && !pendingAction && before === revision) {
+          renderQueue(data);
+          refreshSettings(data);
+        }
       }
     } catch { /* Retry in the next refresh. */ }
     finally { if (!stopped) window.setTimeout(poll, 2500); }

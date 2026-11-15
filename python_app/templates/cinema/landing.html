@@ -4,7 +4,19 @@
 {% block head %}<link rel="stylesheet" href="{% static 'landing.css' %}?v=lumiere-unified-1"><script src="{% static 'landing.js' %}?v=lumiere-unified-1" defer></script>{% endblock %}
 {% block brand %}<a class="brand" href="{% url 'landing' %}" aria-label="Lumière — Trang chủ"><span class="brand-mark" aria-hidden="true">l<span>›</span></span>lumière<span class="brand-period">.</span></a>{% endblock %}
 {% block navigation %}<nav class="main-nav" aria-label="Điều hướng chính"><a href="#discover">Điện ảnh</a>{% include 'cinema/genre_trigger.html' %}{% include 'cinema/country_trigger.html' %}<a href="{% url 'actors' %}">Diễn viên</a><a href="#experience">Trải nghiệm</a><a href="#membership">Thành viên</a></nav>{% endblock %}
-{% block header_actions %}{% if user.is_vip %}<a class="welcome-login welcome-member-explore" href="{% url 'catalog' %}">Khám phá phim</a><a class="welcome-register btn small" href="{% url 'plans' %}">VIP của bạn <span aria-hidden="true">↗</span></a>{% else %}<a class="welcome-login" href="{% url 'login' %}">Đăng nhập</a><a class="welcome-register btn small" href="{% url 'register' %}">Đăng ký <span aria-hidden="true">↗</span></a>{% endif %}{% endblock %}
+{% block header_actions %}
+  {% if user.is_authenticated %}
+    <a class="welcome-login welcome-member-explore" href="{% url 'catalog' %}">Khám phá phim</a>
+    {% if user.is_vip %}
+      <a class="welcome-register btn small" href="{% url 'plans' %}">VIP của bạn <span aria-hidden="true">↗</span></a>
+    {% else %}
+      <a class="welcome-register btn small" href="{% url 'profile' %}">Tài khoản <span aria-hidden="true">↗</span></a>
+    {% endif %}
+  {% else %}
+    <a class="welcome-login" href="{% url 'login' %}">Đăng nhập</a>
+    <a class="welcome-register btn small" href="{% url 'register' %}">Đăng ký <span aria-hidden="true">↗</span></a>
+  {% endif %}
+{% endblock %}
 {% block content %}
 <section class="landing-hero" id="top" data-landing-hero data-motion-loop>
   <div class="welcome-film-wall" data-parallax aria-hidden="true">
@@ -18,7 +30,15 @@
       <p class="landing-kicker"><span class="tiny-star" aria-hidden="true">✳</span> CHÀO MỪNG ĐẾN LUMIÈRE</p>
       <h1>Phim hay.<br>Xem cùng nhau.</h1>
       <p class="landing-lead">Khám phá phim, lưu những tựa yêu thích và cùng bạn bè tận hưởng một buổi chiếu riêng. Tất cả trong cùng một Lumière.</p>
-      <div class="landing-hero-actions">{% if user.is_vip %}<a class="btn" href="{% url 'catalog' %}" data-magnetic>Tiếp tục khám phá <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="btn secondary" href="{% url 'library' %}">Tủ phim của tôi <svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></a>{% else %}<a class="btn" href="{% url 'register' %}" data-magnetic>Bắt đầu ngay <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="btn secondary" href="{% url 'catalog' %}">Khám phá phim <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg></a>{% endif %}</div>
+      <div class="landing-hero-actions">
+        {% if user.is_authenticated %}
+          <a class="btn" href="{% url 'catalog' %}" data-magnetic>Tiếp tục khám phá <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <a class="btn secondary" href="{% url 'library' %}">Tủ phim của tôi <svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></a>
+        {% else %}
+          <a class="btn" href="{% url 'register' %}" data-magnetic>Bắt đầu ngay <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <a class="btn secondary" href="{% url 'catalog' %}">Khám phá phim <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg></a>
+        {% endif %}
+      </div>
       <div class="hero-smallprint">{% if free_movie_count %}<span><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Có phim miễn phí</span>{% endif %}<span><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Lưu phim và xem tiếp</span></div>
     </div>
     {% if featured %}<a class="hero-film-note" href="{% url 'movie' featured.slug %}">{% if featured.backdrop %}<img src="{{ featured.backdrop.url }}" alt="" width="120" height="70">{% endif %}<span><small>ĐANG CÓ TRONG THƯ VIỆN</small><strong>{{ featured.title }}</strong></span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>{% endif %}

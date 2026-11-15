@@ -64,6 +64,21 @@ class CatalogExperienceTests(TestCase):
         self.assertEqual(response.context['shelves'], [])
         self.assertEqual(response.context['continue_watching'], [])
 
+    def test_movie_rating_form_restores_only_the_signed_in_viewers_score(self):
+        self.client.force_login(self.viewer)
+        movie_url = reverse('movie', args=[self.ready.slug])
+        endpoint = reverse('rate', args=[self.ready.pk])
+        Rating.objects.create(movie=self.ready, user=self.other, score=5)
+        before = self.client.get(movie_url)
+        self.assertContains(before, '<option value="" selected disabled>Chọn điểm</option>', html=True)
+        self.assertNotContains(before, '<option value="5" selected>5 / 5</option>', html=True)
+
+        self.client.post(endpoint, {'score': 2})
+        reloaded = self.client.get(movie_url)
+        self.assertContains(reloaded, '<option value="2" selected>2 / 5</option>', html=True)
+        self.assertContains(reloaded, '<option value="5">5 / 5</option>', html=True)
+        self.assertEqual(Rating.objects.get(user=self.viewer, movie=self.ready).score, 2)
+
     def test_continue_watching_is_personal_and_only_contains_playable_unfinished_films(self):
         History.objects.create(user=self.viewer, episode=self.episode, position=149)
         History.objects.create(user=self.viewer, episode=self.hidden_episode, position=120)
@@ -221,17 +236,22 @@ class LandingPageTests(TestCase):
         self.assertNotContains(response, reverse('watch', args=[vip_episode.pk]))
         self.assertNotContains(response, 'Xem thử một bộ phim')
 
-    def test_signed_in_visitors_still_get_the_public_welcome_header(self):
-        self.client.force_login(self.viewer)
-        response = self.client.get(reverse('landing'))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'cinema/landing.html')
-        header = response.content.decode().split('<header', 1)[1].split('</header>', 1)[0]
-        self.assertIn('href="' + reverse('login') + '"', header)
-        self.assertIn('Đăng nhập', header)
-        self.assertIn('href="' + reverse('register') + '"', header)
-        self.assertIn('Đăng ký', header)
-        self.assertNotIn('Menu tài khoản', header)
+    def test_welcome_prompts_match_authentication_for_members_and_staff(self):
+        landing = reverse('landing')
+        guest = self.client.get(landing)
+        self.assertContains(guest, f'href="{reverse("login")}"')
+        self.assertContains(guest, f'href="{reverse("register")}"')
+
+        admin = get_user_model().objects.create_user('staff', 'staff@example.test', is_staff=True)
+        for user in (self.viewer, admin):
+            with self.subTest(user=user.username):
+                self.client.force_login(user)
+                response = self.client.get(landing)
+                self.assertTemplateUsed(response, 'cinema/landing.html')
+                self.assertContains(response, f'href="{reverse("profile")}"')
+                self.assertContains(response, 'Tủ phim của tôi')
+                self.assertNotContains(response, f'href="{reverse("login")}"')
+                self.assertNotContains(response, f'href="{reverse("register")}"')
 
     def test_signed_in_login_skips_the_form_and_preserves_safe_next(self):
         self.client.force_login(self.viewer)

@@ -15,17 +15,18 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Avg, Q, Sum, Count, OuterRef, Subquery, F, IntegerField
 from django.db.models.functions import Cast, Ceil
-from django.http import FileResponse, Http404, HttpResponse, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
 from .forms import RegisterForm, ProfileForm, AvatarForm, RoomAccessForm
 from .avatars import is_managed_avatar
 from .models import *
 from .payments import checkout_url, process_ipn
-from .search import filter_movie_search, filter_actor_search
+from .search import filter_movie_search, filter_actor_search, normalize_search
 
 
 def can_watch(user, episode):
@@ -113,8 +114,9 @@ def discovery_index(request, kind):
         title, eyebrow = 'Thể loại', 'KHÁM PHÁ THEO THỂ LOẠI'
         description = 'Chọn thể loại phù hợp với tâm trạng và tìm bộ phim tiếp theo của bạn.'
     total_count = len(items)
-    if query:
-        items = [item for item in items if query.casefold() in item['name'].casefold()]
+    search_term = normalize_search(query)
+    if search_term:
+        items = [item for item in items if search_term in normalize_search(item['name'])]
     return render(request, 'cinema/discovery_index.html', {
         'title': title, 'eyebrow': eyebrow, 'description': description,
         'discovery_kind': kind, 'items': items, 'q': query, 'total_count': total_count,
@@ -262,11 +264,19 @@ def catalog(request):
 def register(request):
     if request.user.is_authenticated:
         return redirect('catalog')
-    form = RegisterForm(request.POST or None)
+    next_url = request.POST.get('next', request.GET.get('next', '')).strip()
+    if not url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure(),
+    ):
+        next_url = ''
+    form = RegisterForm(request.POST if request.method == 'POST' else None)
     if request.method == 'POST' and form.is_valid():
         login(request, form.save())
-        return redirect('catalog')
-    return render(request, 'registration/form.html', {'form': form, 'title': 'Tạo tài khoản', 'subtitle': 'Một tài khoản. Cả thế giới điện ảnh.', 'button': 'Bắt đầu khám phá'})
+        return HttpResponseRedirect(next_url or reverse('catalog'))
+    return render(request, 'registration/form.html', {
+        'form': form, 'next': next_url, 'title': 'Tạo tài khoản',
+        'subtitle': 'Một tài khoản. Cả thế giới điện ảnh.', 'button': 'Bắt đầu khám phá',
+    })
 
 
 def movie_detail(request, slug):
@@ -277,12 +287,17 @@ def movie_detail(request, slug):
     resume_episode_id = getattr(movie, 'resume_episode_id', None)
     resume_episode = next((episode for episode in episodes if episode.pk == resume_episode_id), None)
     related = movies.filter(categories__in=movie.categories.all()).exclude(pk=movie.pk).distinct()[:8]
+    viewer_score = None
+    if request.user.is_authenticated:
+        viewer_score = movie.ratings.filter(user=request.user).values_list('score', flat=True).first()
     return render(request, 'cinema/movie.html', {
         'movie': movie, 'episodes': episodes, 'first_ready_episode': first_ready_episode,
         'resume_episode': resume_episode,
         'comments': movie.comments.filter(moderation_status=Comment.Status.PUBLISHED).select_related('user')[:50],
         'pending_comments': movie.comments.filter(user=request.user, moderation_status=Comment.Status.PENDING)[:3] if request.user.is_authenticated else [],
         'score': movie.score,
+        'viewer_score': viewer_score,
+        'rating_choices': range(5, 0, -1),
         'saved': request.user.is_authenticated and Watchlist.objects.filter(user=request.user, movie=movie).exists(),
         'related': related,
     })
@@ -544,7 +559,11 @@ def room(request, pk):
     if member and member.banned: raise PermissionDenied('Bạn đã bị loại khỏi phòng.')
     if not member or not member.active:
         return room_lobby(request, room)
-    response = render(request, 'cinema/room.html', {'room': room, 'episode': room.episode, 'is_host': room.host_id == request.user.pk, 'position': room.position})
+    is_host = room.host_id == request.user.pk
+    response = render(request, 'cinema/room.html', {
+        'room': room, 'episode': room.episode, 'is_host': is_host, 'position': room.position,
+        'room_access_version': room_access_settings(room)['settings_version'] if is_host else '',
+    })
     response.allow_room_microphone = True
     return response
 
@@ -598,6 +617,17 @@ def join_room(request, pk):
     return redirect('room', pk=pk)
 
 
+def room_access_settings(room):
+    version = salted_hmac(
+        'cinema.room-access-settings', f'{room.pk}:{room.requires_approval}:{room.password_hash}', algorithm='sha256',
+    ).hexdigest()
+    return {
+        'has_password': bool(room.password_hash),
+        'requires_approval': room.requires_approval,
+        'settings_version': version,
+    }
+
+
 @login_required
 @require_http_methods(['GET', 'POST'])
 def room_admission(request, pk):
@@ -621,6 +651,12 @@ def room_admission(request, pk):
                 entry.status = RoomJoinRequest.Status.APPROVED if action == 'approve' else RoomJoinRequest.Status.REJECTED
                 entry.save(update_fields=['status'])
             elif action == 'settings':
+                current_settings = room_access_settings(room)
+                if request.POST.get('settings_version') != current_settings['settings_version']:
+                    return JsonResponse({
+                        **current_settings,
+                        'error': 'Cài đặt phòng đã thay đổi. Kiểm tra lại rồi bấm lưu.',
+                    }, status=409)
                 form = RoomAccessForm(request.POST)
                 remove_password = request.POST.get('remove_password') == 'on'
                 if not form.is_valid() or (remove_password and form.cleaned_data['password']):
@@ -635,7 +671,7 @@ def room_admission(request, pk):
                 return JsonResponse({'error': 'Thao tác không hợp lệ.'}, status=400)
         pending = room.join_requests.filter(status=RoomJoinRequest.Status.PENDING).order_by('created_at', 'pk')
         return JsonResponse({
-            'has_password': bool(room.password_hash), 'requires_approval': room.requires_approval,
+            **room_access_settings(room),
             'pending': list(pending.values('pk', 'user__username')[:30]), 'pending_count': pending.count(),
         })
 
