@@ -1,6 +1,6 @@
 # Lumière · Nền tảng xem phim trực tuyến
 
-Lumière là ứng dụng Python/Django để khám phá phim, xem trực tuyến và tổ chức phòng xem chung. Ứng dụng nằm trong thư mục [`python_app/`](python_app/). Giao diện sử dụng Django Templates, HTML, CSS và JavaScript.
+Lumière là ứng dụng Python/Django để khám phá phim, xem trực tuyến và tổ chức phòng xem chung. Ứng dụng nằm trong thư mục [`python_app/`](python_app/). Kết quả khám phá phim dùng Vue 3 và TypeScript. Django Templates dựng trang nổi bật, các trang còn lại và giao diện dự phòng cho bộ lọc.
 
 - **Khám phá phim:** Tìm kiếm tiếng Việt không dấu, lọc theo thể loại, quốc gia, năm và tình trạng có bản xem. Có trang diễn viên, trailer, điểm IMDb và đánh giá của người xem.
 - **Xem phim:** Phát video HLS, chọn phụ đề SRT/WebVTT, lưu phim vào tủ phim và xem tiếp từ vị trí đã lưu. Có giao diện sáng và tối.
@@ -41,6 +41,15 @@ Nếu đã có bản sao dự án, bắt đầu từ bước vào `python_app/` 
 
 Dùng tài khoản vừa tạo bằng `createsuperuser` để vào Studio và Admin. Đăng ký tài khoản thường trên trang web để thử luồng người xem.
 
+Để dùng bộ lọc Vue, cài Node.js 22.12 trở lên và chạy trong `python_app/`.
+
+```bash
+npm --prefix frontend ci
+npm --prefix frontend run build
+```
+
+Mở [trang kết quả Khám phá](http://127.0.0.1:8000/browse/?sort=newest) sau khi build. Django tự phục vụ tệp đã build. Nếu chưa build, bộ lọc và phân trang vẫn chạy bằng HTML do Django dựng.
+
 ## Thử phát và tải phim lên
 
 `seed_demo` tạo danh mục phim và gói VIP minh họa. Để có video phát thử, mở terminal thứ hai, vào `python_app/`, kích hoạt `.venv` và nạp `.env`, rồi chạy một trong hai lệnh sau với `DEBUG=1`:
@@ -78,6 +87,7 @@ Nếu đã cài Node.js, chạy thêm `node --test tests/*.test.cjs` để kiể
 - [`python_app/cinema/`](python_app/cinema/) — Mô hình dữ liệu, nghiệp vụ, quản trị, migrations, lệnh xử lý video và kiểm thử Django.
 - [`python_app/config/`](python_app/config/) — Cấu hình Django và định tuyến.
 - [`python_app/templates/`](python_app/templates/) và [`python_app/static/`](python_app/static/) — Giao diện và tài nguyên trình duyệt.
+- [`python_app/frontend/`](python_app/frontend/) — Mã Vue, TypeScript và cấu hình Vite cho trang kết quả khám phá.
 - [`python_app/services/`](python_app/services/) — Dịch vụ nhận dạng và dịch phụ đề tùy chọn.
 
 Phát triển bởi **Trần Đình Danh** · Phenikaa University.

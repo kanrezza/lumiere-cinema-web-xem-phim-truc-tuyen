@@ -1,6 +1,6 @@
 # Hướng dẫn kỹ thuật Lumière
 
-Lumière dùng Python và Django cho máy chủ, Django Templates, HTML, CSS và JavaScript cho giao diện. Xem [README chính](../README.md) để cài đặt nhanh. Tài liệu này giải thích các tính năng, tích hợp và cách vận hành ứng dụng trong `python_app/`.
+Lumière dùng Python và Django cho máy chủ, Vue 3 và TypeScript cho kết quả khám phá phim, và Django Templates cho giao diện dựng trên máy chủ. Xem [README chính](../README.md) để cài đặt nhanh. Tài liệu này giải thích các tính năng, tích hợp và cách vận hành ứng dụng trong `python_app/`.
 
 ## Đã có trong bản này
 
@@ -19,7 +19,7 @@ Lumière dùng Python và Django cho máy chủ, Django Templates, HTML, CSS và
 
 ## Chạy trên máy
 
-Yêu cầu Python 3.12 trở lên, FFmpeg/ffprobe có trong `PATH`. Bộ dependencies khóa trong `requirements.txt`; môi trường hiện tại đã dùng Python 3.14. Không cần PHP, Composer hoặc Node cho bản Python.
+Yêu cầu Python 3.12 trở lên và FFmpeg/ffprobe trong `PATH`. Các gói Python được khóa trong `requirements.txt`. Để build Vue, dùng Node.js 22.12 trở lên và chạy `npm --prefix frontend ci` rồi `npm --prefix frontend run build` từ `python_app/`.
 
 ```bash
 cd python_app
@@ -201,7 +201,7 @@ Mỗi tài khoản chỉ có một browser session được cấp ticket hiện 
 - Cấu hình SMTP, backup MySQL và kho file, giám sát dung lượng/log worker. Không log query string của `/stream/` vì chứa ticket, không log secret/VNPay hash secret.
 - `deploy/` có mẫu Nginx, systemd web service, video service và timer. Thay domain, TLS certificates, đường dẫn, UID/GID theo máy thật; không chạy nguyên mẫu mà chưa kiểm tra. Reverse proxy giới hạn request/upload trước Django; upload vẫn cần quota ổ đĩa.
 - File `/etc/lumiere/env` chỉ cho service user đọc; secret không đặt trong Git. Kho private và kho public là hai thư mục khác nhau; quyền filesystem phải phù hợp với service và Nginx.
-- Chạy `python manage.py collectstatic --noinput`, `python manage.py check --deploy`, kiểm thử với `DEBUG=0`, rồi mới khởi động services. Check deployment cần môi trường production hợp lệ.
+- Build Vue trước khi chạy `python manage.py collectstatic --noinput` để Django thu gom các tệp trong `static/bundles/catalog/`. Chạy `python manage.py check --deploy` và kiểm thử với `DEBUG=0` trước khi khởi động services. Giữ thư mục bundle cùng mã ứng dụng để Django đọc manifest.
 - Chưa có kiểm toán bảo mật độc lập, đánh giá tải, DRM hay bài thử thanh toán thật. Cần kiểm tra thực tế MySQL, Redis, Nginx, storage/worker và VNPay trước khi mở cho người dùng.
 
 Các tùy chọn bảo mật dựa trên [deployment checklist của Django](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/); luôn cập nhật bản vá dependencies và FFmpeg.
