@@ -2,7 +2,6 @@
 (() => {
   const dialog = document.getElementById('movie-quickview');
   if (!dialog || typeof dialog.showModal !== 'function') return;
-  const triggers = [...document.querySelectorAll('.quickview-trigger')];
   const title = dialog.querySelector('#quickview-title');
   const image = dialog.querySelector('#quickview-image');
   const meta = dialog.querySelector('#quickview-meta');
@@ -67,10 +66,20 @@
     dialog.showModal();
   }
 
-  for (const trigger of triggers) {
-    trigger.hidden = false;
-    trigger.addEventListener('click', () => open(trigger));
+  function revealTriggers(root) {
+    for (const trigger of root.querySelectorAll('.quickview-trigger')) {
+      trigger.hidden = false;
+    }
   }
+
+  revealTriggers(document);
+  document.addEventListener('lumiere:catalog-render', event => {
+    if (event.target.matches?.('[data-catalog-app]')) revealTriggers(event.target);
+  });
+  document.addEventListener('click', event => {
+    const trigger = event.target.closest?.('.quickview-trigger');
+    if (trigger && !trigger.hidden && !dialog.open) open(trigger);
+  });
   close.addEventListener('click', () => dialog.close());
   dialog.addEventListener('pointerdown', event => {pointerStartedOutside = event.target === dialog && isOutside(event);});
   dialog.addEventListener('click', event => {

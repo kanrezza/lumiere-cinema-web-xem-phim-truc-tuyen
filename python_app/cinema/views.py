@@ -17,11 +17,13 @@ from django.db.models import Avg, Q, Sum, Count, OuterRef, Subquery, F, IntegerF
 from django.db.models.functions import Cast, Ceil
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
+from django.views.decorators.vary import vary_on_headers
 from .forms import RegisterForm, ProfileForm, AvatarForm, RoomAccessForm
 from .avatars import is_managed_avatar
 from .models import *
@@ -180,9 +182,68 @@ def landing(request):
         'landing_categories': Category.objects.filter(movie__published=True).distinct().order_by('name'),
     })
 
+def catalog_results(request, context):
+    page = context['page']
+    genre = context['selected_category']
+    actor = context['selected_actor']
+    values = {
+        'q': context['q'],
+        'category': context['category'],
+        'country': context['selected_country'],
+        'year': context['selected_year'],
+        'kind': request.GET.get('kind', ''),
+        'sort': request.GET.get('sort', ''),
+        'access': request.GET.get('access', ''),
+        'actor': context['actor_filter'],
+        'availability': context['availability'],
+        'release': context['release'],
+        'trailer': context['trailer_filter'],
+    }
+    active_filters = [
+        (label, value) for label, value in (
+            ('Thể loại', genre.name if genre else ''),
+            ('Quốc gia', values['country']),
+            ('Diễn viên', actor.name if actor else ''),
+            ('Năm', values['year']),
+        ) if value
+    ]
+    titles = [
+        (values['q'], f'Kết quả cho “{values["q"]}”'),
+        (actor, f'Phim có {actor.name}' if actor else ''),
+        (values['country'], f'Phim {values["country"]}'),
+        (genre, f'Phim {genre.name}' if genre else ''),
+        (values['year'], f'Phim năm {values["year"]}'),
+        (values['kind'] == 'movie', 'Phim lẻ'),
+        (values['kind'] == 'series', 'Phim bộ'),
+        (values['access'] == 'vip', 'Phim dành cho thành viên VIP'),
+        (values['sort'] == 'rating', 'Phim được đánh giá cao'),
+    ]
+    pagination_query = {name: value for name, value in values.items() if value}
+
+    def page_link(number):
+        return '?' + urlencode({**pagination_query, 'page': number})
+
+    return {
+        'title': next((title for matches, title in titles if matches), 'Khám phá phim'),
+        'count': page.paginator.count,
+        'contentLinks': context['content_links'],
+        'values': values,
+        'categories': [{'value': item.slug, 'label': item.name} for item in context['categories']],
+        'countries': [{'value': item['name'], 'label': item['name']} for item in context['countries']],
+        'years': context['years'],
+        'activeFilters': [f'{label}: {value}' for label, value in active_filters],
+        'pagination': {
+            'page': page.number,
+            'pages': page.paginator.num_pages,
+            'previous': page_link(page.previous_page_number()) if page.has_previous() else None,
+            'next': page_link(page.next_page_number()) if page.has_next() else None,
+        },
+    }
+
+
+@vary_on_headers('X-Lumiere-Catalog')
 def catalog(request):
     movies = catalog_movies(request.user)
-    featured = movies.filter(ready_episode_id__isnull=False).first()
     categories = list(public_categories())
     country_groups = public_country_groups()
     country_options = [{'name': group['name'], 'count': group['count']} for group in country_groups]
@@ -248,9 +309,10 @@ def catalog(request):
             if len(shelves) >= 4:
                 break
         continue_watching = continue_cards(request.user, 12)
-    return render(request, 'cinema/catalog.html', {
+    context = {
         'page': Paginator(filtered.distinct(), 12).get_page(request.GET.get('page')),
-        'featured': featured, 'categories': categories, 'q': q, 'category': category,
+        'featured': featured_movies[0] if featured_movies else None,
+        'categories': categories, 'q': q, 'category': category,
         'is_browsing': is_browsing, 'shelves': shelves, 'continue_watching': continue_watching,
         'featured_movies': featured_movies,
         'countries': country_options, 'selected_country': selected_country,
@@ -258,7 +320,14 @@ def catalog(request):
         'content_links': catalog_content_links(request), 'availability': availability,
         'release': release, 'trailer_filter': trailer_filter,
         'selected_category': selected_category, 'selected_actor': selected_actor, 'actor_filter': actor_filter,
-    })
+    }
+    if is_browsing:
+        results = catalog_results(request, context)
+        if request.headers.get('X-Lumiere-Catalog') == 'vue':
+            results['gridHtml'] = render_to_string('cinema/catalog_grid.html', context, request=request)
+            return JsonResponse(results, headers={'Cache-Control': 'private, no-store'})
+        context['catalog_results'] = results
+    return render(request, 'cinema/catalog.html', context)
 
 
 def register(request):

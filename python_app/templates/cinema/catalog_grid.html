@@ -1,0 +1,10 @@
+{% for movie in page %}
+  {% include 'cinema/card.html' with portrait=True %}
+{% empty %}
+  <div class="empty">
+    <svg class="empty-icon" aria-hidden="true"><use href="#i-search"/></svg>
+    <h2>Chưa có phim phù hợp</h2>
+    <p>Thử từ khóa khác hoặc bỏ bớt bộ lọc.</p>
+    <a class="btn secondary" href="{% url 'catalog' %}">Quay lại khám phá</a>
+  </div>
+{% endfor %}

@@ -10,4 +10,6 @@ __pycache__/
 private_media/
 public_media/
 staticfiles/
+static/bundles/catalog/
+frontend/node_modules/
 reports/
