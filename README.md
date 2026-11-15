@@ -1,107 +1,83 @@
-# Hệ Thống Quản Lý Phim Online (Lumière)
+# Lumière · Nền tảng xem phim trực tuyến
 
+Lumière là ứng dụng Python/Django để khám phá phim, xem trực tuyến và tổ chức phòng xem chung. Ứng dụng nằm trong thư mục [`python_app/`](python_app/). Giao diện sử dụng Django Templates, HTML, CSS và JavaScript.
 
-Hệ thống cho phép người dùng xem và khám phá phim trực tuyến, đồng thời cung cấp bộ công cụ quản trị toàn diện cho Admin.
+- **Khám phá phim:** Tìm kiếm tiếng Việt không dấu, lọc theo thể loại, quốc gia, năm và tình trạng có bản xem. Có trang diễn viên, trailer, điểm IMDb và đánh giá của người xem.
+- **Xem phim:** Phát video HLS, chọn phụ đề SRT/WebVTT, lưu phim vào tủ phim và xem tiếp từ vị trí đã lưu. Có giao diện sáng và tối.
+- **VIP và xem chung:** Có gói VIP tháng/năm và tích hợp VNPay. Chủ phòng có thể đồng bộ phát phim, đặt mật khẩu, duyệt khách và quản lý quyền bật mic. Thành viên có thể chat hoặc tham gia thoại.
+- **Quản trị:** Lumière Studio theo dõi hoạt động và báo lỗi. Django Admin quản lý phim, tập, phụ đề, tài khoản và giao dịch. Bình luận bị gắn cờ được đưa vào hàng chờ để quản trị viên duyệt.
 
----
+## Chạy trên máy
 
-## Tính năng chính
-
-### Cho người dùng (User)
-
-- **Khám phá phim:** Xem danh sách phim theo thể loại, phim bộ, phim lẻ, phim chiếu rạp.
-- **Tìm kiếm:** Tìm kiếm phim theo tên, thể loại hoặc quốc gia.
-- **Đánh giá:** Chấm điểm và xem bảng xếp hạng phim đánh giá cao nhất.
-- **Bình luận:** Để lại bình luận và tương tác với cộng đồng.
-- **Yêu thích:** Lưu phim vào danh sách yêu thích cá nhân.
-- **Lịch sử xem:** Theo dõi lại các phim đã xem.
-- **Diễn viên:** Xem danh sách diễn viên và các phim họ tham gia.
-
-### Cho quản trị viên (Admin)
-
-- **Quản lý phim:** Thêm, sửa, xóa phim và tập phim.
-- **Quản lý người dùng:** Khóa/mở khóa tài khoản, phân quyền.
-- **Quản lý đánh giá:** Xem và xóa các đánh giá không phù hợp.
-
----
-
-## Công nghệ sử dụng
-
-- **Framework:** Laravel 12
-- **Language:** PHP, Blade Template
-- **Database:** MySQL
-- **Server:** XAMPP (Apache + MySQL)
-- **Frontend:** HTML, CSS, JavaScript (không dùng framework)
-
----
-
-## Khởi tạo quản trị cho bản Laravel
-
-Không có tài khoản hoặc mật khẩu quản trị mặc định. Để chạy `AdminUserSeeder`, đặt `ADMIN_EMAIL` hợp lệ và `ADMIN_PASSWORD` tối thiểu 12 ký tự trong môi trường riêng; không đưa giá trị thật lên Git. Nếu thiếu hoặc không hợp lệ, seeder cảnh báo rồi bỏ qua việc tạo quản trị. Nếu đã cache cấu hình Laravel, cập nhật cache sau khi đổi các biến này. Chạy lại seeder sẽ cập nhật mật khẩu và quyền của tài khoản có email đã cấu hình; chỉ thực hiện khi bạn chủ động muốn cập nhật tài khoản đó.
-
----
-
-## Hướng dẫn cài đặt
-
-1. Clone project về máy:
+Cần **Python 3.12 trở lên**. Các lệnh dưới đây dùng Bash trên macOS, Linux hoặc WSL. Cài thêm **FFmpeg** có bộ mã hóa `libx264` và **ffprobe** trong `PATH` để tạo video demo hoặc xử lý video tải lên.
 
 ```bash
-git clone https://github.com/kanrezza/he-thong-quan-ly-phim-online.git
-cd he-thong-quan-ly-phim-online
+git clone https://github.com/kanrezza/lumiere-cinema-web-xem-phim-truc-tuyen.git
+cd lumiere-cinema-web-xem-phim-truc-tuyen/python_app
+
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+
+test -f .env || cp .env.example .env
+set -a
+source .env
+set +a
+
+python manage.py migrate
+python manage.py seed_demo
+python manage.py createsuperuser
+./run-local.sh
 ```
 
-2. Cài đặt dependencies:
+Nếu đã có bản sao dự án, bắt đầu từ bước vào `python_app/` và giữ file `.env` hiện có. Để trống `DB_NAME` để dùng SQLite tại `python_app/db.sqlite3`. Script `run-local.sh` tự nạp `.env` khi khởi động web. Khi mở terminal khác để chạy lệnh `manage.py`, kích hoạt `.venv` và nạp lại `.env` như trên.
+
+| Trang | Địa chỉ |
+| --- | --- |
+| Trang chào | [127.0.0.1:8000](http://127.0.0.1:8000/) |
+| Khám phá phim | [/browse/](http://127.0.0.1:8000/browse/) |
+| Lumière Studio | [/studio/](http://127.0.0.1:8000/studio/) |
+| Django Admin | [/admin/](http://127.0.0.1:8000/admin/) |
+
+Dùng tài khoản vừa tạo bằng `createsuperuser` để vào Studio và Admin. Đăng ký tài khoản thường trên trang web để thử luồng người xem.
+
+## Thử phát và tải phim lên
+
+`seed_demo` tạo danh mục phim và gói VIP minh họa. Để có video phát thử, mở terminal thứ hai, vào `python_app/`, kích hoạt `.venv` và nạp `.env`, rồi chạy một trong hai lệnh sau với `DEBUG=1`:
 
 ```bash
-composer install
+python manage.py make_demo_video   # Clip 20 giây cho Sau hoàng hôn
+python manage.py make_demo_series  # Hai tập demo 30 giây, có phụ đề Việt và Anh
 ```
 
-3. Tạo file môi trường:
+Đăng nhập rồi mở phim demo trong **Khám phá phim**. Với phim của bạn, vào **Admin → Phim** để tạo và công khai thông tin phim, rồi vào **Tập phim** để tải file MP4, MKV, MOV hoặc WebM lên. Chạy `python manage.py process_videos` sau khi tải lên để chuyển mã. Tập có thể phát khi chuyển sang trạng thái sẵn sàng (`ready`).
+
+Video gốc và HLS được lưu riêng. Quyền phát được kiểm tra trên máy chủ và liên kết phát có thời hạn. Cơ chế này không thay thế DRM.
+
+## Cấu hình thêm
+
+- **MySQL và triển khai:** Đặt các biến `DB_*` để dùng MySQL. Môi trường `DEBUG=0` cần Redis. Có cấu hình mẫu cho Nginx, Gunicorn và worker trong [`python_app/deploy/`](python_app/deploy/).
+- **VNPay:** Điền thông tin merchant Sandbox và cấu hình địa chỉ HTTPS nhận IPN để thử thanh toán. Thông tin merchant và khóa bí mật được giữ trong môi trường riêng.
+- **Phụ đề tự động và thoại:** Nhận dạng lời thoại và dịch phụ đề dùng hai dịch vụ local tùy chọn. Thoại qua WebRTC có thể cấu hình máy chủ STUN/TURN khi thành viên kết nối từ các mạng khác nhau.
+
+Xem [hướng dẫn kỹ thuật](python_app/README.md) để thiết lập các tích hợp trên, nhập dữ liệu cũ hoặc triển khai.
+
+## Kiểm thử
+
+Chạy trong `python_app/` với môi trường Python đã kích hoạt và `.env` đã được nạp:
 
 ```bash
-cp .env.example .env
-php artisan key:generate
+python manage.py check
+python manage.py test cinema cinema.audit_experience_cases
 ```
 
-4. Cấu hình database trong file `.env`:
+Nếu đã cài Node.js, chạy thêm `node --test tests/*.test.cjs` để kiểm tra trình phát và các tương tác JavaScript.
 
-```env
-DB_DATABASE=tên_database_của_bạn
-DB_USERNAME=root
-DB_PASSWORD=
-```
+## Cấu trúc dự án
 
-5. Import database:
-   - Mở **phpMyAdmin**, tạo database mới
-   - Import file `database/sql/lumiere.sql`
+- [`python_app/cinema/`](python_app/cinema/) — Mô hình dữ liệu, nghiệp vụ, quản trị, migrations, lệnh xử lý video và kiểm thử Django.
+- [`python_app/config/`](python_app/config/) — Cấu hình Django và định tuyến.
+- [`python_app/templates/`](python_app/templates/) và [`python_app/static/`](python_app/static/) — Giao diện và tài nguyên trình duyệt.
+- [`python_app/services/`](python_app/services/) — Dịch vụ nhận dạng và dịch phụ đề tùy chọn.
 
-6. Tạo symbolic link cho storage:
-
-```bash
-php artisan storage:link
-```
-
-7. Chạy ứng dụng (dùng XAMPP hoặc):
-
-```bash
-php artisan serve
-```
-
----
-
-## Cấu trúc thư mục
-
-- `app/Http/Controllers/` — Xử lý logic chính
-- `app/Models/` — Các model tương tác database
-- `resources/views/` — Giao diện Blade (movies, admin, actors, auth...)
-- `database/migrations/` — Cấu trúc bảng database
-- `database/sql/` — File SQL dump để import dữ liệu mẫu
-- `routes/web.php` — Định nghĩa toàn bộ routes
-- `public/` — Assets công khai
-- `storage/app/public/posters/` — Ảnh poster phim
-
----
-
-## Thành viên phát triển
-
-- **Trần Đình Danh** · Phenikaa University
+Phát triển bởi **Trần Đình Danh** · Phenikaa University.

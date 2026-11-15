@@ -1,6 +1,6 @@
-# Lumière Python
+# Hướng dẫn kỹ thuật Lumière
 
-Bản rebuild Django của hệ thống phim online. Nằm riêng trong `python_app/`; ứng dụng Laravel và database cũ chưa bị thay thế. Python xử lý backend; giao diện vẫn dùng HTML, CSS, JavaScript.
+Lumière dùng Python và Django cho máy chủ, Django Templates, HTML, CSS và JavaScript cho giao diện. Xem [README chính](../README.md) để cài đặt nhanh. Tài liệu này giải thích các tính năng, tích hợp và cách vận hành ứng dụng trong `python_app/`.
 
 ## Đã có trong bản này
 
