@@ -151,7 +151,7 @@ class StudioContextTests(TestCase):
                 self.assertTemplateUsed(response, 'admin/base_site.html')
                 self.assertContains(response, 'id="studio-sidebar"')
                 self.assertContains(response, 'studio.css')
-                self.assertContains(response, 'theme.js')
+                self.assertContains(response, 'data-theme-toggle')
                 self.assertContains(response, 'Tổng quan hệ thống')
                 self.assertContains(response, '59.000')
                 self.assertEqual(response.context['movies_count'], 2)

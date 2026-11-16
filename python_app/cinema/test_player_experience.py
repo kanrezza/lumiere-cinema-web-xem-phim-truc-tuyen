@@ -48,8 +48,8 @@ class PlayerPageTests(TestCase):
                 response = self.client.get(reverse('room', args=[self.room.pk]))
                 self.assertContains(response, f'data-can-seek="{can_seek}"')
                 self.assertContains(response, reverse('subtitle', args=[self.episode.pk, self.track.pk]))
-                self.assertContains(response, 'player-controls.js')
-                self.assertContains(response, 'caption-panel.js')
+                self.assertContains(response, 'data-vue-player-controls')
+                self.assertContains(response, 'data-caption-panel')
                 self.assertContains(response, 'aria-label="Phụ đề"')
 
     def test_guest_cannot_bypass_movie_access_through_player_or_caption_url(self):

@@ -1,49 +1,40 @@
-/*
- * Motion contract (load with defer, after app.js):
- * - [data-motion-toggle] contains [data-motion-label]; aria-pressed means paused.
- * - body.motion-paused follows prefers-reduced-motion until an explicit toggle.
- * - body.motion-enabled allows motion, including an explicit per-session opt-in.
- * - body.motion-suspended pauses CSS loops while the document is hidden.
- * - Visible [data-motion-loop] containers receive .is-motion-visible.
- * - .reel-viewport measures .reel-track overflow into --reel-travel (negative px).
- *   Reel links stay native keyboard-scrollable; leaving the reel resets scroll.
- * - [data-reveal] animates once; optional data-reveal-delay is milliseconds (0–240).
- *   Its normal CSS must remain visible: JavaScript never hides pending content.
- * - .movie-card .poster uses --tilt-x / --tilt-y (degrees, fallback 0deg).
- * - The membership form only gets visual feedback here; app.js owns price text.
- */
-(() => {
-  'use strict';
+import { computed, ref, watchEffect } from 'vue'
 
-  const media = (query) => typeof window.matchMedia === 'function'
-    ? window.matchMedia(query) : {matches: false};
+export function mountMotion() {
+  const media = (query: string) => window.matchMedia(query);
+  const abort = new AbortController();
+  const {signal} = abort;
   const reducedMotion = media('(prefers-reduced-motion: reduce)');
   const finePointer = media('(hover: hover) and (pointer: fine)');
-  const toggles = [...document.querySelectorAll('[data-motion-toggle]')];
-  const revealTargets = [...document.querySelectorAll('[data-reveal]')];
+  const toggles = [...document.querySelectorAll<HTMLButtonElement>('[data-motion-toggle]')];
+  const revealTargets = [...document.querySelectorAll<HTMLElement>('[data-reveal]')];
   const loops = [...document.querySelectorAll('[data-motion-loop]')];
-  const reels = [...document.querySelectorAll('.reel-viewport')]
-    .map((viewport) => ({viewport, track: viewport.querySelector('.reel-track'), travel: null}))
-    .filter((reel) => reel.track);
-  const posters = [...document.querySelectorAll('.movie-card .poster')];
+  const reels = [...document.querySelectorAll<HTMLElement>('.reel-viewport')].flatMap(viewport => {
+    const track = viewport.querySelector<HTMLElement>('.reel-track');
+    return track ? [{viewport, track, travel: ''}] : [];
+  });
   const seen = new WeakSet();
-  const animations = new Map();
+  const animations = new Map<Element, Animation>();
   const storageKey = 'lumiere-motion-paused';
   // null follows the device; true/false is an explicit choice for this session.
-  let motionPreference = null;
-  let paused = false;
-  let revealObserver;
-  let frame = null;
-  let pendingPointer = null;
+  const motionPreference = ref<boolean | null>(null);
+  const paused = computed(() => motionPreference.value ?? reduced.value);
+  const reduced = ref(reducedMotion.matches);
+  const pageHidden = ref(document.hidden);
+  let revealObserver: IntersectionObserver | undefined;
+  let loopObserver: IntersectionObserver | undefined;
+  let resizeObserver: ResizeObserver | undefined;
+  let frame: number | null = null;
+  let pendingPointer: {poster: HTMLElement; x: number; y: number} | null = null;
 
   try {
     const savedPreference = window.sessionStorage.getItem(storageKey);
-    motionPreference = savedPreference === '1' ? true : savedPreference === '0' ? false : null;
+    motionPreference.value = savedPreference === '1' ? true : savedPreference === '0' ? false : null;
   } catch (_) {
     // Motion remains usable when storage is unavailable or blocked.
   }
 
-  function cancelAnimation(element) {
+  function cancelAnimation(element: Element) {
     const animation = animations.get(element);
     if (animation) {
       animation.cancel();
@@ -51,8 +42,8 @@
     }
   }
 
-  function animate(element, keyframes, options = {}) {
-    if (!element || paused || document.hidden || typeof element.animate !== 'function') return;
+  function animate(element: Element | null, keyframes: Keyframe[], options: KeyframeAnimationOptions = {}) {
+    if (!element || paused.value || document.hidden || typeof element.animate !== 'function') return;
     cancelAnimation(element);
     const animation = element.animate(keyframes, {
       duration: 480, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'none', ...options,
@@ -69,29 +60,28 @@
     if (frame !== null) window.cancelAnimationFrame(frame);
     frame = null;
     pendingPointer = null;
-    for (const poster of posters) {
+    for (const poster of document.querySelectorAll<HTMLElement>('.movie-card .poster')) {
       poster.style.removeProperty('--tilt-x');
       poster.style.removeProperty('--tilt-y');
     }
   }
 
   function syncMotion() {
-    paused = motionPreference === null ? reducedMotion.matches : motionPreference;
-    document.body.classList.toggle('motion-paused', paused);
-    document.body.classList.toggle('motion-enabled', !paused);
-    document.body.classList.toggle('motion-suspended', document.hidden);
+    document.body.classList.toggle('motion-paused', paused.value);
+    document.body.classList.toggle('motion-enabled', !paused.value);
+    document.body.classList.toggle('motion-suspended', pageHidden.value);
     for (const toggle of toggles) {
-      const label = paused ? 'Bật hiệu ứng' : 'Tắt hiệu ứng';
-      const description = motionPreference === null && reducedMotion.matches
+      const label = paused.value ? 'Bật hiệu ứng' : 'Tắt hiệu ứng';
+      const description = motionPreference.value === null && reduced.value
         ? 'Thiết bị đang giảm chuyển động. Bật hiệu ứng trên trang này.' : label;
       const text = toggle.querySelector('[data-motion-label]');
       if (text) text.textContent = label;
-      toggle.setAttribute('aria-pressed', String(paused));
+      toggle.setAttribute('aria-pressed', String(paused.value));
       toggle.setAttribute('aria-label', label);
       toggle.title = description;
       toggle.disabled = false;
     }
-    if (paused || document.hidden) {
+    if (paused.value || pageHidden.value) {
       for (const element of [...animations.keys()]) cancelAnimation(element);
       resetTilt();
     } else {
@@ -101,7 +91,7 @@
         if (!viewport.contains(document.activeElement)) viewport.scrollLeft = 0;
       }
     }
-    if (paused) {
+    if (paused.value) {
       revealObserver?.disconnect();
       // A pause must reveal everything immediately, including pending entrances.
       for (const element of revealTargets) seen.add(element);
@@ -110,25 +100,20 @@
 
   for (const toggle of toggles) {
     toggle.addEventListener('click', () => {
-      motionPreference = !paused;
+      motionPreference.value = !paused.value;
       try {
-        window.sessionStorage.setItem(storageKey, motionPreference ? '1' : '0');
+        window.sessionStorage.setItem(storageKey, motionPreference.value ? '1' : '0');
       } catch (_) { /* This preference is optional. */ }
-      syncMotion();
-    });
+    }, {signal});
   }
 
-  const onMediaChange = (query, callback) => {
-    if (typeof query.addEventListener === 'function') query.addEventListener('change', callback);
-    else if (typeof query.addListener === 'function') query.addListener(callback);
-  };
-  onMediaChange(reducedMotion, syncMotion);
-  onMediaChange(finePointer, resetTilt);
-  document.addEventListener('visibilitychange', syncMotion);
-  syncMotion();
+  reducedMotion.addEventListener('change', event => {reduced.value = event.matches;}, {signal});
+  finePointer.addEventListener('change', resetTilt, {signal});
+  document.addEventListener('visibilitychange', () => {pageHidden.value = document.hidden;}, {signal});
+  const stop = watchEffect(syncMotion, {flush: 'sync'});
 
   if (typeof window.IntersectionObserver === 'function') {
-    const loopObserver = new IntersectionObserver((entries) => {
+    loopObserver = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         entry.target.classList.toggle('is-motion-visible', entry.isIntersecting);
       }
@@ -138,9 +123,10 @@
     revealObserver = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         if (!entry.isIntersecting || seen.has(entry.target)) continue;
+        if (!(entry.target instanceof HTMLElement)) continue;
         const element = entry.target;
         seen.add(element);
-        revealObserver.unobserve(element);
+        revealObserver?.unobserve(element);
         if (element.contains(document.activeElement)) continue;
         const delay = Math.min(240, Math.max(0, Number(element.dataset.revealDelay) || 0));
         animate(element, [
@@ -156,7 +142,7 @@
     for (const loop of loops) loop.classList.add('is-motion-visible');
   }
 
-  function measureReel(reel) {
+  function measureReel(reel: (typeof reels)[number]) {
     const travel = `${-Math.max(0, reel.track.scrollWidth - reel.viewport.clientWidth)}px`;
     if (travel === reel.travel) return;
     reel.travel = travel;
@@ -165,7 +151,7 @@
 
   for (const reel of reels) {
     measureReel(reel);
-    let focusTimer;
+    let focusTimer: number | undefined;
     reel.viewport.addEventListener('focusout', () => {
       window.clearTimeout(focusTimer);
       focusTimer = window.setTimeout(() => {
@@ -174,8 +160,8 @@
     });
   }
   if (reels.length && typeof window.ResizeObserver === 'function') {
-    const reelByElement = new Map();
-    const resizeObserver = new ResizeObserver((entries) => {
+    const reelByElement = new Map<Element, (typeof reels)[number]>();
+    resizeObserver = new ResizeObserver((entries) => {
       const changedReels = new Set(entries.map((entry) => reelByElement.get(entry.target)));
       for (const reel of changedReels) if (reel) measureReel(reel);
     });
@@ -186,7 +172,7 @@
       }
     }
   } else if (reels.length) {
-    window.addEventListener('resize', () => reels.forEach(measureReel), {passive: true});
+    window.addEventListener('resize', () => reels.forEach(measureReel), {passive: true, signal});
   }
 
   document.addEventListener('focusin', (event) => {
@@ -199,30 +185,38 @@
     }
   });
 
-  if (typeof window.requestAnimationFrame === 'function') {
-    for (const poster of posters) {
+  const boundPosters = new WeakSet<HTMLElement>();
+  function bindPosters(root: ParentNode) {
+    for (const poster of root.querySelectorAll<HTMLElement>('.movie-card .poster')) {
+      if (boundPosters.has(poster)) continue;
+      boundPosters.add(poster);
       poster.addEventListener('pointermove', (event) => {
-        if (paused || document.hidden || !finePointer.matches || event.pointerType !== 'mouse') return;
+        if (paused.value || document.hidden || !finePointer.matches || event.pointerType !== 'mouse') return;
         pendingPointer = {poster, x: event.clientX, y: event.clientY};
         if (frame !== null) return;
         frame = window.requestAnimationFrame(() => {
           frame = null;
           const pointer = pendingPointer;
           pendingPointer = null;
-          if (!pointer || paused || document.hidden) return;
+          if (!pointer || paused.value || document.hidden) return;
           const rect = pointer.poster.getBoundingClientRect();
           if (!rect.width || !rect.height) return;
-          const clamp = (value) => Math.max(-1, Math.min(1, value));
+          const clamp = (value: number) => Math.max(-1, Math.min(1, value));
           const x = clamp(((pointer.x - rect.left) / rect.width - 0.5) * 2);
           const y = clamp(((pointer.y - rect.top) / rect.height - 0.5) * 2);
           pointer.poster.style.setProperty('--tilt-x', `${(-y * 4).toFixed(2)}deg`);
           pointer.poster.style.setProperty('--tilt-y', `${(x * 4).toFixed(2)}deg`);
         });
-      }, {passive: true});
-      poster.addEventListener('pointerleave', resetTilt);
-      poster.addEventListener('pointercancel', resetTilt);
+      }, {passive: true, signal});
+      poster.addEventListener('pointerleave', resetTilt, {signal});
+      poster.addEventListener('pointercancel', resetTilt, {signal});
     }
   }
+
+  bindPosters(document);
+  document.addEventListener('lumiere:catalog-render', event => {
+    if (event.target instanceof HTMLElement) bindPosters(event.target);
+  }, {signal});
 
   document.getElementById('membership-form')?.addEventListener('change', (event) => {
     const input = event.target;
@@ -234,5 +228,14 @@
     animate(input.closest('.plan-option'), [
       {transform: 'scale(.985)'}, {transform: 'scale(1)'},
     ], {duration: 280});
-  });
-})();
+  }, {signal});
+  return () => {
+    stop();
+    abort.abort();
+    loopObserver?.disconnect();
+    revealObserver?.disconnect();
+    resizeObserver?.disconnect();
+    for (const element of animations.keys()) cancelAnimation(element);
+    resetTilt();
+  };
+}

@@ -4,24 +4,17 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b0d0e">
-  <script src="{% static 'theme.js' %}?v=vue-shell-1"></script>
+  {% frontend_assets 'theme' %}
   <meta name="description" content="Khám phá phim, lưu những tựa phim yêu thích và tận hưởng những buổi xem chung cùng Lumière.">
   <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
   <title>{% block title %}Lumière · Phim cho buổi tối của bạn{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'streaming.css' %}?v=vue-home-1">
-  <script src="{% static 'app.js' %}?v=vue-public-1" defer></script>
-  <script src="{% static 'motion.js' %}?v=lumiere-dropdown-1" defer></script>
-  <script src="{% static 'streaming.js' %}?v=vue-home-1" defer></script>
   <link rel="stylesheet" href="{% static 'quickview.css' %}?v=trailers-2">
-  <script src="{% static 'quickview.js' %}?v=vue-shell-1" defer></script>
   <link rel="stylesheet" href="{% static 'imdb.css' %}?v=imdb-1">
   <link rel="stylesheet" href="{% static 'player-captions.css' %}?v=watch-next-1">
   <link rel="stylesheet" href="{% static 'trailers.css' %}?v=trailers-2">
-  <script src="{% static 'trailers.js' %}?v=vue-viewing-1" defer></script>
   <link rel="stylesheet" href="{% static 'discovery.css' %}?v=genre-dropdown-1">
-  <script src="{% static 'navigation.js' %}?v=vue-shell-1" defer></script>
   <link rel="stylesheet" href="{% static 'avatar.css' %}?v=profile-avatar-2">
-  <script src="{% static 'avatar.js' %}?v=vue-public-1" defer></script>
   {% frontend_assets 'shell' %}
   {% block head %}{% endblock %}
   <link rel="stylesheet" href="{% static 'theme.css' %}?v=light-dark-2">

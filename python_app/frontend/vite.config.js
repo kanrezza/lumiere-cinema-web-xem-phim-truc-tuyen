@@ -12,6 +12,7 @@ export default defineConfig({
         results: 'src/catalog/main.ts',
         home: 'src/home/main.ts',
         shell: 'src/shell/main.ts',
+        theme: 'src/shell/bootstrap.ts',
         public: 'src/public/main.ts',
         viewing: 'src/viewing/main.ts',
         studio: 'src/studio/main.ts',

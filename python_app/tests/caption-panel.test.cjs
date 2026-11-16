@@ -1,9 +1,7 @@
 'use strict';
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
+const loadFrontend = require('./load-frontend.cjs');
 
 class Element {
   constructor(tag = 'div') {this.tag = tag; this.children = []; this.listeners = new Map(); this.dataset = {}; this.attributes = {}; this.value = ''; this.hidden = false; this.disabled = false; this.textContent = ''; if (tag === 'track') this.track = {mode: 'disabled'};}
@@ -48,14 +46,15 @@ function fixture({empty = false, responses = []} = {}) {
   video.querySelectorAll = selector => video.children.filter(element => element.tag === 'track' && (selector.includes('data-translated') ? element.dataset.translated === 'true' : Object.hasOwn(element.dataset, 'subtitle')));
   const doc = new Element(), win = new Element();
   doc.getElementById = id => id === 'player' ? video : null; doc.createElement = tag => new Element(tag);
+  doc.querySelector = selector => selector === '[name=csrfmiddlewaretoken]' ? {value: 'test-csrf'} : null;
   win.location = {origin: 'http://127.0.0.1:8000', href: 'http://127.0.0.1:8000/watch/1/'}; win.csrfToken = () => 'test-csrf';
   let timerId = 0; const timers = new Map(), requests = [];
-  const context = {document: doc, window: win, URL, URLSearchParams, AbortController,
+  const context = {document: doc, window: win, URL, URLSearchParams, AbortController, Node: Element,
     CustomEvent: class {constructor(type, options) {this.type = type; this.detail = options.detail;}},
     setTimeout(callback, delay) {timers.set(++timerId, {callback, delay}); return timerId;}, clearTimeout(id) {timers.delete(id);},
     async fetch(url, options) {requests.push({url, options}); const next = responses.shift(); if (!next) throw new Error('Missing test response'); if (next.then) return next; return {ok: next.ok !== false, async json() {return next.payload || next;}};},
   };
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../static/caption-panel.js'), 'utf8'), context);
+  loadFrontend('viewing/captions.ts', context).initCaptions(video);
   return {video, panel, toggle, close, selection, source, target, translateForm, translateButton, translateStatus, generateForm, speechLanguage, generateButton, generateStatus, emptyNode, doc, win, timers, requests,
     async poll() {const item = [...timers.entries()].find(([, value]) => value.delay === 1500); assert.ok(item, 'poll was scheduled'); timers.delete(item[0]); await item[1].callback(); await tick();}};
 }

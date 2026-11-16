@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { formatTime, seekPosition } from './seek'
 
 type CaptionChange = CustomEvent<{ selected?: string | number; remember?: boolean }>
 type NativeVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void }
@@ -40,11 +41,6 @@ function subtitleTracks() {
   return [...video.querySelectorAll<HTMLTrackElement>('track[data-subtitle]')]
 }
 
-function formatTime(seconds: number) {
-  const safe = Math.max(0, Math.floor(seconds + 0.001))
-  return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`
-}
-
 function tell(message: string) {
   if (status) status.textContent = message
 }
@@ -65,21 +61,10 @@ function updateVolume() {
   volume.value = video.muted ? 0 : video.volume
 }
 
-function seekTo(target: number) {
-  const limit = video.duration
-  if (!canSeek || video.readyState < 1 || !Number.isFinite(limit) || limit <= 0 || !Number.isFinite(target)) return false
-  target = Math.max(0, Math.min(limit, target))
-  // A seek across discontinuous HLS windows must land on a seekable boundary.
-  const windows: Array<[number, number]> = []
-  for (let index = 0; index < video.seekable.length; index += 1) {
-    const start = Math.max(0, video.seekable.start(index))
-    const end = Math.min(limit, video.seekable.end(index))
-    if (Number.isFinite(start) && Number.isFinite(end) && start <= end) windows.push([start, end])
-  }
-  if (windows.length && !windows.some(([start, end]) => target >= start && target <= end)) {
-    target = windows.flat().reduce((nearest, boundary) =>
-      Math.abs(boundary - target) < Math.abs(nearest - target) ? boundary : nearest)
-  }
+function seekTo(requested: number) {
+  if (!canSeek || video.readyState < 1) return false
+  const target = seekPosition(requested, video.duration, video.seekable)
+  if (target === undefined) return false
   const previous = pendingSeek
   try {
     const unchanged = !video.seeking && Math.abs(video.currentTime - target) < 0.001

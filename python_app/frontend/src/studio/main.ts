@@ -3,6 +3,7 @@ import StudioNavigation from './StudioNavigation.vue'
 import StudioPassword from './StudioPassword.vue'
 import StudioSearch from './StudioSearch.vue'
 import RecentVideoFilter from './RecentVideoFilter.vue'
+import { mountTheme } from '../shell/theme'
 
 function mountNavigation() {
   const mount = document.querySelector('[data-studio-vue-menu]')
@@ -81,6 +82,7 @@ function mountPasswordToggle() {
 }
 
 mountNavigation()
+mountTheme()
 mountSearch()
 mountVideoFilter()
 mountPasswordToggle()

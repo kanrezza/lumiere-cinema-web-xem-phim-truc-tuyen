@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, shallowRef } from 'vue'
+import type { RoomMember } from './room-driver'
 
-interface RoomMember {
-  user_id: number
-  user__username: string
+type VoiceMember = { id: string; mode: 'muted' | 'off' | 'speaking' | 'listening'; disabled: boolean }
+const voiceLabels = {
+  muted: 'Chủ phòng đã tắt mic', off: 'Chưa vào thoại',
+  speaking: 'Mic đang bật', listening: 'Đang nghe',
 }
 
 const { room, count } = defineProps<{ room: HTMLElement; count: HTMLElement | null }>()
@@ -11,6 +13,7 @@ const currentUser = room.dataset.user ?? ''
 const host = room.dataset.hostUser ?? ''
 const isHost = room.dataset.host === 'true'
 const roster = shallowRef<RoomMember[]>([])
+const voiceMembers = shallowRef(new Map<string, VoiceMember>())
 const listeners = new AbortController()
 
 function initial(name: string) {
@@ -36,7 +39,19 @@ function kick(member: RoomMember, event: MouseEvent) {
   }))
 }
 
-onMounted(() => room.addEventListener('lumiere:roster-update', applyRoster, { signal: listeners.signal }))
+function voiceState(id: number) {
+  return voiceMembers.value.get(String(id))
+}
+
+function applyVoice(event: Event) {
+  const states = (event as CustomEvent<VoiceMember[]>).detail
+  voiceMembers.value = new Map(states.map(state => [state.id, state]))
+}
+
+onMounted(() => {
+  room.addEventListener('lumiere:roster-update', applyRoster, { signal: listeners.signal })
+  room.addEventListener('lumiere:voice-members', applyVoice, { signal: listeners.signal })
+})
 onUnmounted(() => listeners.abort())
 </script>
 
@@ -48,8 +63,16 @@ onUnmounted(() => listeners.abort())
       <strong class="room-member-name">{{ member.user__username }}</strong>
       <span class="room-member-role">{{ roleFor(member.user_id) }}</span>
     </span>
-    <span class="room-member-voice-state" data-member-voice-state></span>
+    <span class="room-member-voice-state" data-member-voice-state :data-state="voiceState(member.user_id)?.mode ?? 'off'">
+      {{ voiceLabels[voiceState(member.user_id)?.mode ?? 'off'] }}
+    </span>
     <div class="room-member-actions" data-member-actions>
+      <button v-if="isHost && String(member.user_id) !== currentUser" type="button" class="room-mic-action"
+              :data-voice-mute="member.user_id" :data-muted="String(voiceState(member.user_id)?.mode === 'muted')"
+              :disabled="voiceState(member.user_id)?.disabled ?? true"
+              :aria-label="`${voiceState(member.user_id)?.mode === 'muted' ? 'Cho phép bật mic' : 'Tắt mic'} cho ${member.user__username}`">
+        {{ voiceState(member.user_id)?.mode === 'muted' ? 'Cho phép bật mic' : 'Tắt mic' }}
+      </button>
       <button v-if="isHost && String(member.user_id) !== currentUser"
               type="button" class="room-member-action room-member-kick" title="Loại khỏi phòng"
               :aria-label="`Loại ${member.user__username} khỏi phòng`" @click="kick(member, $event)">×</button>

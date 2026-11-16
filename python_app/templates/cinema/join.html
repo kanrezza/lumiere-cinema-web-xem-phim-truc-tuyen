@@ -32,4 +32,4 @@
   </article>
 </section>
 {% endblock %}
-{% block scripts %}{% frontend_assets 'viewing' %}{% if join_status == 'pending' and room.requires_approval %}<script src="{% static 'room-admission.js' %}?v=vue-viewing-1" defer></script>{% endif %}{% endblock %}
+{% block scripts %}{% frontend_assets 'viewing' %}{% endblock %}

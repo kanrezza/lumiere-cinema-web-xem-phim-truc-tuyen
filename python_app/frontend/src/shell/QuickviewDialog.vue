@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { imdbRating } from './imdb'
 
 const dialog = ref<HTMLDialogElement>()
 const movie = ref<DOMStringMap>()
@@ -12,16 +13,7 @@ const meta = computed(() => {
   if (!data) return ''
   return [data.movieYear, data.movieKind, data.movieDuration && `${data.movieDuration} phút`].filter(Boolean).join(' · ')
 })
-const imdb = computed(() => {
-  const id = movie.value?.movieImdbId ?? ''
-  const rating = movie.value?.movieImdbRating ?? ''
-  const score = Number(rating)
-  if (!/^tt[0-9]{7,10}$/.test(id) || !/^[0-9]+(?:\.[0-9])?$/.test(rating) || score < 1 || score > 10) return
-  return {
-    url: `https://www.imdb.com/title/${id}/`,
-    score: score.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
-  }
-})
+const imdb = computed(() => imdbRating(movie.value?.movieImdbId, movie.value?.movieImdbRating))
 
 function localUrl(value: string | undefined) {
   if (!value) return

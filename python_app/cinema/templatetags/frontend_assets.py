@@ -10,7 +10,7 @@ from django.utils.html import format_html
 register = template.Library()
 ENTRIES = {
     'results': 'src/catalog/main.ts', 'home': 'src/home/main.ts',
-    'shell': 'src/shell/main.ts', 'public': 'src/public/main.ts',
+    'shell': 'src/shell/main.ts', 'theme': 'src/shell/bootstrap.ts', 'public': 'src/public/main.ts',
     'viewing': 'src/viewing/main.ts', 'studio': 'src/studio/main.ts',
 }
 
@@ -31,4 +31,6 @@ def frontend_assets(section):
         return ''
     if not (directory / entry).is_file():
         return ''
+    if section == 'theme':
+        return format_html('<script src="{}"></script>', static(f'{bundle}/{entry}'))
     return format_html('<script type="module" src="{}"></script>', static(f'{bundle}/{entry}'))

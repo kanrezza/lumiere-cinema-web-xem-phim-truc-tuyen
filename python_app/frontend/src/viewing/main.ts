@@ -7,6 +7,11 @@ import RoomQueue from './RoomQueue.vue'
 import RoomRoster from './RoomRoster.vue'
 import TrailerPlayer from './TrailerPlayer.vue'
 import { mountVoiceControls } from './voice-controls'
+import { initVoice } from './voice-driver'
+import { initRoom } from './room-driver'
+import { initAdmission } from './admission-driver'
+import { initPlayback } from './playback'
+import { initCaptions } from './captions'
 
 const video = document.getElementById('player')
 if (video instanceof HTMLVideoElement) {
@@ -19,6 +24,7 @@ if (video instanceof HTMLVideoElement) {
     if (root.querySelector('.player-controls')) {
       fallback.forEach(node => node?.remove())
       wrap.dataset.vuePlayer = 'true'
+      initCaptions(video)
     } else app.unmount()
   }
 
@@ -44,6 +50,7 @@ if (video instanceof HTMLVideoElement) {
       preference.remove()
     }
   }
+  initPlayback(video)
 }
 
 const room = document.getElementById('room')
@@ -64,6 +71,9 @@ if (room) {
     createApp(RoomRoster, { room, count: room.querySelector('[data-room-member-count]') }).mount(roster)
     room.dataset.vueRoom = 'true'
   }
+  if (video instanceof HTMLVideoElement) initRoom(room, video)
+  initAdmission(room)
+  initVoice(room)
 }
 
 const lobby = document.querySelector<HTMLElement>('[data-room-lobby]')

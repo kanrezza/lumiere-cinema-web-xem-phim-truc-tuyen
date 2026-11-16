@@ -83,12 +83,7 @@
   </div>
 </section>
 {% endblock %}
-{% block scripts %}{% frontend_assets 'viewing' %}
+{% block scripts %}
 <script src="{% static 'vendor/hls.min.js' %}" defer></script>
-<script src="{% static 'player.js' %}?v=watch-next-1" defer></script>
-<script src="{% static 'player-controls.js' %}?v=vue-viewing-1" defer></script>
-<script src="{% static 'caption-panel.js' %}?v=vue-viewing-1" defer></script>
-<script src="{% static 'room.js' %}?v=vue-viewing-1" defer></script>
-<script src="{% static 'room-voice.js' %}?v=vue-voice-1" defer></script>
-{% if is_host %}<script src="{% static 'room-admission.js' %}?v=vue-viewing-1" defer></script>{% endif %}
+{% frontend_assets 'viewing' %}
 {% endblock %}

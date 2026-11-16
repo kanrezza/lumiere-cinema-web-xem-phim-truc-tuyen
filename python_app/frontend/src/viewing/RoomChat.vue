@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, shallowRef } from 'vue'
-
-interface ChatMessage {
-  id: number
-  user_id: number
-  user: string
-  content: string
-}
+import type { ChatMessage } from './room-driver'
 
 const { room, log, empty } = defineProps<{
   room: HTMLElement

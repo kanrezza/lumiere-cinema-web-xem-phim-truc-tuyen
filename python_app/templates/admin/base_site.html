@@ -3,14 +3,13 @@
 {% block dark-mode-vars %}
   <meta name="theme-color" content="#0b0d0e">
   <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
-  <script src="{% static 'theme.js' %}?v=light-dark-1"></script>
+  {% frontend_assets 'theme' %}
 {% endblock %}
 {% block responsive %}
   {{ block.super }}
   <link rel="stylesheet" href="{% static 'studio.css' %}?v=studio-vue-1">
   <link rel="stylesheet" href="{% static 'studio-dashboard.css' %}?v=studio-vue-1">
   {% frontend_assets 'studio' %}
-  <script src="{% static 'studio.js' %}?v=studio-vue-1" defer></script>
 {% endblock %}
 {% block bodyclass %}{{ block.super }} studio-shell{% endblock %}
 {% block header %}

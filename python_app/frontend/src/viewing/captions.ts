@@ -1,38 +1,68 @@
-'use strict';
-(function init(event) {
-  if (!event && (document.readyState === 'loading' || document.readyState === 'interactive')) {
-    document.addEventListener('DOMContentLoaded', init, {once: true});
-    return;
-  }
-  const video = document.getElementById('player');
-  if (!video) return;
-  const wrap = video.closest('.player-wrap');
-  const panel = wrap?.querySelector('[data-caption-panel]');
-  const toggle = wrap?.querySelector('[data-caption-toggle]');
+import { csrfToken, formParams } from '../shared/http'
+import type { FormFields } from '../shared/http'
+
+interface JobState {
+  button: HTMLButtonElement
+  status: HTMLElement
+  busy: boolean
+  generation: number
+  controller: AbortController | null
+  timer: ReturnType<typeof setTimeout> | null
+}
+
+interface TrackDetails {
+  url: string
+  language: string
+  label: string
+  id?: number
+  translateUrl?: string
+  translated?: boolean
+}
+
+interface CaptionJob {
+  status: string
+  error?: string
+  status_url?: string
+  target: string
+  track_url?: string
+  label: string
+  subtitle?: {id: number; url: string; language: string; label: string; translate_url: string}
+}
+
+export function initCaptions(video: HTMLVideoElement) {
+  const wrap = video.closest<HTMLElement>('.player-wrap');
+  const panel = wrap?.querySelector<HTMLElement>('[data-caption-panel]');
+  const toggle = wrap?.querySelector<HTMLButtonElement>('[data-caption-toggle]');
   if (!panel || !toggle) return;
-  const closeButton = panel.querySelector('[data-caption-close]');
-  const selection = panel.querySelector('.player-subtitles');
-  const source = panel.querySelector('[data-caption-source]');
-  const target = panel.querySelector('[data-caption-target]');
-  const translateForm = panel.querySelector('[data-caption-form]');
-  const translateButton = panel.querySelector('[data-caption-submit]');
-  const translateStatus = panel.querySelector('[data-caption-status]');
-  const generateForm = panel.querySelector('[data-caption-generate]');
-  const speechLanguage = panel.querySelector('[data-caption-speech-language]');
-  const generateButton = panel.querySelector('[data-caption-generate-submit]');
-  const generateStatus = panel.querySelector('[data-caption-generate-status]');
+  const closeButton = panel.querySelector<HTMLButtonElement>('[data-caption-close]');
+  const selection = panel.querySelector<HTMLSelectElement>('.player-subtitles');
+  const source = panel.querySelector<HTMLSelectElement>('[data-caption-source]');
+  const target = panel.querySelector<HTMLSelectElement>('[data-caption-target]');
+  const translateForm = panel.querySelector<HTMLFormElement>('[data-caption-form]');
+  const translateButton = panel.querySelector<HTMLButtonElement>('[data-caption-submit]');
+  const translateStatus = panel.querySelector<HTMLElement>('[data-caption-status]');
+  const generateForm = panel.querySelector<HTMLFormElement>('[data-caption-generate]');
+  const speechLanguage = panel.querySelector<HTMLSelectElement>('[data-caption-speech-language]');
+  const generateButton = panel.querySelector<HTMLButtonElement>('[data-caption-generate-submit]');
+  const generateStatus = panel.querySelector<HTMLElement>('[data-caption-generate-status]');
+  if (!closeButton || !selection || !source || !target || !translateForm || !translateButton || !translateStatus
+      || !generateForm || !speechLanguage || !generateButton || !generateStatus) return;
+  const scope = panel.dataset.captionScope;
+  const generateUrl = generateForm.getAttribute('action');
+  if (!scope || !generateUrl) return;
   const MAX_POLLS = 120;
   const POLL_INTERVAL = 1500;
-  const states = [];
+  const states: JobState[] = [];
   let stopped = false;
 
-  const setStatus = (node, text, error = false) => {
+  const setStatus = (node: HTMLElement, text: string, error = false) => {
     node.textContent = text;
     node.dataset.error = error ? 'true' : 'false';
   };
-  const safeUrl = value => {
+  const safeUrl = (value: string | undefined) => {
+    if (!value) throw new Error('Phản hồi thiếu địa chỉ phụ đề.');
     const url = new URL(value, window.location.href);
-    if (url.origin !== window.location.origin || !url.pathname.startsWith(panel.dataset.captionScope)) throw new Error('Địa chỉ phụ đề không hợp lệ. Hãy tải lại trang.');
+    if (url.origin !== window.location.origin || !url.pathname.startsWith(scope)) throw new Error('Địa chỉ phụ đề không hợp lệ. Hãy tải lại trang.');
     return url.href;
   };
   const showPanel = () => {panel.hidden = false; toggle.setAttribute('aria-expanded', 'true'); closeButton.focus();};
@@ -40,11 +70,11 @@
   toggle.addEventListener('click', () => {if (panel.hidden) showPanel(); else closePanel();});
   closeButton.addEventListener('click', () => closePanel());
   document.addEventListener('keydown', event => {if (!panel.hidden && event.key === 'Escape') {event.preventDefault(); closePanel();}});
-  document.addEventListener('click', event => {if (!panel.hidden && !panel.contains(event.target) && !toggle.contains(event.target)) closePanel(false);});
-  document.addEventListener('focusin', event => {if (!panel.hidden && !panel.contains(event.target) && !toggle.contains(event.target)) closePanel(false);});
+  document.addEventListener('click', event => {if (!panel.hidden && event.target instanceof Node && !panel.contains(event.target) && !toggle.contains(event.target)) closePanel(false);});
+  document.addEventListener('focusin', event => {if (!panel.hidden && event.target instanceof Node && !panel.contains(event.target) && !toggle.contains(event.target)) closePanel(false);});
 
-  const refreshSelection = (selected, remember = false) => {
-    selection.disabled = video.querySelectorAll('track[data-subtitle]').length === 0;
+  const refreshSelection = (selected: string | number, remember = false) => {
+    selection.disabled = video.querySelectorAll<HTMLTrackElement>('track[data-subtitle]').length === 0;
     video.dispatchEvent(new CustomEvent('lumiere:captions-changed', {detail: {selected: String(selected), remember}}));
   };
   const sourceOption = () => Array.from(source.options).find(option => option.value === source.value);
@@ -56,26 +86,26 @@
   chooseDifferentTarget();
 
   const removeTranslated = () => {
-    const translated = Array.from(video.querySelectorAll('track[data-translated]'));
+    const translated = Array.from(video.querySelectorAll<HTMLTrackElement>('track[data-translated]'));
     if (!translated.length) return;
-    const current = Array.from(video.querySelectorAll('track[data-subtitle]'))[Number(selection.value)];
+    const current = Array.from(video.querySelectorAll<HTMLTrackElement>('track[data-subtitle]'))[Number(selection.value)];
     for (const element of translated) {element.track.mode = 'disabled'; element.remove();}
     const off = document.createElement('option'); off.value = 'off'; off.textContent = 'Tắt phụ đề';
     selection.replaceChildren(off);
-    const remaining = Array.from(video.querySelectorAll('track[data-subtitle]'));
+    const remaining = Array.from(video.querySelectorAll<HTMLTrackElement>('track[data-subtitle]'));
     remaining.forEach((element, index) => {const option = document.createElement('option'); option.value = String(index); option.textContent = element.label; selection.append(option);});
     const selected = remaining.indexOf(current);
     selection.value = selected < 0 ? 'off' : String(selected);
     refreshSelection(selection.value);
   };
-  const addTrack = ({url, language, label, id, translateUrl, translated = false}) => {
+  const addTrack = ({url, language, label, id, translateUrl, translated = false}: TrackDetails) => {
     const trackUrl = safeUrl(url);
     const translationUrl = translateUrl ? safeUrl(translateUrl) : '';
     if (typeof language !== 'string' || !/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3}$/.test(language)) throw new Error('Ngôn ngữ phụ đề trả về không hợp lệ.');
     if (typeof label !== 'string' || !label.trim()) throw new Error('Tên phụ đề trả về không hợp lệ.');
     if (id && source.value !== String(id)) invalidateTranslation();
     if (translated) removeTranslated();
-    let element = id ? Array.from(video.querySelectorAll('track[data-subtitle]')).find(track => track.dataset.subtitleId === String(id)) : null;
+    let element = id ? Array.from(video.querySelectorAll<HTMLTrackElement>('track[data-subtitle]')).find(track => track.dataset.subtitleId === String(id)) : null;
     if (!element) {
       element = document.createElement('track');
       element.dataset.subtitle = '';
@@ -84,12 +114,12 @@
       element.kind = 'subtitles'; element.srclang = language; element.label = label.slice(0, 120); element.src = trackUrl;
       video.append(element);
       const option = document.createElement('option');
-      option.value = String(Array.from(video.querySelectorAll('track[data-subtitle]')).indexOf(element));
+      option.value = String(Array.from(video.querySelectorAll<HTMLTrackElement>('track[data-subtitle]')).indexOf(element));
       option.textContent = label.slice(0, 120);
       if (translated) option.dataset.translated = 'true';
       selection.append(option);
     }
-    const index = Array.from(video.querySelectorAll('track[data-subtitle]')).indexOf(element);
+    const index = Array.from(video.querySelectorAll<HTMLTrackElement>('track[data-subtitle]')).indexOf(element);
     if (id && translateUrl) {
       let option = Array.from(source.options).find(item => item.value === String(id));
       if (!option) {
@@ -97,48 +127,49 @@
         option.dataset.language = language; option.dataset.translateUrl = translationUrl; source.append(option);
       }
       source.disabled = false; source.value = String(id);
-      const empty = panel.querySelector('[data-caption-empty]'); if (empty) empty.hidden = true;
+      const empty = panel.querySelector<HTMLElement>('[data-caption-empty]'); if (empty) empty.hidden = true;
       chooseDifferentTarget(); updateTranslateButton();
     }
     selection.disabled = false; selection.value = String(index); refreshSelection(index, true);
   };
-  const stateFor = (button, status) => {const state = {button, status, busy: false, generation: 0, controller: null, timer: null}; states.push(state); return state;};
-  const cancel = state => {
+  const stateFor = (button: HTMLButtonElement, status: HTMLElement) => {const state: JobState = {button, status, busy: false, generation: 0, controller: null, timer: null}; states.push(state); return state;};
+  const cancel = (state: JobState) => {
     state.generation++; state.busy = false;
     if (state.timer !== null) clearTimeout(state.timer);
     state.timer = null; state.controller?.abort(); state.controller = null;
     state.button.disabled = false;
   };
-  const request = async (url, state, data) => {
+  const request = async (url: string, state: JobState, data?: FormFields): Promise<CaptionJob> => {
     state.controller = new AbortController();
     const controller = state.controller;
     const timeout = setTimeout(() => controller.abort(), 20000);
     try {
       const response = await fetch(safeUrl(url), {
         method: data ? 'POST' : 'GET', credentials: 'same-origin', redirect: 'error', signal: controller.signal,
-        headers: data ? {'X-CSRFToken': window.csrfToken?.() || '', 'Content-Type': 'application/x-www-form-urlencoded'} : {},
-        body: data ? new URLSearchParams(data) : undefined,
+        headers: data ? {'X-CSRFToken': csrfToken(), 'Content-Type': 'application/x-www-form-urlencoded'} : {},
+        body: data ? formParams(data) : undefined,
       });
-      let payload;
+      let payload: CaptionJob;
       try {payload = await response.json();} catch (_) {throw new Error('Không đọc được phản hồi. Hãy thử lại sau.');}
       if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'Chưa thể xử lý phụ đề. Kiểm tra quyền xem và thử lại.');
       return payload;
     } finally {clearTimeout(timeout); if (state.controller === controller) state.controller = null;}
   };
-  const runJob = async (state, url, data, ready, messages) => {
+  const runJob = async (state: JobState, url: string, data: FormFields, ready: (job: CaptionJob) => void, messages: {pending: string; ready: string}) => {
     cancel(state);
     const generation = state.generation;
     state.busy = true; state.button.disabled = true;
     let polls = 0;
     setStatus(state.status, messages.pending);
     const active = () => !stopped && generation === state.generation;
-    const fail = error => {
+    const fail = (error: unknown) => {
       if (!active()) return;
       state.busy = false; state.button.disabled = false; updateTranslateButton();
-      const message = error.name === 'AbortError' ? 'Yêu cầu mất quá nhiều thời gian. Bạn có thể thử lại.' : error.name === 'TypeError' ? 'Không kết nối được máy chủ. Hãy thử lại.' : error.message;
+      const failure = error instanceof Error ? error : new Error('Chưa thể xử lý phụ đề.');
+      const message = failure.name === 'AbortError' ? 'Yêu cầu mất quá nhiều thời gian. Bạn có thể thử lại.' : failure.name === 'TypeError' ? 'Không kết nối được máy chủ. Hãy thử lại.' : failure.message;
       setStatus(state.status, message, true);
     };
-    const handle = async job => {
+    const handle = async (job: CaptionJob) => {
       if (!active()) return;
       if (job.status === 'ready') {
         ready(job);
@@ -171,7 +202,7 @@
     event.preventDefault();
     const option = sourceOption();
     if (!option?.dataset.translateUrl) {setStatus(translateStatus, 'Cần phụ đề gốc trước khi dịch.', true); return;}
-    if (option.dataset.language.split('-')[0] === target.value) {setStatus(translateStatus, 'Hãy chọn ngôn ngữ khác với phụ đề gốc.', true); return;}
+    if ((option.dataset.language || '').split('-')[0] === target.value) {setStatus(translateStatus, 'Hãy chọn ngôn ngữ khác với phụ đề gốc.', true); return;}
     runJob(translationState, option.dataset.translateUrl, {target: target.value, retry: '1'}, job => {
       if (job.target !== target.value || !job.track_url) throw new Error('Bản dịch trả về không khớp ngôn ngữ đã chọn.');
       addTrack({url: job.track_url, language: job.target, label: job.label, translated: true});
@@ -179,13 +210,18 @@
   });
   generateForm.addEventListener('submit', event => {
     event.preventDefault();
-    runJob(generationState, generateForm.getAttribute('action'), {language: speechLanguage.value, retry: '1'}, job => {
+    runJob(generationState, generateUrl, {language: speechLanguage.value, retry: '1'}, job => {
       const subtitle = job.subtitle;
       if (!subtitle || !Number.isInteger(subtitle.id) || subtitle.id <= 0) throw new Error('Chưa tìm thấy lời thoại để tạo phụ đề.');
       addTrack({url: subtitle.url, language: subtitle.language, label: subtitle.label, id: subtitle.id, translateUrl: subtitle.translate_url});
     }, {pending: 'Đang tạo phụ đề từ lời thoại… Bạn có thể tiếp tục xem.', ready: 'Đã tạo và bật phụ đề. Bạn có thể dịch sang ngôn ngữ khác.'});
   });
   speechLanguage.addEventListener('change', () => {cancel(generationState); setStatus(generateStatus, '');});
-  window.addEventListener('pagehide', () => {stopped = true; for (const state of states) cancel(state);});
+  const stop = () => {stopped = true; for (const state of states) cancel(state);};
+  window.addEventListener('pagehide', stop);
+  document.addEventListener('lumiere:stop', stop, {once: true});
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) { stopped = false; updateTranslateButton(); }
+  });
   updateTranslateButton();
-})();
+}

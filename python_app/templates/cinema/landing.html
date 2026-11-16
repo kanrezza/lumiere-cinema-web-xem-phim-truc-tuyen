@@ -1,7 +1,7 @@
 {% extends 'base.html' %}{% load static cinema_format %}
 {% block title %}Chào mừng đến Lumière · Phim hay, xem cùng nhau{% endblock %}
 {% block body_class %}landing-page welcome-page home-page{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'landing.css' %}?v=lumiere-unified-1"><script src="{% static 'landing.js' %}?v=vue-shell-1" defer></script>{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'landing.css' %}?v=lumiere-unified-1">{% endblock %}
 {% block brand %}<a class="brand" href="{% url 'landing' %}" aria-label="Lumière — Trang chủ"><span class="brand-mark" aria-hidden="true">l<span>›</span></span>lumière<span class="brand-period">.</span></a>{% endblock %}
 {% block navigation %}<nav class="main-nav" aria-label="Điều hướng chính"><a href="#discover">Điện ảnh</a>{% include 'cinema/genre_trigger.html' %}{% include 'cinema/country_trigger.html' %}<a href="{% url 'actors' %}">Diễn viên</a><a href="#experience">Trải nghiệm</a><a href="#membership">Thành viên</a></nav>{% endblock %}
 {% block header_actions %}
