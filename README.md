@@ -9,7 +9,7 @@ Lumière là ứng dụng xem phim và tổ chức phòng chiếu chung, với D
 
 ## Chạy trên máy
 
-Cần **Python 3.12 trở lên**. Các lệnh dưới đây dùng Bash trên macOS, Linux hoặc WSL. Cài thêm **FFmpeg** có bộ mã hóa `libx264` và **ffprobe** trong `PATH` để tạo video demo hoặc xử lý video tải lên.
+Cần **Python 3.12 trở lên** và **Node.js 22.12 trở lên** để build frontend. Các lệnh dưới đây dùng Bash trên macOS, Linux hoặc WSL. Cài thêm **FFmpeg** có bộ mã hóa `libx264` và **ffprobe** trong `PATH` để tạo video demo hoặc xử lý video tải lên.
 
 ```bash
 git clone https://github.com/kanrezza/lumiere-cinema-web-xem-phim-truc-tuyen.git
@@ -27,6 +27,8 @@ set +a
 python manage.py migrate
 python manage.py seed_demo
 python manage.py createsuperuser
+npm --prefix frontend ci
+npm --prefix frontend run build
 ./run-local.sh
 ```
 
@@ -41,14 +43,7 @@ Nếu đã có bản sao dự án, bắt đầu từ bước vào `python_app/` 
 
 Dùng tài khoản vừa tạo bằng `createsuperuser` để vào Studio và Admin. Đăng ký tài khoản thường trên trang web để thử luồng người xem.
 
-Để build frontend Vue, cài Node.js 22.12 trở lên và chạy trong `python_app/`.
-
-```bash
-npm --prefix frontend ci
-npm --prefix frontend run build
-```
-
-Django phục vụ tệp đã build theo nhóm trang. Khi chưa build, các trang tải HTML và điều khiển dự phòng của Django. [Mở Lumière](http://127.0.0.1:8000/)
+Django phục vụ tệp Vue + TypeScript đã build theo nhóm trang. Hãy build lại sau khi sửa mã trong `frontend/src/`. HTML từ Django cung cấp liên kết và biểu mẫu gốc, còn trình phát và phòng xem cần bundle frontend. [Mở Lumière](http://127.0.0.1:8000/)
 
 ## Thử phát và tải phim lên
 
@@ -80,7 +75,7 @@ python manage.py check
 python manage.py test cinema cinema.audit_experience_cases
 ```
 
-Nếu đã cài Node.js, chạy thêm `node --test tests/*.test.cjs` để kiểm tra trình phát và các tương tác JavaScript.
+Sau khi cài gói frontend, chạy `node --test tests/*.test.cjs` để kiểm tra mã TypeScript cho trình phát, phụ đề và phòng xem.
 
 ## Cấu trúc dự án
 
