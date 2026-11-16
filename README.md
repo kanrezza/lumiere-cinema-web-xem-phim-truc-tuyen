@@ -118,4 +118,4 @@ Lệnh build kiểm tra kiểu TypeScript trước khi đóng gói. Bộ kiểm 
 
 **Trần Đình Danh** · Phenikaa University
 
-[Nguồn hình ảnh và clip minh họa](python_app/static/imagery/SOURCES.md)
+
