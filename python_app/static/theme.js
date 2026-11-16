@@ -27,6 +27,7 @@
   applyTheme(savedTheme());
 
   function bindControls() {
+    if (root.hasAttribute('data-vue-theme')) return;
     for (const button of document.querySelectorAll('[data-theme-toggle]')) {
       button.hidden = false;
       button.addEventListener('click', () => {
@@ -45,7 +46,9 @@
   }
 
   window.addEventListener('storage', event => {
-    if (event.key === storageKey || event.key === null) applyTheme(savedTheme());
+    if (!root.hasAttribute('data-vue-theme') && (event.key === storageKey || event.key === null)) applyTheme(savedTheme());
   });
-  window.addEventListener('pageshow', () => applyTheme(savedTheme()));
+  window.addEventListener('pageshow', () => {
+    if (!root.hasAttribute('data-vue-theme')) applyTheme(savedTheme());
+  });
 })();

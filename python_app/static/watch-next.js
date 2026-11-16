@@ -1,9 +1,13 @@
 'use strict';
-(() => {
+(function init(event) {
+  if (!event && (document.readyState === 'loading' || document.readyState === 'interactive')) {
+    document.addEventListener('DOMContentLoaded', init, {once: true});
+    return;
+  }
   const video = document.getElementById('player');
   const panel = document.querySelector('[data-next-episode]');
   const setting = document.querySelector('[data-autoplay-setting]');
-  if (!video || !panel || !setting) return;
+  if (!video || !panel || !setting || panel.dataset.vueNextEpisode === 'true') return;
 
   const toggle = setting.querySelector('[data-autoplay-next]');
   const nextLink = panel.querySelector('[data-next-link]');

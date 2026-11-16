@@ -1,6 +1,10 @@
 'use strict';
 
-(() => {
+(function initVoice(event) {
+  if (!event && document.readyState !== 'complete') {
+    document.addEventListener('DOMContentLoaded', initVoice, {once: true});
+    return;
+  }
   const room = document.getElementById('room');
   if (!room?.dataset.voice || !room.dataset.voiceAction) return;
 
@@ -15,6 +19,7 @@
   const isHost = room.dataset.host === 'true';
   const canListen = typeof window.RTCPeerConnection === 'function';
   const canSpeak = Boolean(window.isSecureContext && navigator.mediaDevices?.getUserMedia);
+  const vueVoice = room.dataset.vueVoice === 'true';
   const members = new Map();
   const peers = new Map();
   const retries = new Map();
@@ -50,14 +55,10 @@
     button.setAttribute('aria-pressed', String(active));
   }
 
-  function render() {
-    setButton(joinButton, session ? 'Rời thoại' : 'Tham gia thoại', Boolean(session));
-    setButton(micButton, microphone ? 'Tắt mic' : 'Bật mic', Boolean(microphone));
-    joinButton.disabled = closed || joinBusy || !canListen;
-    micButton.disabled = closed || !session || selfMuted || micBusy || !canSpeak || recovering;
-    micButton.dataset.state = selfMuted ? 'muted' : microphone ? 'live' : 'off';
-    if (playButton) playButton.hidden = ![...peers.values()].some(peer => peer.blocked && !peer.audio?.muted);
+  const joinDisabled = () => closed || joinBusy || !canListen;
+  const micDisabled = () => closed || !session || selfMuted || micBusy || !canSpeak || recovering;
 
+  function render() {
     let message = notice;
     if (!message) {
       if (closed) message = 'Đã ngắt trò chuyện thoại.';
@@ -70,6 +71,21 @@
       else if (!canSpeak) message = 'Bạn đang nghe. Bật mic cần trình duyệt hỗ trợ và kết nối HTTPS.';
       else message = 'Đang nghe phòng thoại. Mic đang tắt.';
     }
+    const micState = selfMuted ? 'muted' : microphone ? 'live' : 'off';
+    const showAudio = [...peers.values()].some(peer => peer.blocked && !peer.audio?.muted);
+    if (vueVoice) {
+      room.dispatchEvent(new CustomEvent('lumiere:voice-state', {detail: {
+        listening: Boolean(session), microphone: Boolean(microphone), joinDisabled: joinDisabled(),
+        micDisabled: micDisabled(), micState, showAudio, message,
+      }}));
+      return;
+    }
+    setButton(joinButton, session ? 'Rời thoại' : 'Tham gia thoại', Boolean(session));
+    setButton(micButton, microphone ? 'Tắt mic' : 'Bật mic', Boolean(microphone));
+    joinButton.disabled = joinDisabled();
+    micButton.disabled = micDisabled();
+    micButton.dataset.state = micState;
+    if (playButton) playButton.hidden = !showAudio;
     setText(status, message);
   }
 
@@ -389,7 +405,7 @@
   }
 
   joinButton.addEventListener('click', async () => {
-    if (joinButton.disabled) return;
+    if (joinDisabled()) return;
     joinBusy = true;
     notice = '';
     render();
@@ -419,7 +435,7 @@
   });
 
   micButton.addEventListener('click', async () => {
-    if (micButton.disabled) return;
+    if (micDisabled()) return;
     notice = '';
     const activeSession = session;
     if (microphone) {

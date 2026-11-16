@@ -1,6 +1,6 @@
-{% extends 'base.html' %}{% load static %}
+{% extends 'base.html' %}{% load static frontend_assets %}
 {% block title %}Tủ phim của bạn · Lumière{% endblock %}
-{% block head %}
+{% block head %}{% frontend_assets 'public' %}
 <link rel="stylesheet" href="{% static 'account.css' %}?v=lumiere-unified-1">
 <link rel="stylesheet" href="{% static 'continue-watching.css' %}?v=1">
 {% endblock %}
@@ -9,7 +9,7 @@
   <header class="library-heading">
     <h1>Tủ phim của bạn</h1>
   </header>
-  {% include 'cinema/continue_shelf.html' with source='library' %}
+  {% include 'cinema/continue_shelf.html' with source='library' shelf_vue=True %}
   <section class="film-shelf">
     <div class="shelf-heading"><h2>Phim đã lưu</h2></div>
     <div class="movie-grid">

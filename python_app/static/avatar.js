@@ -5,8 +5,12 @@
     if (image.complete && !image.naturalWidth) image.hidden = true;
   }
 
+  document.addEventListener('DOMContentLoaded', bindAvatarFallback, { once: true });
+})();
+
+function bindAvatarFallback() {
   const form = document.querySelector('[data-avatar-editor]');
-  if (!form) return;
+  if (!form || form.dataset.vueAvatar === 'mounted') return;
   const fileInput = form.querySelector('[data-avatar-file]');
   const remove = form.querySelector('[data-avatar-remove]');
   const preview = form.querySelector('[data-avatar-preview]');
@@ -101,4 +105,4 @@
     restoreSaved();
     fileInput.focus();
   });
-})();
+}

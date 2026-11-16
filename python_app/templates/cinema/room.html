@@ -1,6 +1,6 @@
-{% extends 'base.html' %}{% load static l10n %}
+{% extends 'base.html' %}{% load static l10n frontend_assets %}
 {% block title %}{{ room.name }} · Lumière{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=2">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=vue-viewing-1">{% endblock %}
 {% block content %}
 <section class="content-section room-page watch-room" id="room"
   data-state="{% url 'room_state' room.pk %}" data-host="{{ is_host|yesno:'true,false' }}"
@@ -63,6 +63,7 @@
             <button class="btn secondary small" type="button" data-voice-play hidden>Nghe tiếng phòng</button>
           </div>
           <p data-voice-status role="status">Bạn có thể nghe trước rồi bật mic khi muốn nói.</p>
+          <div data-vue-voice-controls></div>
           <div data-voice-audio hidden></div>
         </div>
       </section>
@@ -82,12 +83,12 @@
   </div>
 </section>
 {% endblock %}
-{% block scripts %}
+{% block scripts %}{% frontend_assets 'viewing' %}
 <script src="{% static 'vendor/hls.min.js' %}" defer></script>
 <script src="{% static 'player.js' %}?v=watch-next-1" defer></script>
-<script src="{% static 'player-controls.js' %}?v=watch-next-1" defer></script>
-<script src="{% static 'caption-panel.js' %}?v=watch-next-1" defer></script>
-<script src="{% static 'room.js' %}?v=2" defer></script>
-<script src="{% static 'room-voice.js' %}?v=1" defer></script>
-{% if is_host %}<script src="{% static 'room-admission.js' %}?v=2" defer></script>{% endif %}
+<script src="{% static 'player-controls.js' %}?v=vue-viewing-1" defer></script>
+<script src="{% static 'caption-panel.js' %}?v=vue-viewing-1" defer></script>
+<script src="{% static 'room.js' %}?v=vue-viewing-1" defer></script>
+<script src="{% static 'room-voice.js' %}?v=vue-voice-1" defer></script>
+{% if is_host %}<script src="{% static 'room-admission.js' %}?v=vue-viewing-1" defer></script>{% endif %}
 {% endblock %}

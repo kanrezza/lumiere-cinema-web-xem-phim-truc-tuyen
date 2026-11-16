@@ -1,8 +1,10 @@
-{% extends 'base.html' %}{% load static %}
+{% extends 'base.html' %}{% load static frontend_assets %}
 {% block title %}Diễn viên · Lumière{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'actors.css' %}?v=discovery-1">{% endblock %}
+{% block head %}{% frontend_assets 'public' %}<link rel="stylesheet" href="{% static 'actors.css' %}?v=discovery-1">{% endblock %}
 {% block content %}
-<section class="content-section actors-directory">
+{{ directory_data|json_script:"vue-directory-data" }}
+<div data-vue-directory hidden></div>
+<section data-directory-fallback class="content-section actors-directory">
   <div class="actors-heading">
     <div><p class="eyebrow">KHÁM PHÁ LUMIÈRE</p><h1>Diễn viên</h1><p class="muted">Tìm diễn viên và khám phá những bộ phim họ tham gia.</p></div>
     {% if actors %}<span class="actors-count">{% if actors.paginator %}{{ actors.paginator.count }}{% else %}{{ actors|length }}{% endif %} diễn viên</span>{% endif %}

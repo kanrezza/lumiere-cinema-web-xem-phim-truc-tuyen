@@ -1,7 +1,12 @@
 'use strict';
-(() => {
+(function init(event) {
+  if (!event && (document.readyState === 'loading' || document.readyState === 'interactive')) {
+    document.addEventListener('DOMContentLoaded', init, {once: true});
+    return;
+  }
   const room = document.getElementById('room');
   const lobby = document.querySelector('[data-room-lobby]');
+  if (lobby?.dataset.vueLobby === 'true') return;
   const endpoint = room?.dataset.admission || lobby?.dataset.roomLobby;
   if (!endpoint) return;
   let stopped = false;
@@ -56,6 +61,7 @@
   const passwordStatus = room.querySelector('[data-room-password-status]');
   const save = form.querySelector('button');
   const {requires_approval: approval, password, remove_password: removePassword, settings_version: version} = form.elements;
+  const vueQueue = queue.dataset.vueRoomQueue === 'true';
   let savedApproval = approval.checked;
   let queueKey;
 
@@ -79,6 +85,10 @@
   }
 
   function renderQueue(data) {
+    if (vueQueue) {
+      room.dispatchEvent(new CustomEvent('lumiere:room-queue-update', {detail: data}));
+      return;
+    }
     count.textContent = data.pending_count;
     empty.hidden = Boolean(data.pending.length);
     const key = data.pending.map(entry => entry.pk).join(',');
@@ -108,6 +118,7 @@
     if (stopped || pendingAction) return;
     revision += 1;
     pendingAction = true;
+    if (vueQueue) room.dispatchEvent(new CustomEvent('lumiere:room-queue-busy', {detail: true}));
     save.disabled = true;
     form.inert = data.action === 'settings';
     try {
@@ -129,6 +140,7 @@
       status.textContent = error.message;
     } finally {
       pendingAction = false;
+      if (vueQueue && !stopped) room.dispatchEvent(new CustomEvent('lumiere:room-queue-busy', {detail: false}));
       form.inert = false;
       save.disabled = false;
     }
@@ -139,6 +151,13 @@
     const fields = new FormData(form);
     fields.delete('csrfmiddlewaretoken');
     send(Object.fromEntries(fields));
+  });
+
+  if (vueQueue) room.addEventListener('lumiere:room-queue-decision', event => {
+    const {action, id} = event.detail;
+    if ((action === 'approve' || action === 'reject') && Number.isInteger(id) && id > 0) {
+      send({action, request: id});
+    }
   });
 
   async function poll() {

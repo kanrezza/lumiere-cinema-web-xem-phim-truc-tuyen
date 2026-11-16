@@ -1,6 +1,6 @@
-{% extends 'base.html' %}{% load static %}
+{% extends 'base.html' %}{% load static frontend_assets %}
 {% block title %}Tham gia phòng xem · Lumière{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=1">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=vue-viewing-1">{% endblock %}
 {% block content %}
 <section class="content-section room-lobby">
   <a class="room-back" href="{% url 'movie' room.episode.movie.slug %}">← Thông tin phim</a>
@@ -9,7 +9,8 @@
     <h1>{{ room.name }}</h1>
     <p>{{ room.episode.movie.title }} · Chủ phòng {{ room.host.username }}</p>
     {% if join_error %}<p class="room-lobby-error" role="alert">{{ join_error }}</p>{% endif %}
-    <div data-room-lobby="{% url 'room_admission' room.pk %}" data-lobby-status="{{ join_status|default:'' }}">
+    <div data-room-lobby="{% url 'room_admission' room.pk %}" data-lobby-status="{{ join_status|default:'' }}" data-requires-approval="{{ room.requires_approval|yesno:'true,false' }}">
+      <div data-vue-lobby></div>
       <section data-lobby-pending {% if join_status != 'pending' or not room.requires_approval %}hidden{% endif %}>
         <h2>Đang chờ chủ phòng duyệt</h2><p role="status">Trang sẽ báo khi chủ phòng phản hồi.</p>
         <a class="btn secondary small" href="{% url 'room' room.pk %}">Kiểm tra lại</a>
@@ -31,4 +32,4 @@
   </article>
 </section>
 {% endblock %}
-{% block scripts %}{% if join_status == 'pending' and room.requires_approval %}<script src="{% static 'room-admission.js' %}?v=1" defer></script>{% endif %}{% endblock %}
+{% block scripts %}{% frontend_assets 'viewing' %}{% if join_status == 'pending' and room.requires_approval %}<script src="{% static 'room-admission.js' %}?v=vue-viewing-1" defer></script>{% endif %}{% endblock %}

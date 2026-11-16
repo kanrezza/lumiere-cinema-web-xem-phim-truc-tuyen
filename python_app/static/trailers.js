@@ -1,7 +1,11 @@
 'use strict';
-(() => {
+(function init(event) {
+  if (!event && (document.readyState === 'loading' || document.readyState === 'interactive')) {
+    document.addEventListener('DOMContentLoaded', init, {once: true});
+    return;
+  }
   const player = document.querySelector('[data-trailer-player]');
-  if (!player) return;
+  if (!player || player.dataset.vueTrailer === 'true') return;
   const button = player.querySelector('[data-trailer-load]');
   const placeholder = player.querySelector('[data-trailer-placeholder]');
   const status = document.querySelector('[data-trailer-status]');

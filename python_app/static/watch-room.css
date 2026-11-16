@@ -79,3 +79,4 @@
   .room-header { align-items: start; }
   .room-header-actions { margin-top: -5px; }
 }
+.player-wrap > [data-vue-player-controls], [data-vue-next], [data-vue-next-preference] { display: contents; }

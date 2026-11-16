@@ -127,49 +127,52 @@
   syncMotion();
 
   // The server renders a complete first panel. Tabs enhance it without a loader.
-  const tabs = [...document.querySelectorAll('[data-experience-tab]')]
-    .map(button => ({button, panel: document.getElementById(button.dataset.target)}))
-    .filter(({panel}) => panel?.matches('[data-experience-panel]'));
-  if (!tabs.length) return;
-  let selected = Math.max(0, tabs.findIndex(({button}) => button.getAttribute('aria-selected') === 'true'));
-  function selectTab(index, moveFocus = false, animate = true) {
-    if (panelAnimation) {panelAnimation.cancel(); panelAnimation = null;}
-    selected = index;
-    tabs.forEach(({button, panel}, position) => {
-      const active = position === index;
-      button.setAttribute('role', 'tab');
-      if (!button.id) button.id = `experience-tab-${position + 1}`;
-      button.setAttribute('aria-controls', panel.id);
-      button.setAttribute('aria-selected', String(active));
-      button.tabIndex = active ? 0 : -1;
-      panel.setAttribute('role', 'tabpanel');
-      panel.setAttribute('aria-labelledby', button.id);
-      panel.hidden = !active;
-    });
-    const {button, panel} = tabs[index];
-    if (moveFocus) button.focus();
-    if (animate && motionAllowed() && typeof panel.animate === 'function') {
-      panelAnimation = panel.animate([
-        {opacity: .4, transform: 'translateY(7px)'},
-        {opacity: 1, transform: 'translateY(0)'},
-      ], {duration: 280, easing: 'cubic-bezier(.2,.7,.2,1)'});
-      panelAnimation.onfinish = () => {panelAnimation = null;};
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.querySelector('[data-vue-landing-tabs]')) return;
+    const tabs = [...document.querySelectorAll('[data-experience-tab]')]
+      .map(button => ({button, panel: document.getElementById(button.dataset.target)}))
+      .filter(({panel}) => panel?.matches('[data-experience-panel]'));
+    if (!tabs.length) return;
+    let selected = Math.max(0, tabs.findIndex(({button}) => button.getAttribute('aria-selected') === 'true'));
+    function selectTab(index, moveFocus = false, animate = true) {
+      if (panelAnimation) {panelAnimation.cancel(); panelAnimation = null;}
+      selected = index;
+      tabs.forEach(({button, panel}, position) => {
+        const active = position === index;
+        button.setAttribute('role', 'tab');
+        if (!button.id) button.id = `experience-tab-${position + 1}`;
+        button.setAttribute('aria-controls', panel.id);
+        button.setAttribute('aria-selected', String(active));
+        button.tabIndex = active ? 0 : -1;
+        panel.setAttribute('role', 'tabpanel');
+        panel.setAttribute('aria-labelledby', button.id);
+        panel.hidden = !active;
+      });
+      const {button, panel} = tabs[index];
+      if (moveFocus) button.focus();
+      if (animate && motionAllowed() && typeof panel.animate === 'function') {
+        panelAnimation = panel.animate([
+          {opacity: .4, transform: 'translateY(7px)'},
+          {opacity: 1, transform: 'translateY(0)'},
+        ], {duration: 280, easing: 'cubic-bezier(.2,.7,.2,1)'});
+        panelAnimation.onfinish = () => {panelAnimation = null;};
+      }
+      scheduleProgress();
     }
-    scheduleProgress();
-  }
-  tabs.forEach(({button}, index) => {
-    button.addEventListener('click', () => selectTab(index));
-    button.addEventListener('keydown', event => {
-      const vertical = button.closest('[role="tablist"]')?.getAttribute('aria-orientation') === 'vertical';
-      let next;
-      if (event.key === (vertical ? 'ArrowDown' : 'ArrowRight')) next = (selected + 1) % tabs.length;
-      if (event.key === (vertical ? 'ArrowUp' : 'ArrowLeft')) next = (selected + tabs.length - 1) % tabs.length;
-      if (event.key === 'Home') next = 0;
-      if (event.key === 'End') next = tabs.length - 1;
-      if (next === undefined) return;
-      event.preventDefault();
-      selectTab(next, true);
+    tabs.forEach(({button}, index) => {
+      button.addEventListener('click', () => selectTab(index));
+      button.addEventListener('keydown', event => {
+        const vertical = button.closest('[role="tablist"]')?.getAttribute('aria-orientation') === 'vertical';
+        let next;
+        if (event.key === (vertical ? 'ArrowDown' : 'ArrowRight')) next = (selected + 1) % tabs.length;
+        if (event.key === (vertical ? 'ArrowUp' : 'ArrowLeft')) next = (selected + tabs.length - 1) % tabs.length;
+        if (event.key === 'Home') next = 0;
+        if (event.key === 'End') next = tabs.length - 1;
+        if (next === undefined) return;
+        event.preventDefault();
+        selectTab(next, true);
+      });
     });
-  });
-  selectTab(selected, false, false);
+    selectTab(selected, false, false);
+  }, {once: true});
 })();

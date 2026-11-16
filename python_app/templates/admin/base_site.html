@@ -1,4 +1,4 @@
-{% extends 'admin/base.html' %}{% load static studio_navigation %}
+{% extends 'admin/base.html' %}{% load static studio_navigation frontend_assets %}
 {% block title %}{{ title }} · Lumière Studio{% endblock %}
 {% block dark-mode-vars %}
   <meta name="theme-color" content="#0b0d0e">
@@ -7,15 +7,19 @@
 {% endblock %}
 {% block responsive %}
   {{ block.super }}
-  <link rel="stylesheet" href="{% static 'studio.css' %}?v=studio-7">
-  <link rel="stylesheet" href="{% static 'studio-dashboard.css' %}?v=studio-7">
-  <script src="{% static 'studio.js' %}?v=studio-5" defer></script>
+  <link rel="stylesheet" href="{% static 'studio.css' %}?v=studio-vue-1">
+  <link rel="stylesheet" href="{% static 'studio-dashboard.css' %}?v=studio-vue-1">
+  {% frontend_assets 'studio' %}
+  <script src="{% static 'studio.js' %}?v=studio-vue-1" defer></script>
 {% endblock %}
 {% block bodyclass %}{{ block.super }} studio-shell{% endblock %}
 {% block header %}
   {% include 'studio/icons.html' %}
   <header id="header" class="studio-topbar">
-    {% if has_permission %}<button type="button" class="studio-menu-toggle studio-icon-button" data-studio-menu aria-controls="studio-sidebar" aria-expanded="false" aria-label="Mở menu quản trị"><svg class="studio-icon" aria-hidden="true"><use href="#s-menu"/></svg></button>{% endif %}
+    {% if has_permission %}
+      <span data-studio-vue-menu></span>
+      <button type="button" class="studio-menu-toggle studio-icon-button" data-studio-menu aria-controls="studio-sidebar" aria-expanded="false" aria-label="Mở menu quản trị"><svg class="studio-icon" aria-hidden="true"><use href="#s-menu"/></svg></button>
+    {% endif %}
     <a class="studio-mobile-brand" href="{% url 'admin:index' %}">lumière<span>.</span></a>
     <div class="studio-workspace"><span class="studio-workspace-dot" aria-hidden="true"></span><span>Không gian quản trị</span><span class="studio-workspace-divider">/</span><strong>Lumière Studio</strong></div>
     <div class="studio-topbar-actions">

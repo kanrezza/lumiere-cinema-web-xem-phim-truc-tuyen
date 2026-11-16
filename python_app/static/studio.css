@@ -37,6 +37,7 @@ html[data-theme="light"] {
 .studio-shell, .studio-shell * { box-sizing: border-box; }
 .studio-shell { margin: 0; min-width: 0; background: var(--studio-bg); color: var(--studio-text); font: 13px/1.55 var(--font-family-primary); -webkit-font-smoothing: antialiased; }
 .studio-shell [hidden] { display: none!important; }
+[data-studio-vue-menu], [data-studio-vue-search] { display: contents; }
 .studio-shell #container { min-width: 0; width: 100%; background: var(--studio-bg); }
 .studio-shell a { text-decoration: none; }
 .studio-shell button, .studio-shell input, .studio-shell select, .studio-shell textarea { font: inherit; }
@@ -122,7 +123,7 @@ html[data-theme="light"] .theme-icon-moon { display: block; }
 .studio-shell #changelist-search > div:first-child { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
 .studio-shell #changelist-search label { display: flex; align-items: center; }
 .studio-shell #changelist-search #searchbar { width: 260px; flex: 1; max-width: 400px; height: 39px; padding: 9px 12px; margin: 0; background: var(--studio-raised); border: 1px solid var(--studio-line); border-radius: 6px; font-size: 12px; }
-.studio-shell #toolbar form input[type="submit"], .studio-shell #changelist .actions .button { height: 38px; border: 1px solid var(--studio-line); border-radius: 6px; background: var(--studio-surface); color: var(--studio-text); box-shadow: none; padding: 8px 13px; cursor: pointer; }
+.studio-shell #toolbar form input[type="submit"], .studio-shell #changelist .actions .button, .studio-shell .studio-clear-search { height: 38px; border: 1px solid var(--studio-line); border-radius: 6px; background: var(--studio-surface); color: var(--studio-text); box-shadow: none; padding: 8px 13px; cursor: pointer; }
 .studio-shell #changelist .actions { width: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--studio-line); background: var(--studio-surface); }
 .studio-shell #changelist .actions label { display: inline-flex; align-items: center; gap: 10px; font-size: 11px; }
 .studio-shell #changelist .actions select { height: 36px; padding: 5px 30px 5px 10px; margin: 0; border-radius: 5px; background: var(--studio-raised); border-color: var(--studio-line); font-size: 11px; max-width: 260px; }
@@ -229,6 +230,7 @@ a.studio-community-metric:is(:hover, [aria-current]) { border-color: var(--studi
 .studio-shell.login .form-row { padding: 12px 0; border: 0; }
 .studio-shell.login #login-form .form-row label { float: none; display: block; width: auto; margin-bottom: 8px; font-size: 12px; }
 .studio-shell.login #login-form input:not([type=hidden]):not([type=submit]) { width: 100%; }
+.studio-shell .studio-password-toggle { margin-top: 8px; padding: 4px 0; color: var(--studio-text); background: transparent; border: 0; cursor: pointer; text-decoration: underline; }
 .studio-shell.login .submit-row { margin: 18px 0 0; padding: 0; border: 0; box-shadow: none; }
 .studio-shell.login .submit-row input { width: 100%; background: var(--studio-accent); color: var(--studio-accent-ink); border: 0; }
 .studio-login-intro h1 { margin: 8px 0 10px; font-size: 25px; font-weight: 600; letter-spacing: -.6px; }

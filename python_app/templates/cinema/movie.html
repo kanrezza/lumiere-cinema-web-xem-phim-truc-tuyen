@@ -1,5 +1,6 @@
-{% extends 'base.html' %}{% load static %}
+{% extends 'base.html' %}{% load static frontend_assets %}
 {% block title %}{{ movie.title }} · Lumière{% endblock %}
+{% block head %}{% frontend_assets 'public' %}<link rel="stylesheet" href="{% static 'public-controls.css' %}">{% endblock %}
 {% block content %}
 <section class="detail-hero">
 {% if movie.backdrop %}<img class="detail-backdrop" src="{{ movie.backdrop.url }}" alt="">{% elif movie.poster %}<img class="detail-backdrop" src="{{ movie.poster.url }}" alt="">{% else %}<img class="detail-backdrop" src="{% static 'imagery/' %}{{ movie.artwork }}.jpg" alt="">{% endif %}<div class="detail-shade"></div>
@@ -16,7 +17,7 @@
   <div>
     <h2>Cảm nhận của bạn</h2>
     {% if user.is_authenticated %}
-    <form method="post" action="{% url 'rate' movie.pk %}" class="inline-form">
+    <form method="post" action="{% url 'rate' movie.pk %}" class="inline-form" data-vue-rating>
       {% csrf_token %}
       <label>Đánh giá
         <select name="score" required>
@@ -30,7 +31,7 @@
     </form>
     <form method="post" action="{% url 'comment' movie.pk %}">
       {% csrf_token %}
-      <textarea name="content" maxlength="1000" required placeholder="Chia sẻ cảm nhận về bộ phim…" aria-label="Bình luận"></textarea>
+      <textarea data-vue-count name="content" maxlength="1000" required placeholder="Chia sẻ cảm nhận về bộ phim…" aria-label="Bình luận"></textarea>
       <button class="btn small">Gửi bình luận</button>
     </form>
     {% else %}

@@ -6,11 +6,12 @@ window.postForm = async (url, data) => {
   return response.json();
 };
 
-const membershipForm = document.getElementById('membership-form');
-if (membershipForm) {
+document.addEventListener('DOMContentLoaded', () => {
+  const membershipForm = document.getElementById('membership-form');
+  if (!membershipForm || membershipForm.hasAttribute('data-vue-membership')) return;
   membershipForm.addEventListener('change', (event) => {
     if (event.target.name === 'plan') {
       document.getElementById('selected-price').textContent = event.target.dataset.price;
     }
   });
-}
+}, {once: true});

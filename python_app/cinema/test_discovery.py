@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from django.contrib.auth.models import Permission
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -89,6 +90,40 @@ class DiscoveryTests(TestCase):
                 response = self.client.get(reverse(route), {'q': query})
                 self.assertEqual([item['name'] for item in response.context['items']], [expected])
                 self.assertEqual(response.context['total_count'], 2)
+
+    def test_vue_directory_search_matches_server_rendered_results(self):
+        for route, query in (('countries', 'viet  nam'), ('categories', 'hai huoc')):
+            with self.subTest(route=route):
+                html = self.client.get(reverse(route), {'q': query})
+                enhanced = self.client.get(
+                    reverse(route), {'q': query}, headers={'X-Lumiere-Directory': 'vue'},
+                )
+                self.assertContains(html, 'data-directory-fallback')
+                self.assertIn('X-Lumiere-Directory', html.headers['Vary'])
+                self.assertIn('X-Lumiere-Directory', enhanced.headers['Vary'])
+                self.assertEqual(enhanced.json()['items'], html.context['items'])
+                self.assertEqual(enhanced.headers['Cache-Control'], 'private, no-store')
+
+    def test_vue_actor_directory_pages_published_people_and_respects_permissions(self):
+        for number in range(25):
+            actor = Actor.objects.create(name=f'Movie Person {number:02d}')
+            self.first.actors.add(actor)
+        url = reverse('actors')
+        opts = {'headers': {'X-Lumiere-Directory': 'vue'}}
+        result = self.client.get(url, {'q': 'movie person'}, **opts).json()
+        self.assertEqual(result['count'], 25)
+        self.assertEqual(len(result['items']), 24)
+        self.assertIsNone(result['addActorUrl'])
+        self.assertEqual(result['pagination']['next'], '?q=movie+person&page=2')
+        last_page = self.client.get(url + result['pagination']['next'], **opts).json()
+        self.assertEqual([person['name'] for person in last_page['items']], ['Movie Person 24'])
+
+        permission = Permission.objects.get(content_type__app_label='cinema', codename='add_actor')
+        self.viewer.user_permissions.add(permission)
+        self.client.force_login(self.viewer)
+        result = self.client.get(url, **opts).json()
+        self.assertEqual(result['addActorUrl'], reverse('admin:cinema_actor_add'))
+        self.assertNotIn(self.private_actor.name, [person['name'] for person in result['items']])
 
     def test_combined_country_actor_category_kind_and_rating_filters(self):
         response = self.client.get(reverse('catalog'), {

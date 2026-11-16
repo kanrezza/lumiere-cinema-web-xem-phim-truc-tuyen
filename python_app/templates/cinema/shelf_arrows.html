@@ -1,4 +1,4 @@
-<div class="shelf-control-mount"{% if catalog_app_assets %} data-shelf-vue{% endif %} hidden>
+<div class="shelf-control-mount"{% if catalog_app_assets or shelf_vue %} data-shelf-vue{% endif %} hidden>
   <button class="shelf-arrow previous" type="button" data-shelf-dir="-1" aria-label="Cuộn {{ shelf_title }} sang trái"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
   <button class="shelf-arrow" type="button" data-shelf-dir="1" aria-label="Cuộn {{ shelf_title }} sang phải"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
 </div>

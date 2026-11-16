@@ -11,6 +11,10 @@ export default defineConfig({
       input: {
         results: 'src/catalog/main.ts',
         home: 'src/home/main.ts',
+        shell: 'src/shell/main.ts',
+        public: 'src/public/main.ts',
+        viewing: 'src/viewing/main.ts',
+        studio: 'src/studio/main.ts',
       },
     },
   },

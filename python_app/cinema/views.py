@@ -101,6 +101,13 @@ def public_country_groups():
     return sorted(groups.values(), key=lambda group: group['name'].casefold())
 
 
+def directory_response(request, template_name, context, data):
+    if request.headers.get('X-Lumiere-Directory') == 'vue':
+        return JsonResponse(data, headers={'Cache-Control': 'private, no-store'})
+    return render(request, template_name, {**context, 'directory_data': data})
+
+
+@vary_on_headers('X-Lumiere-Directory')
 def discovery_index(request, kind):
     query = request.GET.get('q', '').strip()[:150]
     if kind == 'countries':
@@ -119,9 +126,20 @@ def discovery_index(request, kind):
     search_term = normalize_search(query)
     if search_term:
         items = [item for item in items if search_term in normalize_search(item['name'])]
-    return render(request, 'cinema/discovery_index.html', {
+    context = {
         'title': title, 'eyebrow': eyebrow, 'description': description,
         'discovery_kind': kind, 'items': items, 'q': query, 'total_count': total_count,
+    }
+    return directory_response(request, 'cinema/discovery_index.html', context, {
+        'kind': kind,
+        'title': title,
+        'eyebrow': eyebrow,
+        'description': description,
+        'items': items,
+        'query': query,
+        'count': len(items),
+        'url': reverse('countries' if kind == 'countries' else 'categories'),
+        'catalogUrl': reverse('catalog'),
     })
 
 
@@ -809,6 +827,7 @@ def leave_room(request, pk):
     return redirect('library')
 
 
+@vary_on_headers('X-Lumiere-Directory')
 def actors(request):
     query = request.GET.get('q', '').strip()[:150]
     people = Actor.objects.annotate(
@@ -816,7 +835,28 @@ def actors(request):
     ).filter(film_count__gt=0).order_by('name', 'pk')
     if query: people = filter_actor_search(people, query)
     page = Paginator(people, 24).get_page(request.GET.get('page'))
-    return render(request, 'cinema/actors.html', {'actors': page, 'q': query, 'total_count': page.paginator.count})
+    context = {'actors': page, 'q': query, 'total_count': page.paginator.count}
+    return directory_response(request, 'cinema/actors.html', context, {
+        'kind': 'actors',
+        'title': 'Diễn viên',
+        'eyebrow': 'KHÁM PHÁ LUMIÈRE',
+        'description': 'Tìm diễn viên và khám phá những bộ phim họ tham gia.',
+        'items': [
+            {'name': actor.name, 'count': actor.film_count, 'href': reverse('actor', args=[actor.pk])}
+            for actor in page
+        ],
+        'query': query,
+        'count': page.paginator.count,
+        'url': reverse('actors'),
+        'catalogUrl': reverse('catalog'),
+        'addActorUrl': reverse('admin:cinema_actor_add') if request.user.has_perm('cinema.add_actor') else None,
+        'pagination': {
+            'page': page.number,
+            'pages': page.paginator.num_pages,
+            'previous': '?' + urlencode({'q': query, 'page': page.previous_page_number()}) if page.has_previous() else None,
+            'next': '?' + urlencode({'q': query, 'page': page.next_page_number()}) if page.has_next() else None,
+        },
+    })
 
 
 def actor_detail(request, pk):

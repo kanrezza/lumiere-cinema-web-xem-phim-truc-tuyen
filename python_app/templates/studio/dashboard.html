@@ -157,7 +157,7 @@
   </section>
   {% endif %}
   {% if can_manage_episodes %}
-  <section class="sd-panel sd-library-panel" aria-labelledby="sd-library-title">
+  <section class="sd-panel sd-library-panel" aria-labelledby="sd-library-title" data-studio-video-library>
     {% url 'admin:cinema_episode_changelist' as video_list_url %}
     <div class="sd-panel-heading">
       <div>
@@ -166,7 +166,7 @@
       </div>
       <a class="sd-text-link" href="{{ video_list_url }}">Xem tất cả <span aria-hidden="true">↗</span></a>
     </div>
-    {% if episodes %}<div class="sd-table-scroll"><table class="sd-video-table"><thead><tr><th scope="col">Phim / tập phim</th><th scope="col">Trạng thái</th><th scope="col">Thời lượng</th><th scope="col"><span class="sd-visually-hidden">Thao tác</span></th></tr></thead><tbody>{% for ep in episodes %}<tr><th scope="row"><a class="sd-video-name" href="{% url 'admin:cinema_episode_change' ep.pk %}"><img src="{{ ep.movie|cinema_poster }}" alt="" loading="lazy"><span><strong>{{ ep.movie.title }}</strong><small>Tập {{ ep.number }} · {{ ep.title }}</small></span></a></th><td><span class="sd-status sd-status-{{ ep.status }}">{{ ep.get_status_display }}</span></td><td class="sd-duration">{% if ep.duration %}{{ ep.duration|floatformat:0 }} giây{% else %}—{% endif %}</td><td class="sd-table-action"><a href="{% url 'admin:cinema_episode_change' ep.pk %}" aria-label="Quản lý video {{ ep.movie.title }} tập {{ ep.number }}">↗</a></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="sd-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m10 8 6 4-6 4V8Z"/></svg><strong>Chưa có video nào</strong><p>Video đã tải lên sẽ xuất hiện tại đây.</p></div>{% endif %}
+    {% if episodes %}<div data-studio-vue-video-filter></div><div class="sd-table-scroll"><table class="sd-video-table"><thead><tr><th scope="col">Phim / tập phim</th><th scope="col">Trạng thái</th><th scope="col">Thời lượng</th><th scope="col"><span class="sd-visually-hidden">Thao tác</span></th></tr></thead><tbody>{% for ep in episodes %}<tr data-studio-video-status="{{ ep.status }}"><th scope="row"><a class="sd-video-name" href="{% url 'admin:cinema_episode_change' ep.pk %}"><img src="{{ ep.movie|cinema_poster }}" alt="" loading="lazy"><span><strong>{{ ep.movie.title }}</strong><small>Tập {{ ep.number }} · {{ ep.title }}</small></span></a></th><td><span class="sd-status sd-status-{{ ep.status }}">{{ ep.get_status_display }}</span></td><td class="sd-duration">{% if ep.duration %}{{ ep.duration|floatformat:0 }} giây{% else %}—{% endif %}</td><td class="sd-table-action"><a href="{% url 'admin:cinema_episode_change' ep.pk %}" aria-label="Quản lý video {{ ep.movie.title }} tập {{ ep.number }}">↗</a></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="sd-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m10 8 6 4-6 4V8Z"/></svg><strong>Chưa có video nào</strong><p>Video đã tải lên sẽ xuất hiện tại đây.</p></div>{% endif %}
   </section>
   {% endif %}
   <div class="sd-bottom-grid">

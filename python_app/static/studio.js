@@ -1,5 +1,6 @@
 'use strict';
-(() => {
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.documentElement.hasAttribute('data-studio-vue-navigation')) return;
   const trigger = document.querySelector('[data-studio-menu]');
   const sidebar = document.getElementById('studio-sidebar');
   const overlay = document.querySelector('.studio-sidebar-overlay');
@@ -31,4 +32,4 @@
     document.addEventListener('click', event => { if (!menu.contains(event.target)) menu.open = false; });
     menu.addEventListener('keydown', event => { if (event.key === 'Escape') { menu.open = false; menu.querySelector('summary')?.focus(); } });
   }
-})();
+});

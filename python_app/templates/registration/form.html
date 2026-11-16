@@ -1,5 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'base.html' %}{% load static frontend_assets %}
 
+{% block head %}{% frontend_assets 'public' %}<link rel="stylesheet" href="{% static 'public-controls.css' %}">{% endblock %}
 {% block content %}
 <section class="auth-layout auth-centered">
   <div class="form-panel">
@@ -11,7 +12,7 @@
     {% elif request.resolver_match.url_name == 'password_reset' %}
       <p class="muted">Nhập email đã đăng ký để nhận hướng dẫn đặt lại mật khẩu.</p>
     {% endif %}
-    <form method="post">
+    <form method="post" data-vue-passwords>
       {% csrf_token %}
       {{ form.as_p }}
       {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}

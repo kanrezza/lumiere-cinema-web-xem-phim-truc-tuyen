@@ -1,5 +1,9 @@
 'use strict';
-(() => {
+(function init(event) {
+  if (!event && (document.readyState === 'loading' || document.readyState === 'interactive')) {
+    document.addEventListener('DOMContentLoaded', init, {once: true});
+    return;
+  }
   const room = document.getElementById('room');
   if (!room) return;
 
@@ -13,6 +17,7 @@
   const roomQuery = selector => room.querySelector?.(selector);
   const memberCount = roomQuery('[data-room-member-count]');
   const emptyChat = roomQuery('[data-room-chat-empty]');
+  const vuePresentation = room.dataset.vueRoom === 'true';
   const isHost = room.dataset.host === 'true';
   const currentUserId = room.dataset.user;
   const hostId = room.dataset.hostUser || (isHost ? currentUserId : '');
@@ -82,6 +87,14 @@
   }
 
   function showMessages(messages, ownMessage = false) {
+    if (vuePresentation) {
+      const added = messages.filter(message => message.id > lastChat);
+      if (added.length) {
+        lastChat = added[added.length - 1].id;
+        room.dispatchEvent(new CustomEvent('lumiere:chat-update', {detail: {added, own: ownMessage}}));
+      }
+      return;
+    }
     const nearBottom = chatList.scrollHeight - chatList.scrollTop - chatList.clientHeight < 60;
     let added = false;
     for (const message of messages) {
@@ -164,18 +177,7 @@
       kick.textContent = '×';
       kick.title = 'Loại khỏi phòng';
       kick.setAttribute('aria-label', `Loại ${username} khỏi phòng`);
-      kick.addEventListener('click', async () => {
-        if (stopped || !confirm(`Loại ${username} khỏi phòng?`)) return;
-        kick.disabled = true;
-        try {
-          const data = await send({action: 'kick', user: member.user_id});
-          // A poll started before the kick can briefly return the prior roster.
-          kicked.add(id);
-          if (!stopped) showMembers(data.members);
-        } catch {
-          kick.disabled = false;
-        }
-      });
+      kick.addEventListener('click', () => kickMember(member, kick));
       actions.append(kick);
     }
     row.append(avatar, info, voice, actions);
@@ -184,10 +186,40 @@
 
   const rows = new Map();
   const kicked = new Set();
+  let previousRoster;
+
+  async function kickMember(member, button) {
+    if (stopped || button.disabled || !confirm(`Loại ${member.user__username} khỏi phòng?`)) return;
+    button.disabled = true;
+    try {
+      const data = await send({action: 'kick', user: member.user_id});
+      // A poll started before the kick can briefly return the prior roster.
+      kicked.add(String(member.user_id));
+      if (!stopped) showMembers(data.members);
+    } catch {
+      button.disabled = false;
+    }
+  }
+
+  if (vuePresentation && isHost) {
+    room.addEventListener('lumiere:room-kick', event => {
+      const {member, button} = event.detail;
+      if (member && button instanceof HTMLButtonElement) kickMember(member, button);
+    });
+  }
+
   function showMembers(roster) {
     const sorted = roster.filter(member => !kicked.has(String(member.user_id)));
     const rank = member => String(member.user_id) === hostId ? 0 : String(member.user_id) === currentUserId ? 1 : 2;
     sorted.sort((a, b) => rank(a) - rank(b) || a.user__username.localeCompare(b.user__username, 'vi'));
+    if (vuePresentation) {
+      const signature = JSON.stringify(sorted);
+      if (signature !== previousRoster) {
+        previousRoster = signature;
+        room.dispatchEvent(new CustomEvent('lumiere:roster-update', {detail: sorted}));
+      }
+      return;
+    }
     const present = new Set(sorted.map(member => String(member.user_id)));
     let changed = false;
     for (const [id, row] of rows) {

@@ -1,9 +1,13 @@
 'use strict';
-(() => {
+(function init(event) {
+  if (!event && (document.readyState === 'loading' || document.readyState === 'interactive')) {
+    document.addEventListener('DOMContentLoaded', init, {once: true});
+    return;
+  }
   const video = document.getElementById('player');
   if (!video) return;
   const wrap = video.closest('.player-wrap');
-  if (!wrap) return;
+  if (!wrap || wrap.dataset.vuePlayer === 'true') return;
   const controls = wrap.querySelector('.player-controls');
   const center = wrap.querySelector('.player-center');
   const range = wrap.querySelector('.player-range');

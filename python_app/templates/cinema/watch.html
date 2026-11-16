@@ -1,6 +1,6 @@
-{% extends 'base.html' %}{% load static %}
+{% extends 'base.html' %}{% load static frontend_assets %}
 {% block title %}Đang xem {{ episode.movie.title }} · Lumière{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=1">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=vue-viewing-1">{% endblock %}
 
 {% block content %}
 <section class="content-section watch-page">
@@ -67,10 +67,10 @@
 </section>
 {% endblock %}
 
-{% block scripts %}
+{% block scripts %}{% frontend_assets 'viewing' %}
 <script src="{% static 'vendor/hls.min.js' %}" defer></script>
 <script src="{% static 'player.js' %}?v=watch-next-1" defer></script>
-<script src="{% static 'player-controls.js' %}?v=watch-next-1" defer></script>
-<script src="{% static 'caption-panel.js' %}?v=watch-next-1" defer></script>
-{% if next_episode %}<script src="{% static 'watch-next.js' %}?v=1" defer></script>{% endif %}
+<script src="{% static 'player-controls.js' %}?v=vue-viewing-1" defer></script>
+<script src="{% static 'caption-panel.js' %}?v=vue-viewing-1" defer></script>
+{% if next_episode %}<script src="{% static 'watch-next.js' %}?v=vue-viewing-1" defer></script>{% endif %}
 {% endblock %}

@@ -1,8 +1,8 @@
 /* Shared disclosure navigation; panels escape the scrollable navigation rail. */
-(() => {
+document.addEventListener('DOMContentLoaded', () => {
   'use strict';
   const header = document.querySelector('.site-header');
-  if (!header) return;
+  if (!header || header.hasAttribute('data-vue-navigation')) return;
 
   const navigation = header.querySelector('.main-nav');
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
@@ -131,4 +131,4 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) disclosures.forEach(disclosure => setOpen(disclosure, false));
   });
-})();
+}, {once: true});

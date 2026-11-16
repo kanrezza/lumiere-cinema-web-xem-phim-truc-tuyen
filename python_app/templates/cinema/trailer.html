@@ -1,4 +1,4 @@
-{% extends 'base.html' %}{% load static %}
+{% extends 'base.html' %}{% load static frontend_assets %}
 {% block title %}Trailer {{ movie.title }} · Lumière{% endblock %}
 {% block content %}
 <section class="content-section trailer-page">
@@ -8,6 +8,7 @@
     <div class="trailer-tags"><span class="trailer-label">Trailer</span>{% if movie.is_cinema_release %}<span class="cinema-tag">Chiếu rạp</span>{% endif %}{% if not movie.ready_episode_id %}<span class="trailer-waiting">Chưa có bản xem</span>{% endif %}</div>
   </header>
   <div class="trailer-media" data-trailer-player>
+    <div data-vue-trailer hidden></div>
     {% if movie.trailer_source_kind == 'file' %}
     <video class="trailer-video" controls playsinline preload="metadata"{% if movie.backdrop %} poster="{{ movie.backdrop.url }}"{% elif movie.poster %} poster="{{ movie.poster.url }}"{% endif %} aria-label="Trailer {{ movie.title }}">
       <source src="{{ movie.trailer_file.url }}" type="video/mp4">
@@ -28,3 +29,4 @@
   </div>
 </section>
 {% endblock %}
+{% block scripts %}{% frontend_assets 'viewing' %}{% endblock %}
