@@ -1,15 +1,32 @@
-# Lumière · Nền tảng xem phim trực tuyến
+# Lumière
 
-Lumière là ứng dụng xem phim và tổ chức phòng chiếu chung, với Django ở backend và Vue 3 + TypeScript cho các tương tác trên web người xem và Lumière Studio. Django dựng HTML ban đầu, xác thực phiên và xử lý biểu mẫu. [Mã ứng dụng](python_app/)
+**Nền tảng xem phim trực tuyến và tổ chức phòng xem chung.** Lumière cung cấp thư viện phim, trình phát có phụ đề và trải nghiệm xem cùng bạn bè. Lumière Studio là không gian quản trị danh mục, thành viên và hoạt động cộng đồng.
 
-- **Khám phá phim:** Tìm kiếm tiếng Việt không dấu, lọc theo thể loại, quốc gia, năm và tình trạng có bản xem. Có trang diễn viên, trailer, điểm IMDb và đánh giá của người xem.
-- **Xem phim:** Phát video HLS, chọn phụ đề SRT/WebVTT, lưu phim vào tủ phim và xem tiếp từ vị trí đã lưu. Có giao diện sáng và tối.
-- **VIP và xem chung:** Có gói VIP tháng/năm và tích hợp VNPay. Chủ phòng có thể đồng bộ phát phim, đặt mật khẩu, duyệt khách và quản lý quyền bật mic. Thành viên có thể chat hoặc tham gia thoại.
-- **Quản trị:** Lumière Studio theo dõi hoạt động và báo lỗi. Django Admin quản lý phim, tập, phụ đề, tài khoản và giao dịch. Bình luận bị gắn cờ được đưa vào hàng chờ để quản trị viên duyệt.
+[Cài đặt trên máy](#cài-đặt-trên-máy) · [Thử phát phim](#thử-phát-phim) · [Kiểm thử](#kiểm-thử) · [Tài liệu kỹ thuật](python_app/README.md)
 
-## Chạy trên máy
+## Tính năng
 
-Cần **Python 3.12 trở lên** và **Node.js 22.12 trở lên** để build frontend. Các lệnh dưới đây dùng Bash trên macOS, Linux hoặc WSL. Cài thêm **FFmpeg** có bộ mã hóa `libx264` và **ffprobe** trong `PATH` để tạo video demo hoặc xử lý video tải lên.
+| Khu vực | Chức năng |
+| --- | --- |
+| **Khám phá phim** | Tìm theo tên phim hoặc diễn viên, hỗ trợ tiếng Việt không dấu. Kết hợp bộ lọc thể loại, quốc gia, năm, phim chiếu rạp và tình trạng có bản xem. Trang chi tiết hiển thị trailer, điểm IMDb khi có dữ liệu và đánh giá cộng đồng. |
+| **Trình phát** | Phát HLS, tua ±10 giây, chọn phụ đề SRT/WebVTT, tiếp tục từ vị trí đã lưu và chuyển tập. Có thể bật dịch vụ nhận dạng lời thoại và dịch phụ đề Việt – Anh. |
+| **Tài khoản** | Lưu phim vào tủ phim, quản lý lịch sử xem, đổi ảnh đại diện và chọn giao diện sáng hoặc tối. |
+| **Phòng xem chung** | Đồng bộ phát, tạm dừng và tua theo chủ phòng. Phòng có chat, thoại WebRTC, tùy chọn mật khẩu và duyệt thành viên. Chủ phòng có thể khóa mic của từng thành viên. |
+| **Thành viên VIP** | Gói tháng và năm, quyền xem phim VIP và tạo phòng xem chung. Thanh toán tích hợp VNPay. |
+| **Lumière Studio** | Theo dõi thư viện, người dùng, giao dịch và báo lỗi. Xem bình luận và đánh giá theo từng phim. Lọc bình luận theo lý do gắn cờ và duyệt trước khi hiển thị. |
+
+## Kiến trúc
+
+- **Python và Django** xử lý xác thực, phân quyền và dữ liệu. Django Templates dựng HTML ban đầu.
+- **Vue 3, TypeScript và CSS** xây dựng giao diện người xem và Studio. Vite đóng gói mã theo nhóm trang để Django nạp qua manifest. Khi chạy local, chỉ cần khởi động Django sau khi build frontend.
+- **SQLite** là cơ sở dữ liệu mặc định khi chạy local. Có thể cấu hình **MySQL** và dùng **Redis** cho giới hạn tần suất dùng chung khi triển khai.
+- **FFmpeg** chuyển mã video sang HLS. **HLS.js** hỗ trợ phát trên trình duyệt và **WebRTC** truyền thoại trong phòng xem. Máy chủ kiểm tra quyền trước khi cấp liên kết phát có thời hạn.
+
+## Cài đặt trên máy
+
+Dùng **Python 3.12+**, **Node.js 22.12+** (kèm npm) và Git. Để tạo video mẫu hoặc xử lý tệp tải lên, cần thêm **FFmpeg** có bộ mã hóa `libx264` và **ffprobe** trong `PATH`. Các lệnh dưới đây dùng được trong Bash hoặc Zsh trên macOS, Linux và WSL.
+
+### 1. Cài thư viện và build frontend
 
 ```bash
 git clone https://github.com/kanrezza/lumiere-cinema-web-xem-phim-truc-tuyen.git
@@ -20,6 +37,15 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 
 test -f .env || cp .env.example .env
+npm --prefix frontend ci
+npm --prefix frontend run build
+```
+
+Nếu đã clone dự án, bắt đầu từ thư mục `python_app/`. File môi trường mẫu bật `DEBUG=1` và để trống `DB_NAME` để dùng SQLite.
+
+### 2. Khởi tạo dữ liệu và chạy web
+
+```bash
 set -a
 source .env
 set +a
@@ -27,62 +53,69 @@ set +a
 python manage.py migrate
 python manage.py seed_demo
 python manage.py createsuperuser
-npm --prefix frontend ci
-npm --prefix frontend run build
 ./run-local.sh
 ```
 
-Nếu đã có bản sao dự án, bắt đầu từ bước vào `python_app/` và giữ file `.env` hiện có. Để trống `DB_NAME` để dùng SQLite tại `python_app/db.sqlite3`. Script `run-local.sh` tự nạp `.env` khi khởi động web. Khi mở terminal khác để chạy lệnh `manage.py`, kích hoạt `.venv` và nạp lại `.env` như trên.
+`seed_demo` thêm danh mục phim và gói VIP mẫu. `createsuperuser` yêu cầu bạn tự đặt thông tin đăng nhập cho tài khoản quản trị.
 
 | Trang | Địa chỉ |
 | --- | --- |
 | Trang chào | [127.0.0.1:8000](http://127.0.0.1:8000/) |
-| Khám phá phim | [/browse/](http://127.0.0.1:8000/browse/) |
+| Khám phá | [/browse/](http://127.0.0.1:8000/browse/) |
+| Đăng ký tài khoản người xem | [/accounts/register/](http://127.0.0.1:8000/accounts/register/) |
 | Lumière Studio | [/studio/](http://127.0.0.1:8000/studio/) |
 | Django Admin | [/admin/](http://127.0.0.1:8000/admin/) |
 
-Dùng tài khoản vừa tạo bằng `createsuperuser` để vào Studio và Admin. Đăng ký tài khoản thường trên trang web để thử luồng người xem.
+`run-local.sh` tự nạp `.env`. Khi mở terminal khác để chạy lệnh `manage.py`, vào `python_app/`, kích hoạt `.venv` và nạp lại `.env` theo bước 2. Sau khi sửa mã trong `frontend/src/`, chạy lại `npm --prefix frontend run build`.
 
-Django phục vụ tệp Vue + TypeScript đã build theo nhóm trang. Hãy build lại sau khi sửa mã trong `frontend/src/`. HTML từ Django cung cấp liên kết và biểu mẫu gốc, còn trình phát và phòng xem cần bundle frontend. [Mở Lumière](http://127.0.0.1:8000/)
+## Thử phát phim
 
-## Thử phát và tải phim lên
-
-`seed_demo` tạo danh mục phim và gói VIP minh họa. Để có video phát thử, mở terminal thứ hai, vào `python_app/`, kích hoạt `.venv` và nạp `.env`, rồi chạy một trong hai lệnh sau với `DEBUG=1`:
+Chạy các lệnh sau trong `python_app/` với `DEBUG=1`. Mỗi lệnh có thể chạy riêng.
 
 ```bash
-python manage.py make_demo_video   # Clip 20 giây cho Sau hoàng hôn
-python manage.py make_demo_series  # Hai tập demo 30 giây, có phụ đề Việt và Anh
+python manage.py make_demo_video   # Sau hoàng hôn · video mẫu 20 giây
+python manage.py make_demo_series  # Trạm ánh sáng (Demo) · hai tập có phụ đề Việt/Anh
 ```
 
-Đăng nhập rồi mở phim demo trong **Khám phá phim**. Với phim của bạn, vào **Admin → Phim** để tạo và công khai thông tin phim, rồi vào **Tập phim** để tải file MP4, MKV, MOV hoặc WebM lên. Chạy `python manage.py process_videos` sau khi tải lên để chuyển mã. Tập có thể phát khi chuyển sang trạng thái sẵn sàng (`ready`).
+Đăng nhập bằng tài khoản vừa tạo, mở **Khám phá** và chọn phim mẫu. Với bộ phim hai tập, bạn có thể thử đổi phụ đề, tua, chuyển tập và kiểm tra tiến độ bằng cách rời trang rồi mở lại.
 
-Video gốc và HLS được lưu riêng. Quyền phát được kiểm tra trên máy chủ và liên kết phát có thời hạn. Cơ chế này không thay thế DRM.
+Để phát phim của bạn, vào **Admin → Phim** để tạo và công khai thông tin phim, sau đó tải tệp MP4, MKV, MOV hoặc WebM lên trong **Tập phim**. Chạy `python manage.py process_videos` để chuyển mã. Tập sẽ phát được khi có trạng thái **Sẵn sàng** và tài khoản có quyền xem.
 
-## Cấu hình thêm
+## Cấu hình và vận hành
 
-- **MySQL và triển khai:** Đặt các biến `DB_*` để dùng MySQL. Môi trường `DEBUG=0` cần Redis. Có cấu hình mẫu cho Nginx, Gunicorn và worker trong [`python_app/deploy/`](python_app/deploy/).
-- **VNPay:** Điền thông tin merchant Sandbox và cấu hình địa chỉ HTTPS nhận IPN để thử thanh toán. Thông tin merchant và khóa bí mật được giữ trong môi trường riêng.
-- **Phụ đề tự động và thoại:** Nhận dạng lời thoại và dịch phụ đề dùng hai dịch vụ local tùy chọn. Thoại qua WebRTC có thể cấu hình máy chủ STUN/TURN khi thành viên kết nối từ các mạng khác nhau.
+| Nhu cầu | Thiết lập |
+| --- | --- |
+| **Cơ sở dữ liệu** | Để trống `DB_NAME` cho SQLite, hoặc điền nhóm `DB_*` cho MySQL. |
+| **Triển khai** | Dùng khóa Django riêng, cấu hình tên miền HTTPS và `REDIS_URL` khi chạy với `DEBUG=0`. Build frontend trước `collectstatic`. Các cấu hình mẫu Nginx, Gunicorn và worker nằm trong [deploy/](python_app/deploy/). |
+| **Thanh toán thử** | Cấu hình merchant VNPay Sandbox và endpoint HTTPS nhận IPN. |
+| **Phụ đề tự động** | Cấu hình và chạy các dịch vụ nhận dạng lời thoại, dịch phụ đề local để bật hai chức năng trong trình phát. |
+| **Thoại qua mạng** | Triển khai HTTPS và dùng `ROOM_VOICE_ICE_SERVERS` để khai báo STUN/TURN khi mạng của người dùng cần. |
 
-Xem [hướng dẫn kỹ thuật](python_app/README.md) để thiết lập các tích hợp trên, nhập dữ liệu cũ hoặc triển khai.
+Xem [mẫu cấu hình](python_app/.env.example) và [tài liệu kỹ thuật](python_app/README.md) để thiết lập từng tích hợp. Giữ khóa bí mật, thông tin merchant và tệp `.env` bên ngoài Git.
 
 ## Kiểm thử
 
-Chạy trong `python_app/` với môi trường Python đã kích hoạt và `.env` đã được nạp:
+Chạy từ `python_app/` sau khi cài môi trường Python, nạp `.env` và cài các gói npm.
 
 ```bash
+npm --prefix frontend run build
+node --test tests/*.test.cjs
 python manage.py check
 python manage.py test cinema cinema.audit_experience_cases
 ```
 
-Sau khi cài gói frontend, chạy `node --test tests/*.test.cjs` để kiểm tra mã TypeScript cho trình phát, phụ đề và phòng xem.
+Lệnh build kiểm tra kiểu TypeScript trước khi đóng gói. Bộ kiểm thử Django gồm các luồng danh mục, tài khoản, quyền phát phim, phụ đề, thanh toán, kiểm duyệt và phòng xem chung.
 
-## Cấu trúc dự án
+## Cấu trúc mã nguồn
 
-- [`python_app/cinema/`](python_app/cinema/) — Mô hình dữ liệu, nghiệp vụ, quản trị, migrations, lệnh xử lý video và kiểm thử Django.
-- [`python_app/config/`](python_app/config/) — Cấu hình Django và định tuyến.
-- [`python_app/templates/`](python_app/templates/) và [`python_app/static/`](python_app/static/) — Giao diện và tài nguyên trình duyệt.
-- Mã Vue, TypeScript và cấu hình Vite cho giao diện người xem và Studio. [`python_app/frontend/`](python_app/frontend/)
-- [`python_app/services/`](python_app/services/) — Dịch vụ nhận dạng và dịch phụ đề tùy chọn.
+| Thư mục | Vai trò |
+| --- | --- |
+| [`python_app/cinema/`](python_app/cinema/) | Mô hình dữ liệu, nghiệp vụ, Django Admin, migrations và kiểm thử Django. |
+| [`python_app/config/`](python_app/config/) | Cấu hình dự án và định tuyến. |
+| [`python_app/frontend/`](python_app/frontend/) | Mã Vue, TypeScript và cấu hình Vite. |
+| [`python_app/templates/`](python_app/templates/) và [`python_app/static/`](python_app/static/) | HTML do Django dựng, CSS và tài nguyên trình duyệt. |
+| [`python_app/services/`](python_app/services/) | Dịch vụ nhận dạng và dịch phụ đề tùy chọn. |
 
-Phát triển bởi **Trần Đình Danh** · Phenikaa University.
+**Trần Đình Danh** · Phenikaa University
+
+[Nguồn hình ảnh và clip minh họa](python_app/static/imagery/SOURCES.md)
