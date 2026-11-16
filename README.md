@@ -1,6 +1,6 @@
 # Lumière · Nền tảng xem phim trực tuyến
 
-Lumière là ứng dụng Python/Django để khám phá phim, xem trực tuyến và tổ chức phòng xem chung. Trên trang Khám phá, Vue 3 và TypeScript điều khiển phim nổi bật, các hàng phim, bộ lọc và phân trang. Django dựng nội dung ban đầu. [Mã ứng dụng](python_app/)
+Lumière là ứng dụng xem phim và tổ chức phòng chiếu chung, với Django ở backend và Vue 3 + TypeScript cho các tương tác trên web người xem và Lumière Studio. Django dựng HTML ban đầu, xác thực phiên và xử lý biểu mẫu. [Mã ứng dụng](python_app/)
 
 - **Khám phá phim:** Tìm kiếm tiếng Việt không dấu, lọc theo thể loại, quốc gia, năm và tình trạng có bản xem. Có trang diễn viên, trailer, điểm IMDb và đánh giá của người xem.
 - **Xem phim:** Phát video HLS, chọn phụ đề SRT/WebVTT, lưu phim vào tủ phim và xem tiếp từ vị trí đã lưu. Có giao diện sáng và tối.
@@ -41,14 +41,14 @@ Nếu đã có bản sao dự án, bắt đầu từ bước vào `python_app/` 
 
 Dùng tài khoản vừa tạo bằng `createsuperuser` để vào Studio và Admin. Đăng ký tài khoản thường trên trang web để thử luồng người xem.
 
-Để dùng Vue trên trang Khám phá, cài Node.js 22.12 trở lên và chạy trong `python_app/`.
+Để build frontend Vue, cài Node.js 22.12 trở lên và chạy trong `python_app/`.
 
 ```bash
 npm --prefix frontend ci
 npm --prefix frontend run build
 ```
 
-Django tự phục vụ tệp đã build. Khi chưa build, trang dùng các điều khiển và bộ lọc đi kèm giao diện Django. [Mở Khám phá](http://127.0.0.1:8000/browse/)
+Django phục vụ tệp đã build theo nhóm trang. Khi chưa build, các trang tải HTML và điều khiển dự phòng của Django. [Mở Lumière](http://127.0.0.1:8000/)
 
 ## Thử phát và tải phim lên
 
@@ -87,7 +87,7 @@ Nếu đã cài Node.js, chạy thêm `node --test tests/*.test.cjs` để kiể
 - [`python_app/cinema/`](python_app/cinema/) — Mô hình dữ liệu, nghiệp vụ, quản trị, migrations, lệnh xử lý video và kiểm thử Django.
 - [`python_app/config/`](python_app/config/) — Cấu hình Django và định tuyến.
 - [`python_app/templates/`](python_app/templates/) và [`python_app/static/`](python_app/static/) — Giao diện và tài nguyên trình duyệt.
-- Mã Vue, TypeScript và cấu hình Vite cho trang Khám phá. [`python_app/frontend/`](python_app/frontend/)
+- Mã Vue, TypeScript và cấu hình Vite cho giao diện người xem và Studio. [`python_app/frontend/`](python_app/frontend/)
 - [`python_app/services/`](python_app/services/) — Dịch vụ nhận dạng và dịch phụ đề tùy chọn.
 
 Phát triển bởi **Trần Đình Danh** · Phenikaa University.

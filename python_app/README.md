@@ -1,6 +1,6 @@
 # Hướng dẫn kỹ thuật Lumière
 
-Lumière dùng Python và Django cho máy chủ, Django Templates để dựng nội dung ban đầu và Vue 3 với TypeScript cho tương tác trên trang Khám phá. Tài liệu này trình bày các tính năng, tích hợp và cách vận hành ứng dụng. [Hướng dẫn cài đặt nhanh](../README.md)
+Lumière dùng Python và Django cho máy chủ, Django Templates để dựng nội dung ban đầu và Vue 3 với TypeScript cho phần tương tác ở trang công khai, tài khoản, phòng xem và Studio. Tài liệu này trình bày các tính năng, tích hợp và cách vận hành ứng dụng. [Hướng dẫn cài đặt nhanh](../README.md)
 
 ## Đã có trong bản này
 
@@ -20,6 +20,8 @@ Lumière dùng Python và Django cho máy chủ, Django Templates để dựng n
 ## Chạy trên máy
 
 Yêu cầu Python 3.12 trở lên và FFmpeg/ffprobe trong `PATH`. Các gói Python được khóa trong `requirements.txt`. Để build Vue, dùng Node.js 22.12 trở lên và chạy `npm --prefix frontend ci` rồi `npm --prefix frontend run build` từ `python_app/`.
+
+Vite build các mục tải riêng cho điều hướng chung, Khám phá, trang tài khoản, trình phát/phòng xem và Studio. Django dùng manifest để nạp đúng tệp cho mỗi trang. HTML ban đầu giữ các liên kết, biểu mẫu, mã CSRF và thông báo kiểm tra dữ liệu từ máy chủ. Các thành phần của trình duyệt phối hợp với mã phát HLS và kết nối WebRTC hiện có.
 
 ```bash
 cd python_app
