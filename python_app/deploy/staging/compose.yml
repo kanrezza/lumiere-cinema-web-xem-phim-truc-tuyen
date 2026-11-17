@@ -1,0 +1,122 @@
+name: lumiere-staging
+
+services:
+  gateway:
+    image: caddy:2-alpine
+    environment:
+      XDG_DATA_HOME: /data
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${STAGING_PORT:-8443}:443"
+    networks:
+      gateway:
+        ipv4_address: 172.30.225.2
+    volumes:
+      - ./deploy/staging/Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificate:/data
+      - static:/srv/static:ro
+      - public_media:/srv/media:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - test -s /data/caddy/pki/authorities/local/root.crt && wget -q -O /dev/null https://127.0.0.1/
+      interval: 3s
+      timeout: 5s
+      retries: 15
+
+  app:
+    image: lumiere-staging-app:local
+    pull_policy: never
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    environment:
+      DEBUG: "0"
+      LUMIERE_STAGING: "1"
+      DJANGO_SECRET_KEY: ${STAGING_DJANGO_SECRET_KEY:?Run python3 init_env.py}
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      PUBLIC_ORIGIN: https://localhost:${STAGING_PORT:-8443}
+      CSRF_TRUSTED_ORIGINS: https://localhost:${STAGING_PORT:-8443},https://127.0.0.1:${STAGING_PORT:-8443}
+      TRUST_PROXY: "1"
+      TRUSTED_PROXY_IPS: 172.30.225.2
+      DB_NAME: lumiere_staging
+      DB_USER: lumiere
+      DB_PASSWORD: ${STAGING_DB_PASSWORD:?Run python3 init_env.py}
+      DB_HOST: db
+      REDIS_URL: redis://:${STAGING_REDIS_PASSWORD:?Run python3 init_env.py}@cache:6379/0
+      EMAIL_BACKEND: django.core.mail.backends.dummy.EmailBackend
+      VNPAY_TMN_CODE: LUMIFIXT
+      VNPAY_HASH_SECRET: ${STAGING_PAYMENT_SECRET:?Run python3 init_env.py}
+      VNPAY_URL: https://payments.example.invalid/vnpay-fixture
+      STAGING_HOST_PASSWORD: ${STAGING_HOST_PASSWORD:?Run python3 init_env.py}
+      STAGING_VIEWER_PASSWORD: ${STAGING_VIEWER_PASSWORD:?Run python3 init_env.py}
+    networks:
+      gateway:
+        ipv4_address: 172.30.225.3
+      data: {}
+    volumes:
+      - static:/app/staticfiles
+      - public_media:/app/public_media
+      - private_media:/app/private_media
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "from urllib.request import Request, urlopen; urlopen(Request('http://127.0.0.1:8000/', headers={'X-Forwarded-Proto': 'https'}), timeout=5).close()"
+      interval: 5s
+      timeout: 7s
+      retries: 25
+      start_period: 45s
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: lumiere_staging
+      MYSQL_USER: lumiere
+      MYSQL_PASSWORD: ${STAGING_DB_PASSWORD:?Run python3 init_env.py}
+      MYSQL_ROOT_PASSWORD: ${STAGING_DB_ROOT_PASSWORD:?Run python3 init_env.py}
+    networks:
+      - data
+    volumes:
+      - database:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'MYSQL_PWD="$$MYSQL_PASSWORD" mysql --protocol=tcp -h 127.0.0.1 -u "$$MYSQL_USER" "$$MYSQL_DATABASE" -Nse "SELECT 1"'
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 25s
+
+  cache:
+    image: redis:7.4-alpine
+    environment:
+      REDISCLI_AUTH: ${STAGING_REDIS_PASSWORD:?Run python3 init_env.py}
+    command: ["sh", "-c", 'exec redis-server --save "" --appendonly no --requirepass "$$REDISCLI_AUTH"']
+    networks:
+      - data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+networks:
+  gateway:
+    ipam:
+      config:
+        - subnet: 172.30.225.0/28
+  data:
+    internal: true
+
+volumes:
+  certificate:
+  static:
+  public_media:
+  private_media:
+  database:
