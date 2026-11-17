@@ -67,6 +67,8 @@ python manage.py createsuperuser
 | Lumière Studio | [/studio/](http://127.0.0.1:8000/studio/) |
 | Django Admin | [/admin/](http://127.0.0.1:8000/admin/) |
 | Bảo mật WAF · superuser | [/admin/security/](http://127.0.0.1:8000/admin/security/) |
+| Chính sách quyền riêng tư | [/privacy/](http://127.0.0.1:8000/privacy/) |
+| Yêu cầu quyền riêng tư · superuser | [/admin/privacy/](http://127.0.0.1:8000/admin/privacy/) |
 
 `run-local.sh` tự nạp `.env`. Khi mở terminal khác để chạy lệnh `manage.py`, vào `python_app/`, kích hoạt `.venv` và nạp lại `.env` theo bước 2. Sau khi sửa mã trong `frontend/src/`, chạy lại `npm --prefix frontend run build`.
 
@@ -94,6 +96,12 @@ python manage.py make_demo_series  # Trạm ánh sáng (Demo) · hai tập có p
 | **Thoại qua mạng** | Triển khai HTTPS và dùng `ROOM_VOICE_ICE_SERVERS` để khai báo STUN/TURN khi mạng của người dùng cần. |
 
 Xem [mẫu cấu hình](python_app/.env.example) và [tài liệu kỹ thuật](python_app/README.md) để thiết lập từng tích hợp. Giữ khóa bí mật, thông tin merchant và tệp `.env` bên ngoài Git.
+
+### Phát hành và phục hồi
+
+- GitHub Actions chạy build, kiểm thử và xác minh staging HTTPS qua Docker Compose. [Staging và CI](python_app/docs/STAGING.md)
+- `backup_lumiere`, `restore_lumiere` và `drill_lumiere_restore` sao lưu database và hai kho media, xác minh bản sao và thử phát từ bản phục hồi. [Sao lưu và phục hồi](python_app/docs/BACKUP_RESTORE.md)
+- Người dùng gửi yêu cầu xử lý hồ sơ trong cài đặt tài khoản. Superuser xử lý tại Studio. Đặt `PRIVACY_CONTACT_EMAIL` theo địa chỉ người vận hành. [Quyền riêng tư và xử lý sự cố](python_app/docs/PRIVACY_INCIDENTS.md)
 
 ## Bảo mật WAF
 
