@@ -1,0 +1,247 @@
+{% extends 'admin/base_site.html' %}
+{% load static cinema_format %}
+
+{% block responsive %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'waf-dashboard.css' %}">
+{% endblock %}
+{% block breadcrumbs %}
+  <div class="breadcrumbs"><a href="{% url 'studio' %}">Tổng quan</a> / Bảo mật WAF</div>
+{% endblock %}
+{% block content_title %}{% endblock %}
+{% block content %}
+<section class="studio-dashboard waf-dashboard" aria-labelledby="waf-title">
+  <div class="waf-heading">
+    <div class="waf-heading-icon"><svg class="studio-icon" aria-hidden="true"><use href="#s-shield"/></svg></div>
+    <div>
+      <h1 id="waf-title">Bảo mật WAF</h1>
+      <p>Điều tra chuỗi hành vi bất thường, truy vấn hiếm và yêu cầu bị chặn.</p>
+    </div>
+  </div>
+
+  <div class="sd-metrics waf-metrics" aria-label="Trạng thái bảo mật">
+    <article class="sd-metric waf-mode waf-mode-{{ waf_mode }}">
+      <div class="sd-metric-top">Chế độ WAF</div>
+      {% if waf_mode == 'enforce' %}
+        <strong>Thực thi</strong>
+        <p class="sd-metric-bottom">Chặn yêu cầu khớp quy tắc bảo mật.</p>
+      {% elif waf_mode == 'off' %}
+        <strong>Đã tắt</strong>
+        <p class="sd-metric-bottom">Hiển thị lịch sử sự kiện đã ghi.</p>
+      {% else %}
+        <strong>Giám sát</strong>
+        <p class="sd-metric-bottom">Ghi cảnh báo. Giới hạn tần suất hiện có vẫn hoạt động.</p>
+      {% endif %}
+    </article>
+    <article class="sd-metric waf-observed">
+      <div class="sd-metric-top">Cảnh báo đã ghi</div>
+      <strong>{{ waf_totals.observed|vnd }}</strong>
+      <p class="sd-metric-bottom">Trong 24 giờ qua</p>
+    </article>
+    <article class="sd-metric waf-blocked">
+      <div class="sd-metric-top">Lượt chặn đã ghi</div>
+      <strong>{{ waf_totals.blocked|vnd }}</strong>
+      <p class="sd-metric-bottom">Trong 24 giờ qua</p>
+    </article>
+    <article class="sd-metric waf-high-risk">
+      <div class="sd-metric-top">Cảnh báo ưu tiên cao</div>
+      <strong>{{ waf_totals.high_risk|vnd }}</strong>
+      <p class="sd-metric-bottom">Từ {{ waf_high_risk_score }} điểm trong 24 giờ qua</p>
+    </article>
+  </div>
+
+  <section class="sd-panel waf-behavior" aria-labelledby="waf-behavior-title">
+    <div class="sd-panel-heading">
+      <div>
+        <h2 id="waf-behavior-title">Phân tích chuỗi hành vi</h2>
+        <p>Đối chiếu tín hiệu từ cùng một nguồn trong khoảng {{ waf_behavior_window_minutes }} phút. Số liệu tính trong 24 giờ qua.</p>
+      </div>
+      {% if waf_behavior_mitigation %}
+        <span class="sd-status waf-baseline-ready">Đang thực thi</span>
+      {% elif waf_mode == 'off' %}
+        <span class="sd-status waf-baseline-learning">Đã tắt</span>
+      {% else %}
+        <span class="sd-status waf-baseline-learning">Chỉ giám sát</span>
+      {% endif %}
+    </div>
+    <div class="waf-behavior-body">
+      <dl class="waf-behavior-counts" aria-label="Số sự kiện đã ghi trong 24 giờ qua">
+        <div>
+          <dt>Chuỗi hành vi đã ghi</dt>
+          <dd>{{ waf_totals.behavior_incidents|vnd }}</dd>
+        </div>
+        <div>
+          <dt>Từ chối do giới hạn tạm</dt>
+          <dd>{{ waf_totals.behavior_rejections|vnd }}</dd>
+        </div>
+      </dl>
+      <p class="waf-behavior-policy">Khi giới hạn tạm được bật, nguồn có nhiều tín hiệu rủi ro có thể nhận <code>429</code> và chỉ dẫn thử lại trong tối đa {{ waf_cooldown_seconds }} giây. Chính sách áp dụng cho yêu cầu <code>GET</code> và <code>HEAD</code> chưa đăng nhập đến trang công khai và danh mục.</p>
+    </div>
+  </section>
+
+  <section class="sd-panel waf-model" aria-labelledby="waf-model-title">
+    <div class="sd-panel-heading">
+      <div>
+        <h2 id="waf-model-title">Mô hình phát hiện bất thường</h2>
+        <p>Mô hình dựa trên {{ waf_baseline_hours }} khung giờ đã kết thúc, cần tối thiểu {{ waf_min_samples }} mẫu cho mỗi trang.</p>
+      </div>
+    </div>
+    {% if waf_mode == 'off' %}
+      <p class="waf-model-message">Đã tắt cùng WAF.</p>
+    {% elif waf_model_status == None %}
+      <p class="waf-model-message">Tạm thời không đọc được dữ liệu mẫu.</p>
+    {% else %}
+      <ul class="waf-baselines">
+        {% for route in waf_model_status %}
+          <li>
+            <strong>{{ route.label }}</strong>
+            <span class="waf-baseline-samples">{{ route.samples|vnd }} mẫu</span>
+            {% if route.ready %}
+              <span class="sd-status waf-baseline-ready">Sẵn sàng</span>
+            {% else %}
+              <span class="sd-status waf-baseline-learning">Đang thu thập mẫu</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+
+  <section class="sd-panel" aria-labelledby="waf-events-title">
+    <div class="sd-panel-heading">
+      <div>
+        <h2 id="waf-events-title">Nhật ký sự kiện</h2>
+        <p>Điểm 0–100 dùng để ưu tiên xem xét. Chọn mã định danh nguồn để xem các sự kiện có liên quan.</p>
+      </div>
+    </div>
+    {% if waf_filters.source %}
+      <div class="waf-source-filter">
+        <span>Đang xem nguồn <code>{{ waf_filters.source }}</code></span>
+        <a href="{% url 'admin:waf' %}{% if waf_filters|length > 1 %}{% querystring waf_filters source=None %}{% endif %}">Bỏ lọc theo nguồn</a>
+      </div>
+    {% endif %}
+    <form method="get" action="{% url 'admin:waf' %}" class="waf-filters" aria-label="Lọc sự kiện bảo mật">
+      <label for="waf-action">
+        Xử lý
+        <select name="action" id="waf-action">
+          <option value="">Tất cả</option>
+          {% for value, label in waf_actions %}
+            <option value="{{ value }}"{% if waf_filters.action == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label for="waf-reason">
+        Lý do
+        <select name="reason" id="waf-reason">
+          <option value="">Tất cả</option>
+          {% for value, label in waf_reasons %}
+            <option value="{{ value }}"{% if waf_filters.reason == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label for="waf-risk">
+        Điểm bất thường
+        <select name="risk" id="waf-risk">
+          <option value="">Tất cả</option>
+          <option value="high"{% if waf_filters.risk == 'high' %} selected{% endif %}>Từ {{ waf_high_risk_score }} điểm</option>
+          <option value="scored"{% if waf_filters.risk == 'scored' %} selected{% endif %}>Dưới {{ waf_high_risk_score }} điểm</option>
+          <option value="unscored"{% if waf_filters.risk == 'unscored' %} selected{% endif %}>Chưa chấm điểm</option>
+        </select>
+      </label>
+      <label for="waf-source">
+        Mã định danh nguồn
+        <input type="text" id="waf-source" name="source" value="{{ waf_filters.source|default:'' }}" maxlength="16" pattern="[0-9a-f]{16}" title="Mã gồm 16 ký tự hex viết thường" autocomplete="off" autocapitalize="off" spellcheck="false">
+      </label>
+      <div class="waf-filter-actions">
+        <button class="sd-button sd-button-primary" type="submit">Lọc</button>
+        {% if waf_filters %}<a class="sd-button" href="{% url 'admin:waf' %}">Xóa bộ lọc</a>{% endif %}
+      </div>
+    </form>
+
+    {% if waf_page.object_list %}
+      <div class="sd-table-scroll" role="region" aria-labelledby="waf-events-title" tabindex="0">
+        <table class="sd-video-table waf-table">
+          <thead>
+            <tr>
+              <th scope="col">Thời điểm</th>
+              <th scope="col">Xử lý</th>
+              <th scope="col">Điểm</th>
+              <th scope="col">Lý do</th>
+              <th scope="col">Khu vực</th>
+              <th scope="col">Phương thức</th>
+              <th scope="col">Mã định danh nguồn</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for event in waf_page %}
+              <tr>
+                <td><time datetime="{{ event.created_at|date:'c' }}">{{ event.created_at|date:'d/m/Y H:i:s' }}</time></td>
+                <td><span class="sd-status waf-action waf-action-{{ event.action }}">{{ event.get_action_display }}</span></td>
+                <td>
+                  {% if event.risk_score == None %}
+                    <span class="waf-unscored" aria-label="Chưa chấm điểm" role="img">—</span>
+                  {% else %}
+                    <span class="waf-score{% if event.risk_score >= waf_high_risk_score %} waf-score-high{% endif %}">{{ event.risk_score }}<small>/100</small></span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% with evidence=event.behavior_evidence signals=event.model_signal_labels %}
+                    {% if evidence or signals or event.baseline_samples != None %}
+                      <details class="waf-explanation">
+                        <summary>{{ event.get_reason_display }}</summary>
+                        <ul>
+                          {% for label, count in evidence %}
+                            <li>{% if label in signals %}<strong>{{ label }}</strong>{% else %}{{ label }}{% endif %} · {{ count|vnd }}</li>
+                          {% empty %}
+                            {% for signal in signals %}<li>{{ signal }}</li>{% endfor %}
+                          {% endfor %}
+                          {% if event.baseline_samples != None %}<li>So sánh với {{ event.baseline_samples|vnd }} mẫu</li>{% endif %}
+                        </ul>
+                      </details>
+                    {% else %}
+                      {{ event.get_reason_display }}
+                    {% endif %}
+                  {% endwith %}
+                </td>
+                <td>{{ event.get_area_display }}</td>
+                <td><code>{{ event.method }}</code></td>
+                <td>
+                  {% if event.source in waf_source_codes and waf_filters.source != event.source %}
+                    <a class="waf-source-link" href="{% url 'admin:waf' %}?source={{ event.source }}" aria-label="Xem nhật ký của nguồn {{ event.source }}"><code>{{ event.source }}</code></a>
+                  {% else %}
+                    <code>{{ event.source|default:'—' }}</code>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if waf_page.has_other_pages %}
+        <nav class="waf-pages" aria-label="Phân trang nhật ký">
+          <span>Trang {{ waf_page.number }} / {{ waf_page.paginator.num_pages }}</span>
+          <div>
+            {% if waf_page.has_previous %}
+              <a class="sd-button" href="{% querystring waf_filters page=waf_page.previous_page_number %}" rel="prev">Trang trước</a>
+            {% endif %}
+            {% if waf_page.has_next %}
+              <a class="sd-button" href="{% querystring waf_filters page=waf_page.next_page_number %}" rel="next">Trang sau</a>
+            {% endif %}
+          </div>
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="sd-empty">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#s-shield"/></svg>
+        {% if waf_filters %}
+          <strong>Không có sự kiện khớp bộ lọc</strong>
+          <p>Thay đổi bộ lọc để tìm thêm sự kiện.</p>
+        {% else %}
+          <strong>Chưa ghi nhận sự kiện WAF</strong>
+          <p>Yêu cầu được ghi nhận sẽ xuất hiện ở đây.</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

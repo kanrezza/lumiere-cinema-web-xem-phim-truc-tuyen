@@ -49,6 +49,10 @@ def is_studio_user(user):
     return bool(user and user.is_authenticated and user.is_active and user.is_staff)
 
 
+def can_view_waf(user):
+    return is_studio_user(user) and user.is_superuser
+
+
 def can_view(user, model, app='cinema'):
     return is_studio_user(user) and (
         user.has_perm(f'{app}.view_{model}') or user.has_perm(f'{app}.change_{model}')
@@ -82,6 +86,12 @@ def build_navigation(user, path=''):
                 'url': list_url if viewable else reverse(f'admin:{app}_{model}_add'),
                 'active': path.startswith(list_url),
             })
+        if label == 'Hệ thống' and can_view_waf(user):
+            waf_url = reverse('admin:waf')
+            items.append({
+                'label': 'Bảo mật WAF', 'icon': 'shield', 'url': waf_url,
+                'active': path == waf_url,
+            })
         if items:
             sections.append({'label': label, 'items': items})
     return sections
@@ -93,6 +103,7 @@ def build_dashboard_context(user):
         'has_permission': is_studio_user(user),
         'studio_dashboard': True,
         'dashboard_available': False,
+        'can_view_waf': can_view_waf(user),
         'movies_count': None, 'published_movies_count': None, 'draft_count': None,
         'users_count': None, 'vip_count': None,
         'revenue': None, 'paid_count': None,

@@ -373,3 +373,68 @@ class SubtitleTranscription(models.Model):
     class Meta:
         ordering = ['created_at', 'pk']
         constraints = [models.UniqueConstraint(fields=['episode', 'source_key', 'language'], name='unique_episode_transcription_version')]
+
+
+class SecurityEvent(models.Model):
+    class Action(models.TextChoices):
+        OBSERVED = 'observed', 'Cảnh báo'
+        BLOCKED = 'blocked', 'Đã chặn'
+
+    class Reason(models.TextChoices):
+        UNSAFE_PATH = 'unsafe_path', 'Đường dẫn không hợp lệ'
+        REQUEST_TARGET = 'request_target', 'Địa chỉ yêu cầu vượt giới hạn'
+        INVALID_METHOD = 'invalid_method', 'Phương thức không được hỗ trợ'
+        RATE_LIMIT = 'rate_limit', 'Vượt giới hạn tần suất POST'
+        ROUTE_MISS_BURST = 'route_miss_burst', 'Nhiều yêu cầu đến đường dẫn không khả dụng'
+        QUERY_ANOMALY = 'query_anomaly', 'Chuỗi truy vấn khác thường'
+        BEHAVIOR_ANOMALY = 'behavior_anomaly', 'Nhiều tín hiệu bất thường cùng nguồn'
+        BEHAVIOR_COOLDOWN = 'behavior_cooldown', 'Giảm tốc do hành vi bất thường'
+
+    class Area(models.TextChoices):
+        AUTH = 'auth', 'Tài khoản'
+        STUDIO = 'studio', 'Quản trị'
+        CATALOG = 'catalog', 'Danh mục'
+        VIEWING = 'viewing', 'Xem phim'
+        ROOM = 'room', 'Phòng xem'
+        PAYMENT = 'payment', 'Thanh toán'
+        ASSET = 'asset', 'Tài nguyên'
+        OTHER = 'other', 'Khác'
+
+    class Signal(models.TextChoices):
+        LENGTH = 'length', 'Truy vấn dài hiếm gặp'
+        FIELD_COUNT = 'field_count', 'Số trường truy vấn hiếm gặp'
+        COMBINATION = 'combination', 'Độ dài và số trường hiếm khi xuất hiện cùng nhau'
+        ROUTE_MISSES = 'route_misses', 'Đường dẫn không khả dụng'
+        RULE_MATCHES = 'rule_matches', 'Yêu cầu khớp quy tắc WAF'
+        DENIED = 'denied', 'Yêu cầu bị từ chối quyền truy cập'
+        LOGIN_FAILURES = 'login_failures', 'Lần đăng nhập thất bại'
+        QUERY_ANOMALIES = 'query_anomalies', 'Truy vấn có điểm bất thường cao'
+        AREAS = 'areas', 'Khu vực có hoạt động bất thường'
+
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    action = models.CharField(max_length=8, choices=Action.choices)
+    reason = models.CharField(max_length=20, choices=Reason.choices)
+    area = models.CharField(max_length=8, choices=Area.choices)
+    method = models.CharField(max_length=8)
+    source = models.CharField(max_length=16)
+    risk_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    baseline_samples = models.PositiveIntegerField(null=True, blank=True)
+    signals = models.JSONField(default=list, blank=True)
+    behavior_metadata = models.JSONField(default=dict, blank=True)
+
+    @property
+    def model_signal_labels(self):
+        return [signal.label for signal in self.Signal if signal.value in self.signals]
+
+    @property
+    def behavior_evidence(self):
+        return [
+            (signal.label, count)
+            for signal in self.Signal
+            if (count := self.behavior_metadata.get(signal.value, 0)) > 0
+        ]
+
+    class Meta:
+        ordering = ['-created_at', '-pk']
+        constraints = [models.CheckConstraint(condition=models.Q(risk_score__lte=100), name='waf_risk_score_max_100')]
+        indexes = [models.Index(fields=['source', '-created_at'], name='waf_source_time_idx')]

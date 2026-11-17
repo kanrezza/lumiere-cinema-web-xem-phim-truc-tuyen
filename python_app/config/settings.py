@@ -69,6 +69,10 @@ REDIS_URL = os.getenv('REDIS_URL')
 if not DEBUG and not REDIS_URL:
     raise ImproperlyConfigured('Production requires REDIS_URL for shared rate limits.')
 CACHES = {'default': {'BACKEND': 'django_redis.cache.RedisCache', 'LOCATION': REDIS_URL, 'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'}}} if REDIS_URL else {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
+WAF_MODE = os.getenv('WAF_MODE', 'monitor').strip().lower()
+if WAF_MODE not in ('off', 'monitor', 'enforce'):
+    raise ImproperlyConfigured('WAF_MODE must be off, monitor, or enforce.')
+WAF_BEHAVIOR_MITIGATION = os.getenv('WAF_BEHAVIOR_MITIGATION', '1') == '1'
 VNPAY_TMN_CODE = os.getenv('VNPAY_TMN_CODE', '')
 VNPAY_HASH_SECRET = os.getenv('VNPAY_HASH_SECRET', '')
 VNPAY_URL = os.getenv('VNPAY_URL', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html')
