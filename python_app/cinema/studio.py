@@ -92,6 +92,11 @@ def build_navigation(user, path=''):
                 'label': 'Bảo mật WAF', 'icon': 'shield', 'url': waf_url,
                 'active': path == waf_url,
             })
+            privacy_url = reverse('admin:privacy_requests')
+            items.append({
+                'label': 'Quyền riêng tư', 'icon': 'users', 'url': privacy_url,
+                'active': path.startswith(privacy_url),
+            })
         if items:
             sections.append({'label': label, 'items': items})
     return sections

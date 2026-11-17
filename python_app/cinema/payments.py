@@ -3,12 +3,30 @@ import hmac
 import re
 from datetime import timedelta
 from urllib.parse import urlencode
+from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 from django.conf import settings
+from django.core import signing
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .models import Order, User
+
+
+CHECKOUT_TOKEN_SALT = 'cinema.vip.checkout'
+CHECKOUT_TOKEN_MAX_AGE = timedelta(hours=1)
+PAYMENT_WINDOW = timedelta(minutes=15)
+
+
+def issue_checkout_token(user_id):
+    return signing.dumps([user_id, uuid4().hex], salt=CHECKOUT_TOKEN_SALT)
+
+
+def checkout_key_from_token(user_id, token):
+    signed_user, key = signing.loads(token, salt=CHECKOUT_TOKEN_SALT, max_age=CHECKOUT_TOKEN_MAX_AGE)
+    if signed_user != user_id:
+        raise signing.BadSignature('Checkout token belongs to a different user.')
+    return UUID(key)
 
 
 def signature(params):
@@ -17,8 +35,8 @@ def signature(params):
 
 
 def checkout_url(order, ip):
-    now = timezone.now().astimezone(ZoneInfo('Asia/Ho_Chi_Minh'))
-    params = {'vnp_Version': '2.1.0', 'vnp_Command': 'pay', 'vnp_TmnCode': settings.VNPAY_TMN_CODE, 'vnp_Amount': str(order.amount * 100), 'vnp_CurrCode': 'VND', 'vnp_TxnRef': order.pk.hex, 'vnp_OrderInfo': f'Lumiere VIP {order.pk.hex}', 'vnp_OrderType': 'other', 'vnp_Locale': 'vn', 'vnp_ReturnUrl': settings.PUBLIC_ORIGIN + '/payments/return/', 'vnp_IpAddr': ip, 'vnp_CreateDate': now.strftime('%Y%m%d%H%M%S'), 'vnp_ExpireDate': (now + timedelta(minutes=15)).strftime('%Y%m%d%H%M%S')}
+    created_at = order.created_at.astimezone(ZoneInfo('Asia/Ho_Chi_Minh'))
+    params = {'vnp_Version': '2.1.0', 'vnp_Command': 'pay', 'vnp_TmnCode': settings.VNPAY_TMN_CODE, 'vnp_Amount': str(order.amount * 100), 'vnp_CurrCode': 'VND', 'vnp_TxnRef': order.pk.hex, 'vnp_OrderInfo': f'Lumiere VIP {order.pk.hex}', 'vnp_OrderType': 'other', 'vnp_Locale': 'vn', 'vnp_ReturnUrl': settings.PUBLIC_ORIGIN + '/payments/return/', 'vnp_IpAddr': ip, 'vnp_CreateDate': created_at.strftime('%Y%m%d%H%M%S'), 'vnp_ExpireDate': (created_at + PAYMENT_WINDOW).strftime('%Y%m%d%H%M%S')}
     params['vnp_SecureHash'] = signature(params)
     return settings.VNPAY_URL + '?' + urlencode(sorted(params.items()))
 
@@ -46,8 +64,9 @@ def process_ipn(params):
         if successful:
             user = User.objects.select_for_update().get(pk=order.user_id)
             now = timezone.now()
-            user.vip_until = max(user.vip_until or now, now) + timedelta(days=order.days)
-            user.save(update_fields=['vip_until'])
+            if not user.erased_at:
+                user.vip_until = max(user.vip_until or now, now) + timedelta(days=order.days)
+                user.save(update_fields=['vip_until'])
             order.paid_at = now
         order.save()
     return {'RspCode': '00', 'Message': 'Confirm success'}

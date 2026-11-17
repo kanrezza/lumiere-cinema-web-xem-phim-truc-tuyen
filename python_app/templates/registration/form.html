@@ -15,6 +15,7 @@
     <form method="post" data-vue-passwords>
       {% csrf_token %}
       {{ form.as_p }}
+      {% if request.resolver_match.url_name == 'register' %}<p><a href="{% url 'privacy_policy' %}">Chính sách quyền riêng tư</a></p>{% endif %}
       {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
       <button class="btn full">{% if request.resolver_match.url_name == 'register' %}Tạo tài khoản{% else %}{{ button|default:'Tiếp tục' }}{% endif %}</button>
     </form>

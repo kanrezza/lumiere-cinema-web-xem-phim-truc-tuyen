@@ -11,7 +11,7 @@ from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from .models import Movie, Episode, Plan, Order, Room, Membership, History, Rating
-from .payments import signature
+from .payments import PAYMENT_WINDOW, checkout_key_from_token, signature
 
 User = get_user_model()
 
@@ -211,10 +211,16 @@ class CheckoutSelectionTests(TestCase):
         cache.clear()
         self.url = reverse('checkout_selected')
 
+    def checkout_token(self):
+        response = self.client.get(reverse('plans'))
+        token = response.context['checkout_token']
+        self.assertContains(response, f'name="checkout_token" value="{token}"')
+        return token
+
     def test_selection_uses_server_price_and_duration(self):
         self.client.force_login(self.user)
         response = self.client.post(self.url, {
-            'plan': self.plan.pk, 'price': '1', 'amount': '1', 'days': '9999',
+            'plan': self.plan.pk, 'price': '1', 'amount': '1', 'days': '9999', 'checkout_token': self.checkout_token(),
         })
         self.assertEqual(response.status_code, 302)
         order = Order.objects.get()
@@ -231,10 +237,89 @@ class CheckoutSelectionTests(TestCase):
     def test_invalid_or_inactive_selection_does_not_create_order(self):
         self.client.force_login(self.user)
         inactive = Plan.objects.create(name='Retired', price=10000, days=30, active=False)
+        token = self.checkout_token()
         for data in [{}, {'plan': ''}, {'plan': 'invalid'}, {'plan': -1},
                      {'plan': inactive.pk + 1}, {'plan': inactive.pk}]:
             with self.subTest(data=data):
-                self.assertEqual(self.client.post(self.url, data).status_code, 404)
+                self.assertEqual(self.client.post(self.url, {**data, 'checkout_token': token}).status_code, 404)
+        self.assertFalse(Order.objects.exists())
+
+    def test_retry_reuses_the_order_snapshot_and_same_payment_window(self):
+        self.client.force_login(self.user)
+        data = {'plan': self.plan.pk, 'checkout_token': self.checkout_token()}
+        first = self.client.post(self.url, data)
+        Plan.objects.filter(pk=self.plan.pk).update(price=99000, days=30, active=False)
+        with patch('cinema.views.timezone.now', return_value=timezone.now() + timedelta(minutes=3)):
+            repeated = self.client.post(self.url, data)
+        self.assertEqual(first.url, repeated.url)
+        self.assertEqual(Order.objects.count(), 1)
+        order = Order.objects.get()
+        self.assertEqual((order.amount, order.days), (599000, 365))
+
+    def test_same_form_through_either_checkout_route_reuses_order(self):
+        self.client.force_login(self.user)
+        token = self.checkout_token()
+        first = self.client.post(self.url, {'plan': self.plan.pk, 'checkout_token': token})
+        retry = self.client.post(reverse('checkout', args=[self.plan.pk]), {'checkout_token': token})
+        self.assertEqual(first.url, retry.url)
+        self.assertEqual(Order.objects.count(), 1)
+
+    def test_new_form_allows_a_separate_purchase_but_same_form_cannot_change_plan(self):
+        self.client.force_login(self.user)
+        token = self.checkout_token()
+        response = self.client.post(self.url, {'plan': self.plan.pk, 'checkout_token': token})
+        other_plan = Plan.objects.create(name='VIP Month', price=59000, days=30)
+        rejected = self.client.post(self.url, {'plan': other_plan.pk, 'checkout_token': token})
+        self.assertRedirects(rejected, reverse('plans'))
+        self.assertEqual(Order.objects.count(), 1)
+
+        new_response = self.client.post(self.url, {'plan': self.plan.pk, 'checkout_token': self.checkout_token()})
+        self.assertNotEqual(response.url, new_response.url)
+        self.assertEqual(Order.objects.count(), 2)
+
+    def test_failed_and_expired_orders_require_a_fresh_form(self):
+        self.client.force_login(self.user)
+        data = {'plan': self.plan.pk, 'checkout_token': self.checkout_token()}
+        self.client.post(self.url, data)
+        order = Order.objects.get()
+        with patch('cinema.views.timezone.now', return_value=order.created_at + PAYMENT_WINDOW):
+            self.assertRedirects(self.client.post(self.url, data), reverse('plans'))
+        Order.objects.filter(pk=order.pk).update(status='failed')
+        self.assertRedirects(self.client.post(self.url, data), reverse('plans'))
+        self.assertEqual(Order.objects.count(), 1)
+
+    def test_paid_order_replay_leads_to_billing_history(self):
+        self.client.force_login(self.user)
+        data = {'plan': self.plan.pk, 'checkout_token': self.checkout_token()}
+        self.client.post(self.url, data)
+        Order.objects.update(status='paid')
+        self.assertRedirects(self.client.post(self.url, data), reverse('profile') + '#billing')
+        self.assertEqual(Order.objects.count(), 1)
+
+    def test_missing_tampered_and_cross_account_tokens_do_not_create_orders(self):
+        self.client.force_login(self.user)
+        token = self.checkout_token()
+        for invalid_token in ('', token + '!'):
+            self.assertRedirects(
+                self.client.post(self.url, {'plan': self.plan.pk, 'checkout_token': invalid_token}), reverse('plans'),
+            )
+        other = User.objects.create_user('other-buyer', 'other-buyer@example.com')
+        self.client.force_login(other)
+        self.assertRedirects(self.client.post(self.url, {'plan': self.plan.pk, 'checkout_token': token}), reverse('plans'))
+        self.assertFalse(Order.objects.exists())
+
+    def test_checkout_rechecks_account_activity_before_creating_order(self):
+        self.client.force_login(self.user)
+        token = self.checkout_token()
+
+        def validate_then_deactivate(user_id, form_token):
+            key = checkout_key_from_token(user_id, form_token)
+            User.objects.filter(pk=user_id).update(is_active=False)
+            return key
+
+        with patch('cinema.views.checkout_key_from_token', side_effect=validate_then_deactivate):
+            response = self.client.post(self.url, {'plan': self.plan.pk, 'checkout_token': token})
+        self.assertEqual(response.status_code, 403)
         self.assertFalse(Order.objects.exists())
 
     def test_selection_requires_login(self):

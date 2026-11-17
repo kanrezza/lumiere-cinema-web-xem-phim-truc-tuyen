@@ -26,7 +26,18 @@ class LumiereAdminSite(AdminSite):
     site_url = '/browse/'
 
     def get_urls(self):
-        return [path('security/', self.admin_view(self.waf), name='waf')] + super().get_urls()
+        from .privacy_views import review_action
+
+        return [
+            path('security/', self.admin_view(self.waf), name='waf'),
+            path('privacy/', self.admin_view(self.privacy_queue), name='privacy_requests'),
+            path('privacy/<uuid:erasure_id>/', self.admin_view(review_action), name='privacy_review'),
+        ] + super().get_urls()
+
+    def privacy_queue(self, request):
+        from .privacy_views import review_queue
+
+        return review_queue(request, self)
 
     @method_decorator(require_safe)
     def waf(self, request):

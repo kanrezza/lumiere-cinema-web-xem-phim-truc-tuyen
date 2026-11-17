@@ -1,0 +1,27 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}Quyền riêng tư · Lumière{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'account.css' %}"><link rel="stylesheet" href="{% static 'privacy.css' %}">{% endblock %}
+{% block content %}
+<section class="privacy-page" aria-labelledby="privacy-title">
+  <header class="privacy-heading"><h1 id="privacy-title">Quyền riêng tư</h1><p>Phiên bản {{ policy_version }} · Cách Lumière sử dụng và lưu dữ liệu.</p></header>
+  <section class="settings-section">
+    <h2>Dữ liệu trong Lumière</h2>
+    <p>Tài khoản gồm tên đăng nhập, email, mật khẩu đã băm và thông tin hồ sơ bạn chọn cung cấp. Tủ phim, tiến độ xem, bình luận, đánh giá và nội dung bạn gửi vào phòng xem được lưu để cung cấp các tính năng tương ứng. Phiên đăng nhập và các tuỳ chọn giao diện được lưu bằng cookie hoặc bộ nhớ trình duyệt.</p>
+    <p>Nhật ký tường lửa lưu thời điểm, loại sự kiện, mã nguồn truy cập đã băm và các tín hiệu tổng hợp. Thời hạn dọn nhật ký theo lịch vận hành là 30 ngày.</p>
+  </section>
+  <section class="settings-section">
+    <h2>Thanh toán, trailer, mic và phụ đề</h2>
+    <ul>
+      <li>Thanh toán VIP chuyển bạn sang VNPay. Lumière lưu mã đơn, gói, số tiền và trạng thái giao dịch để cấp quyền và đối soát. Bạn nhập thông tin thanh toán tại cổng VNPay.</li>
+      <li>Trailer qua YouTube được nhúng khi bạn bấm phát. Mic chỉ được xin quyền khi bạn bật trong phòng. WebRTC truyền âm thanh giữa các trình duyệt, có thể qua STUN/TURN tùy cấu hình. Lumière không tạo bản ghi âm phòng.</li>
+      <li>Dịch vụ email gửi liên kết đặt lại mật khẩu. Dịch vụ nhận dạng lời thoại và dịch phụ đề tùy cấu hình xử lý âm thanh phim hoặc văn bản phụ đề tương ứng.</li>
+    </ul>
+  </section>
+  <section class="settings-section">
+    <h2>Quản lý và yêu cầu xử lý dữ liệu</h2>
+    <p>Bạn có thể sửa hồ sơ, xóa ảnh đại diện và xóa lịch sử xem. Khi yêu cầu đóng tài khoản được xử lý, Lumière vô hiệu hóa đăng nhập, thay thông tin nhận diện hồ sơ, xóa hoạt động cá nhân và phòng do bạn tạo. Các tham chiếu giao dịch và bản ghi xử lý yêu cầu được giữ để đối soát. Bản sao lưu hết hạn theo lịch lưu giữ của đơn vị vận hành.</p>
+    {% if user.is_authenticated and not user.is_staff %}<a class="btn secondary small" href="{% url 'account_privacy' %}">Quản lý dữ liệu của tôi</a>{% elif not user.is_authenticated %}<a class="btn secondary small" href="{% url 'login' %}?next={% url 'account_privacy' %}">Đăng nhập để quản lý dữ liệu</a>{% endif %}
+    {% if contact_email %}<p>Liên hệ về dữ liệu hoặc báo sự cố tại <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>{% endif %}
+  </section>
+</section>
+{% endblock %}

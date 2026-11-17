@@ -144,6 +144,8 @@ class Importer:
                 user, movie = users.get(row.get('user_id')), movies.get(row.get('movie_id'))
                 if not user or not movie:
                     raise CommandError(f"{table}:{row['id']} has a dangling user/movie relationship.")
+                if user.erased_at:
+                    continue
                 def create_related(row=row, table=table, user=user, movie=movie):
                     if table == 'comments':
                         obj = Comment.objects.create(user=user, movie=movie, content=(row.get('content') or '')[:1000])

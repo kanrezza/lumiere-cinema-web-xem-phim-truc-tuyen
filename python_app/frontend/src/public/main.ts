@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { mountShelves } from '../home/shelves'
 import { AvatarController } from './avatar'
 import CharacterCount from './CharacterCount.vue'
+import { bindCheckoutSubmission } from './checkout'
 import Directory from './Directory.vue'
 import type { DirectoryData } from './directory'
 import MembershipPlans from './MembershipPlans.vue'
@@ -25,8 +26,10 @@ function mountDirectory() {
 
 function mountMembership() {
   const form = document.querySelector<HTMLFormElement>('#membership-form')
-  const root = form?.querySelector<HTMLElement>('[data-vue-plan-controls]')
-  if (!form || !root) return
+  if (!form) return
+  bindCheckoutSubmission(form)
+  const root = form.querySelector<HTMLElement>('[data-vue-plan-controls]')
+  if (!root) return
   const radios = [...form.querySelectorAll<HTMLInputElement>('input[name="plan"]')]
   const plans = radios.map(radio => ({
     id: radio.value,

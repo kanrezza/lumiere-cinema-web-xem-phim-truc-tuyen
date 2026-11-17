@@ -27,7 +27,7 @@ from django.views.decorators.vary import vary_on_headers
 from .forms import RegisterForm, ProfileForm, AvatarForm, RoomAccessForm
 from .avatars import is_managed_avatar
 from .models import *
-from .payments import checkout_url, process_ipn
+from .payments import PAYMENT_WINDOW, checkout_key_from_token, checkout_url, issue_checkout_token, process_ipn
 from .search import filter_movie_search, filter_actor_search, normalize_search
 
 
@@ -440,10 +440,16 @@ def library(request):
 
 @login_required
 def profile(request):
-    form = ProfileForm(request.POST or None, instance=request.user)
-    if request.method == 'POST' and form.is_valid():
-        form.save()
-        messages.success(request, 'Đã cập nhật hồ sơ.')
+    form = ProfileForm(instance=request.user)
+    if request.method == 'POST':
+        with transaction.atomic():
+            user = User.objects.select_for_update().get(pk=request.user.pk)
+            if not user.is_active or user.erased_at:
+                raise PermissionDenied
+            form = ProfileForm(request.POST, instance=user)
+            if form.is_valid():
+                form.save(commit=False).save(update_fields=ProfileForm.Meta.fields)
+                messages.success(request, 'Đã cập nhật hồ sơ.')
     return render(request, 'cinema/profile.html', {'form': form, 'avatar_form': AvatarForm(), 'orders': Order.objects.filter(user=request.user).select_related('plan').order_by('-created_at')[:30]})
 
 
@@ -471,6 +477,8 @@ def profile_avatar(request):
             # Re-read the current path under the transaction: replacing a photo
             # must not overwrite profile fields or clean up a stale cached path.
             user = User.objects.select_for_update().get(pk=request.user.pk)
+            if not user.is_active or user.erased_at:
+                raise PermissionDenied
             previous_name = user.avatar.name
             user.avatar = '' if form.cleaned_data['remove_avatar'] else form.cleaned_data['avatar']
             user.save(update_fields=['avatar'])
@@ -570,9 +578,14 @@ def plans(request):
     member_dashboard = active_member and not renewing
     first_ready = catalog_movies().filter(ready_episode_id__isnull=False).first() if member_dashboard else None
     watch_together_url = reverse('watch', args=[first_ready.ready_episode_id]) + '#watch-together' if first_ready else reverse('catalog')
+    payment_ready = bool(settings.VNPAY_TMN_CODE and settings.VNPAY_HASH_SECRET)
+    checkout_token = None
+    if payment_ready and request.user.is_authenticated and request.user.is_active and not member_dashboard:
+        checkout_token = issue_checkout_token(request.user.pk)
     return render(request, 'cinema/plans.html', {
         'plans': Plan.objects.filter(active=True).order_by('price'),
-        'payment_ready': bool(settings.VNPAY_TMN_CODE and settings.VNPAY_HASH_SECRET),
+        'payment_ready': payment_ready,
+        'checkout_token': checkout_token,
         'sandbox': 'sandbox' in settings.VNPAY_URL,
         'showcase': Movie.objects.filter(published=True)[:6],
         'member_dashboard': member_dashboard, 'renewing': renewing,
@@ -586,11 +599,39 @@ def checkout(request, pk=None):
     if pk is None:
         try: pk = int(request.POST.get('plan', ''))
         except (ValueError, TypeError): raise Http404('Gói thành viên không hợp lệ.')
-    plan = get_object_or_404(Plan, pk=pk, active=True)
     if not settings.VNPAY_TMN_CODE or not settings.VNPAY_HASH_SECRET:
+        get_object_or_404(Plan, pk=pk, active=True)
         messages.error(request, 'VNPay chưa được cấu hình. Chưa tạo giao dịch hoặc thu tiền.')
         return redirect('plans')
-    order = Order.objects.create(user=request.user, plan=plan, amount=plan.price, days=plan.days)
+
+    plans_url = reverse('plans')
+    if request.user.is_vip:
+        plans_url += '?renew=1'
+    try:
+        checkout_key = checkout_key_from_token(request.user.pk, request.POST.get('checkout_token', ''))
+    except signing.BadSignature:
+        messages.error(request, 'Phiên chọn gói đã hết hạn hoặc không hợp lệ. Vui lòng kiểm tra lại gói trước khi tiếp tục.')
+        return redirect(plans_url)
+
+    with transaction.atomic():
+        buyer = User.objects.select_for_update().filter(pk=request.user.pk, is_active=True).first()
+        if buyer is None:
+            raise PermissionDenied('Tài khoản không còn hoạt động.')
+        order = Order.objects.filter(user=buyer, checkout_key=checkout_key).first()
+        if order is None:
+            plan = get_object_or_404(Plan, pk=pk, active=True)
+            order = Order.objects.create(
+                user=buyer, plan=plan, amount=plan.price, days=plan.days, checkout_key=checkout_key,
+            )
+        elif order.plan_id != pk:
+            messages.error(request, 'Lần thanh toán này đã gắn với một gói khác. Vui lòng chọn lại gói.')
+            return redirect(plans_url)
+
+    if order.status == 'paid':
+        return redirect(reverse('profile') + '#billing')
+    if order.status != 'pending' or timezone.now() >= order.created_at + PAYMENT_WINDOW:
+        messages.info(request, 'Lần thanh toán này đã kết thúc. Vui lòng chọn lại gói nếu bạn muốn thanh toán tiếp.')
+        return redirect(plans_url)
     return redirect(checkout_url(order, request.META.get('REMOTE_ADDR', '127.0.0.1')))
 
 

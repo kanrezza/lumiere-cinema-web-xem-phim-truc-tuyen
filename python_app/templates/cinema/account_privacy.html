@@ -1,0 +1,33 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}Dữ liệu cá nhân · Lumière{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'account.css' %}"><link rel="stylesheet" href="{% static 'privacy.css' %}">{% endblock %}
+{% block content %}
+<section class="privacy-page" aria-labelledby="privacy-title">
+  <a class="settings-back" href="{% url 'profile' %}">← Quay lại tài khoản</a>
+  <header class="privacy-heading"><h1 id="privacy-title">Dữ liệu cá nhân</h1><p>Xem và quản lý yêu cầu xử lý dữ liệu của bạn.</p></header>
+  <section class="settings-section">
+    <h2>Đóng tài khoản và xử lý dữ liệu</h2>
+    <p>Quản trị viên sẽ xem xét yêu cầu. Sau khi xử lý, tài khoản và quyền VIP sẽ ngừng hoạt động. Lumière giữ thông tin giao dịch cần cho đối soát.</p>
+    <p><a href="{% url 'privacy_policy' %}">Đọc chính sách quyền riêng tư</a></p>
+    {% if pending %}
+      <p role="status"><strong>{{ pending.get_status_display }}</strong> · Gửi lúc {{ pending.requested_at|date:'d/m/Y H:i' }}</p>
+      <p>Mã yêu cầu <code>{{ pending.pk }}</code></p>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="cancel"><button class="btn secondary small" type="submit">Hủy yêu cầu</button></form>
+    {% else %}
+      <form class="settings-form privacy-request-form" method="post">
+        {% csrf_token %}<input type="hidden" name="action" value="request">
+        {{ form.non_field_errors }}
+        {{ form.password.as_field_group }}
+        <label class="privacy-check">{{ form.confirmed }} {{ form.confirmed.label }}</label>
+        {{ form.confirmed.errors }}
+        <button class="btn small" type="submit">Gửi yêu cầu</button>
+      </form>
+    {% endif %}
+  </section>
+  {% if history %}
+    <section class="settings-section"><h2>Lịch sử yêu cầu</h2>
+      <ul>{% for entry in history %}<li>{{ entry.requested_at|date:'d/m/Y H:i' }} · {{ entry.get_status_display }}</li>{% endfor %}</ul>
+    </section>
+  {% endif %}
+</section>
+{% endblock %}

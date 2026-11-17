@@ -61,7 +61,7 @@
   {% if messages %}<div class="messages" role="status">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
   {% block content %}{% endblock %}
 </main>
-{% block footer %}<footer class="site-footer"><div class="footer-inner"><div><a class="brand" href="/">lumière<span class="brand-period">.</span></a><p>Một bộ phim hay, một buổi tối đáng nhớ.</p></div><div class="footer-links"><a href="/browse/">Khám phá</a><a href="{% url 'actors' %}">Diễn viên</a><a href="{% url 'plans' %}">Thành viên VIP</a><button type="button" class="motion-toggle" data-motion-toggle aria-pressed="false"><span data-motion-label>Tắt hiệu ứng</span></button></div><small>© 2026 Lumière</small></div></footer>{% endblock %}
+{% block footer %}<footer class="site-footer"><div class="footer-inner"><div><a class="brand" href="/">lumière<span class="brand-period">.</span></a><p>Một bộ phim hay, một buổi tối đáng nhớ.</p></div><div class="footer-links"><a href="/browse/">Khám phá</a><a href="{% url 'actors' %}">Diễn viên</a><a href="{% url 'plans' %}">Thành viên VIP</a><a href="{% url 'privacy_policy' %}">Quyền riêng tư</a><button type="button" class="motion-toggle" data-motion-toggle aria-pressed="false"><span data-motion-label>Tắt hiệu ứng</span></button></div><small>© 2026 Lumière</small></div></footer>{% endblock %}
 {% include 'cinema/quickview.html' %}
 <div data-vue-shell-root hidden></div>
 <div data-vue-quickview-root></div>

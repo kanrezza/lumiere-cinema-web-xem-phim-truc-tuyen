@@ -33,6 +33,7 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     bio = models.CharField(max_length=500, blank=True)
     vip_until = models.DateTimeField(null=True, blank=True)
+    erased_at = models.DateTimeField(null=True, blank=True, editable=False)
     avatar = models.ImageField(upload_to=avatar_path, blank=True)
     @property
     def is_vip(self):
@@ -255,6 +256,7 @@ class Plan(models.Model):
 
 class Order(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    checkout_key = models.UUIDField(null=True, blank=True, unique=True, editable=False)
     user = models.ForeignKey(User, on_delete=models.PROTECT)
     plan = models.ForeignKey(Plan, on_delete=models.PROTECT)
     amount = models.PositiveIntegerField()
@@ -438,3 +440,23 @@ class SecurityEvent(models.Model):
         ordering = ['-created_at', '-pk']
         constraints = [models.CheckConstraint(condition=models.Q(risk_score__lte=100), name='waf_risk_score_max_100')]
         indexes = [models.Index(fields=['source', '-created_at'], name='waf_source_time_idx')]
+
+
+class ErasureRequest(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Đang chờ xử lý'
+        CANCELLED = 'cancelled', 'Đã hủy'
+        COMPLETED = 'completed', 'Đã xử lý hồ sơ'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='erasure_requests')
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
+    status = models.CharField(max_length=9, choices=Status.choices, default=Status.PENDING)
+    notice_version = models.CharField(max_length=20)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True)
+    avatar_pending = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        ordering = ['-requested_at', '-id']
+        indexes = [models.Index(fields=['status', 'requested_at'], name='erasure_status_time_idx')]

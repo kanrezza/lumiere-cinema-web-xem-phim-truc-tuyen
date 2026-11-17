@@ -1,0 +1,18 @@
+.privacy-page {
+  width: min(760px, calc(100% - 2 * var(--page-gutter, 24px)));
+  margin: clamp(32px, 7vw, 80px) auto;
+  overflow-wrap: anywhere;
+}
+
+.privacy-heading { margin: 0 0 24px; }
+.privacy-heading h1 { font-size: clamp(30px, 5vw, 48px); }
+.privacy-heading p { color: var(--muted); }
+.privacy-page .settings-section + .settings-section { margin-top: 16px; }
+.privacy-page .settings-section h2 { margin: 0 0 10px; font-size: clamp(19px, 3vw, 24px); }
+.privacy-page .settings-section p, .privacy-page li { line-height: 1.65; }
+.privacy-page .settings-section a:not(.btn) { text-decoration: underline; text-underline-offset: 3px; }
+.privacy-page li + li { margin-top: 6px; }
+.privacy-request-form { max-width: 520px; margin-top: 20px; }
+.privacy-check { display: flex; gap: 10px; align-items: baseline; }
+.privacy-check input[type="checkbox"] { width: auto; flex: none; }
+.privacy-request-form button { justify-self: start; }

@@ -65,6 +65,7 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Lumiere <noreply@localhost>')
+PRIVACY_CONTACT_EMAIL = os.getenv('PRIVACY_CONTACT_EMAIL', '').strip()
 REDIS_URL = os.getenv('REDIS_URL')
 if not DEBUG and not REDIS_URL:
     raise ImproperlyConfigured('Production requires REDIS_URL for shared rate limits.')

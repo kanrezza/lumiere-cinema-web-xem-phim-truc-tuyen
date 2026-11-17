@@ -2,6 +2,7 @@ from django import forms
 from django.contrib import admin
 from django.contrib.admin.models import CHANGE, LogEntry
 from django.contrib.auth.admin import UserAdmin
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Avg, BooleanField, Count, Q
 from django.urls import reverse
@@ -9,6 +10,7 @@ from django.utils.html import format_html, format_html_join
 from urllib.parse import urlencode
 
 from .models import Actor, Category, Comment, Episode, Movie, Order, Plan, Rating, Report, Room, Subtitle, User
+from .privacy_auth import LockedAdminPasswordChangeForm
 from .subtitles import normalize_subtitle
 
 
@@ -76,9 +78,18 @@ class LocalizedAdminMixin:
 class CustomUserAdmin(LocalizedAdminMixin, UserAdmin):
     model_label = 'Tài khoản'
     model_label_plural = 'Tài khoản'
+    change_password_form = LockedAdminPasswordChangeForm
     field_labels = {'bio': 'Giới thiệu', 'vip_until': 'VIP có hiệu lực đến'}
     fieldsets = UserAdmin.fieldsets + (('Quyền lợi Lumière', {'fields': ('bio', 'vip_until')}),)
     add_fieldsets = UserAdmin.add_fieldsets + (('Liên hệ', {'fields': ('email',)}),)
+
+    def has_change_permission(self, request, obj=None):
+        return (obj is None or obj.erased_at is None) and super().has_change_permission(request, obj)
+
+    def save_model(self, request, obj, form, change):
+        if change and User.objects.select_for_update().get(pk=obj.pk).erased_at:
+            raise PermissionDenied
+        super().save_model(request, obj, form, change)
 
 @admin.register(Movie)
 class MovieAdmin(LocalizedAdminMixin, admin.ModelAdmin):

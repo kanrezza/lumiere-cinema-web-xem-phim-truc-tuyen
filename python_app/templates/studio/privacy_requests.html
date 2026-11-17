@@ -1,0 +1,60 @@
+{% extends 'admin/base_site.html' %}
+{% block content_title %}{% endblock %}
+{% block content %}
+<section class="studio-dashboard" aria-labelledby="privacy-queue-title">
+  <div class="sd-panel">
+    <div class="sd-panel-heading">
+      <div><h1 id="privacy-queue-title">Yêu cầu quyền riêng tư</h1><p>Xem xét yêu cầu đóng tài khoản và kiểm tra tác vụ xóa ảnh.</p></div>
+      <form method="get">
+        <label for="privacy-status">Trạng thái</label>
+        <select id="privacy-status" name="status">
+          <option value="">Tất cả</option>
+          {% for key, label in status_choices %}<option value="{{ key }}"{% if key == status %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <button class="sd-button" type="submit">Lọc</button>
+      </form>
+    </div>
+    {% if entries %}
+      <div class="sd-table-scroll" tabindex="0" aria-label="Danh sách yêu cầu">
+        <table class="sd-video-table">
+          <thead><tr><th scope="col">Tài khoản</th><th scope="col">Gửi lúc</th><th scope="col">Trạng thái</th><th scope="col">Xử lý</th></tr></thead>
+          <tbody>
+          {% for entry in entries %}
+            <tr>
+              <td>{% if entry.user.erased_at %}Tài khoản đã ẩn danh{% else %}{{ entry.user.username }}{% endif %}<br><small>{{ entry.pk }}</small></td>
+              <td>{{ entry.requested_at|date:'d/m/Y H:i' }}</td>
+              <td>{{ entry.get_status_display }}{% if entry.reviewed_by %}<br><small>Duyệt bởi {{ entry.reviewed_by.username }}</small>{% endif %}</td>
+              <td>
+              {% if entry.status == 'pending' %}
+                <details><summary>Xem xét</summary>
+                  <form method="post" action="{% url 'admin:privacy_review' entry.pk %}">
+                    {% csrf_token %}<input type="hidden" name="action" value="complete">
+                    <label><input type="checkbox" name="confirmed" value="yes" required> Xác nhận vô hiệu hóa và ẩn danh hồ sơ</label>
+                    <button class="sd-button" type="submit">Xử lý yêu cầu</button>
+                  </form>
+                </details>
+              {% elif entry.avatar_pending %}
+                <form method="post" action="{% url 'admin:privacy_review' entry.pk %}">
+                  {% csrf_token %}<input type="hidden" name="action" value="retry_avatar">
+                  <button class="sd-button" type="submit">Thử xóa ảnh lại</button>
+                </form>
+              {% else %}{{ entry.resolved_at|date:'d/m/Y H:i'|default:'—' }}{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if entries.has_other_pages %}
+        <nav class="paginator" aria-label="Trang yêu cầu">
+          {% if entries.has_previous %}<a href="?status={{ status|urlencode }}&amp;page={{ entries.previous_page_number }}">Trang trước</a>{% endif %}
+          Trang {{ entries.number }} / {{ entries.paginator.num_pages }}
+          {% if entries.has_next %}<a href="?status={{ status|urlencode }}&amp;page={{ entries.next_page_number }}">Trang sau</a>{% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="sd-empty"><strong>Chưa có yêu cầu ở trạng thái này</strong></div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
