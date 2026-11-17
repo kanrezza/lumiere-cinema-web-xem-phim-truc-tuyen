@@ -208,6 +208,26 @@ Mỗi tài khoản chỉ có một browser session được cấp ticket hiện 
 
 Các tùy chọn bảo mật dựa trên [deployment checklist của Django](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/); luôn cập nhật bản vá dependencies và FFmpeg.
 
+## Tường lửa ứng dụng (WAF)
+
+Chạy `python manage.py migrate` rồi đăng nhập bằng tài khoản superuser. Mở **Studio → Bảo mật WAF** tại `/admin/security/` để xem cảnh báo, sự kiện hành vi, lượt giới hạn trong 24 giờ và trạng thái học của từng trang. Bấm mã định danh nguồn trong nhật ký để đối chiếu những sự kiện đã ghi của cùng nguồn.
+
+| `WAF_MODE` trong `.env` | Hành vi |
+| --- | --- |
+| `monitor` (mặc định) | Ghi cảnh báo khi yêu cầu khớp quy tắc hoặc có dấu hiệu bất thường. Ghi cả những lần bị giới hạn POST. |
+| `enforce` | Từ chối yêu cầu vi phạm quy tắc định dạng. Bật thêm giới hạn tạm thời cho truy cập ẩn danh khi nhiều tín hiệu hành vi được xác nhận. |
+| `off` | Tắt quy tắc WAF và thu thập sự kiện. Giới hạn tần suất POST hiện có vẫn hoạt động. |
+
+Khởi động lại Django sau khi đổi chế độ. Mô hình thống kê chạy cục bộ và học riêng cho `/browse/` và `/actors/` từ các truy vấn thành công trong sáu khung giờ đã kết thúc gần nhất. Mỗi nguồn đóng góp tối đa một mẫu cho mỗi trang trong một khung 10 phút. Khi đủ 50 mẫu, mô hình chấm các truy vấn lớn theo độ hiếm của độ dài, số trường và tổ hợp của hai tín hiệu. Điểm 0–100 giúp ưu tiên xem xét. Dashboard hiển thị **Đang thu thập mẫu** cho những trang chưa đủ dữ liệu.
+
+Yêu cầu đã gắn cờ được giữ ngoài tập học. Điểm cao của một truy vấn là tín hiệu bổ sung khi WAF đối chiếu hoạt động từ cùng nguồn trong khoảng hai phút. Bộ phân tích đối chiếu các lần truy cập đường dẫn không khả dụng, từ chối quyền, đăng nhập thất bại và khớp quy tắc. Nhật ký cho thấy số lần xuất hiện của từng tín hiệu tại thời điểm tạo cảnh báo.
+
+Trong chế độ `enforce`, chỉ khi nhiều nhóm hành vi độc lập ở ít nhất hai khu vực đạt ngưỡng, WAF mới trả `429` kèm `Retry-After` trong tối đa 90 giây đối với lượt đọc ẩn danh vào danh mục và trang công khai. Người đã đăng nhập, đăng nhập, quản trị, thanh toán, phát phim và phòng xem nằm ngoài phạm vi giới hạn này. Đặt `WAF_BEHAVIOR_MITIGATION=0` để giữ chặn theo quy tắc và chỉ theo dõi tương quan hành vi.
+
+Nhật ký được lấy mẫu để giới hạn số lần ghi. Mỗi sự kiện lưu thời điểm, khu vực, phương thức, lý do, hành động và mã định danh nguồn đã băm có khóa. Cảnh báo lưu thêm điểm và tín hiệu tổng hợp. Mã định danh nhật ký thay đổi mỗi ngày. WAF không lưu địa chỉ IP gốc, URL, query string, token hoặc thông tin đăng nhập. Đặt lịch chạy `python manage.py prune_security_events` mỗi ngày để xóa sự kiện quá 30 ngày.
+
+Phạm vi WAF là các yêu cầu đi đến Django. Giữ giới hạn lưu lượng và dung lượng tại reverse proxy để xử lý kết nối và tệp tĩnh trước khi ứng dụng nhận yêu cầu.
+
 ## Tìm kiếm và trạng thái nội dung
 
 Tìm phim và diễn viên hỗ trợ chữ hoa tiếng Việt, không dấu và Unicode dạng tách dấu. Tìm phim bao gồm tên, mô tả và tên diễn viên được gắn với phim công khai. Dữ liệu chuẩn hóa được lưu trong database, tự cập nhật qua `save()`; migration `0004_normalized_search_fields` tạo dữ liệu cho các bản ghi cũ. Chạy `python manage.py migrate` trước khi khởi động phiên bản này.

@@ -2,7 +2,7 @@
 
 **Nền tảng xem phim trực tuyến và tổ chức phòng xem chung.** Lumière cung cấp thư viện phim, trình phát có phụ đề và trải nghiệm xem cùng bạn bè. Lumière Studio là không gian quản trị danh mục, thành viên và hoạt động cộng đồng.
 
-[Cài đặt trên máy](#cài-đặt-trên-máy) · [Thử phát phim](#thử-phát-phim) · [Kiểm thử](#kiểm-thử) · [Tài liệu kỹ thuật](python_app/README.md)
+[Cài đặt trên máy](#cài-đặt-trên-máy) · [Thử phát phim](#thử-phát-phim) · [Bảo mật WAF](#bảo-mật-waf) · [Kiểm thử](#kiểm-thử) · [Tài liệu kỹ thuật](python_app/README.md)
 
 ## Tính năng
 
@@ -14,12 +14,13 @@
 | **Phòng xem chung** | Đồng bộ phát, tạm dừng và tua theo chủ phòng. Phòng có chat, thoại WebRTC, tùy chọn mật khẩu và duyệt thành viên. Chủ phòng có thể khóa mic của từng thành viên. |
 | **Thành viên VIP** | Gói tháng và năm, quyền xem phim VIP và tạo phòng xem chung. Thanh toán tích hợp VNPay. |
 | **Lumière Studio** | Theo dõi thư viện, người dùng, giao dịch và báo lỗi. Xem bình luận và đánh giá theo từng phim. Lọc bình luận theo lý do gắn cờ và duyệt trước khi hiển thị. |
+| **Bảo mật WAF** | Phân tích truy vấn và chuỗi hành vi bất thường. Studio hiển thị điểm, bằng chứng và các sự kiện liên quan đến cùng mã định danh nguồn. |
 
 ## Kiến trúc
 
 - **Python và Django** xử lý xác thực, phân quyền và dữ liệu. Django Templates dựng HTML ban đầu.
 - **Vue 3, TypeScript và CSS** xây dựng giao diện người xem và Studio. Vite đóng gói mã theo nhóm trang để Django nạp qua manifest. Khi chạy local, chỉ cần khởi động Django sau khi build frontend.
-- **SQLite** là cơ sở dữ liệu mặc định khi chạy local. Có thể cấu hình **MySQL** và dùng **Redis** cho giới hạn tần suất dùng chung khi triển khai.
+- **SQLite** là cơ sở dữ liệu mặc định khi chạy local. Có thể cấu hình **MySQL**. Khi triển khai, **Redis** chia sẻ trạng thái WAF và giới hạn tần suất giữa các tiến trình Django.
 - **FFmpeg** chuyển mã video sang HLS. **HLS.js** hỗ trợ phát trên trình duyệt và **WebRTC** truyền thoại trong phòng xem. Máy chủ kiểm tra quyền trước khi cấp liên kết phát có thời hạn.
 
 ## Cài đặt trên máy
@@ -65,6 +66,7 @@ python manage.py createsuperuser
 | Đăng ký tài khoản người xem | [/accounts/register/](http://127.0.0.1:8000/accounts/register/) |
 | Lumière Studio | [/studio/](http://127.0.0.1:8000/studio/) |
 | Django Admin | [/admin/](http://127.0.0.1:8000/admin/) |
+| Bảo mật WAF · superuser | [/admin/security/](http://127.0.0.1:8000/admin/security/) |
 
 `run-local.sh` tự nạp `.env`. Khi mở terminal khác để chạy lệnh `manage.py`, vào `python_app/`, kích hoạt `.venv` và nạp lại `.env` theo bước 2. Sau khi sửa mã trong `frontend/src/`, chạy lại `npm --prefix frontend run build`.
 
@@ -93,6 +95,12 @@ python manage.py make_demo_series  # Trạm ánh sáng (Demo) · hai tập có p
 
 Xem [mẫu cấu hình](python_app/.env.example) và [tài liệu kỹ thuật](python_app/README.md) để thiết lập từng tích hợp. Giữ khóa bí mật, thông tin merchant và tệp `.env` bên ngoài Git.
 
+## Bảo mật WAF
+
+Tường lửa ở lớp Django kết hợp quy tắc yêu cầu, mô hình thống kê học theo từng trang và phân tích chuỗi hành vi. Mô hình nhận diện truy vấn hiếm ở trang Khám phá và Diễn viên. Bộ phân tích đối chiếu các dấu hiệu như đăng nhập thất bại, truy cập đường dẫn không khả dụng và yêu cầu bị từ chối trong khoảng hai phút. Superuser có thể xem điểm, số lần từng tín hiệu xuất hiện và nhật ký theo mã định danh nguồn đã băm trong Studio.
+
+`WAF_MODE=monitor` là chế độ mặc định. Đặt `WAF_MODE=enforce` trong `python_app/.env` rồi khởi động lại Django để chặn yêu cầu vi phạm quy tắc. Khi `WAF_BEHAVIOR_MITIGATION=1`, nhiều tín hiệu độc lập ở các khu vực khác nhau có thể kích hoạt giới hạn tối đa 90 giây với lượt đọc ẩn danh vào trang công khai. Đăng nhập, quản trị, thanh toán, phát phim và phòng xem nằm ngoài phạm vi giới hạn tạm này. [Tùy chọn vận hành và lưu nhật ký](python_app/README.md#tường-lửa-ứng-dụng-waf)
+
 ## Kiểm thử
 
 Chạy từ `python_app/` sau khi cài môi trường Python, nạp `.env` và cài các gói npm.
@@ -104,7 +112,7 @@ python manage.py check
 python manage.py test cinema cinema.audit_experience_cases
 ```
 
-Lệnh build kiểm tra kiểu TypeScript trước khi đóng gói. Bộ kiểm thử Django gồm các luồng danh mục, tài khoản, quyền phát phim, phụ đề, thanh toán, kiểm duyệt và phòng xem chung.
+Lệnh build kiểm tra kiểu TypeScript trước khi đóng gói. Bộ kiểm thử Django bao gồm danh mục, tài khoản, quyền phát phim, phụ đề, thanh toán, kiểm duyệt, phòng xem chung và các chế độ WAF.
 
 ## Cấu trúc mã nguồn
 
