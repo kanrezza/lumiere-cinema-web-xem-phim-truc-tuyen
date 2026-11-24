@@ -269,7 +269,9 @@ class Order(models.Model):
 class Room(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     host = models.ForeignKey(User, on_delete=models.CASCADE)
-    episode = models.ForeignKey(Episode, on_delete=models.CASCADE)
+    episode = models.ForeignKey(Episode, on_delete=models.SET_NULL, null=True, blank=True)
+    media_version = models.PositiveIntegerField(default=1, editable=False)
+    playlist_version = models.PositiveIntegerField(default=1, editable=False)
     name = models.CharField(max_length=100)
     position = models.FloatField(default=0)
     playing = models.BooleanField(default=False)
@@ -278,6 +280,34 @@ class Room(models.Model):
     password_hash = models.CharField(max_length=128, blank=True, editable=False)
     requires_approval = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class RoomPlaylistItem(models.Model):
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='playlist_items')
+    episode = models.ForeignKey(Episode, on_delete=models.CASCADE)
+    position = models.PositiveSmallIntegerField()
+
+    class Meta:
+        ordering = ['position', 'pk']
+        constraints = [models.UniqueConstraint(fields=['room', 'episode'], name='unique_room_playlist_episode')]
+
+
+class RoomSuggestion(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Chờ chủ phòng duyệt'
+        APPROVED = 'approved', 'Đã thêm vào danh sách'
+        REJECTED = 'rejected', 'Đã từ chối'
+
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='suggestions')
+    episode = models.ForeignKey(Episode, on_delete=models.CASCADE)
+    proposed_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    status = models.CharField(max_length=8, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'pk']
+        constraints = [models.UniqueConstraint(fields=['room', 'episode'], name='unique_room_suggestion_episode')]
+
 
 class RoomJoinRequest(models.Model):
     class Status(models.TextChoices):
