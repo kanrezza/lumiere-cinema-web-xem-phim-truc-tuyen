@@ -4,6 +4,8 @@ import { formatTime, seekPosition } from './seek'
 
 type CaptionChange = CustomEvent<{ selected?: string | number; remember?: boolean }>
 type NativeVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void }
+type FullscreenDocument = Document & { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => Promise<void> | void }
+type FullscreenElement = HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void }
 
 const { video, wrap, status } = defineProps<{
   video: NativeVideo
@@ -105,10 +107,15 @@ async function togglePlay() {
 }
 
 async function toggleFullscreen() {
+  const doc = document as FullscreenDocument
+  const target = wrap as FullscreenElement
   try {
-    if (document.fullscreenElement) await document.exitFullscreen()
-    else if (wrap.requestFullscreen) await wrap.requestFullscreen()
-    else video.webkitEnterFullscreen?.()
+    if (doc.fullscreenElement) await doc.exitFullscreen()
+    else if (doc.webkitFullscreenElement && doc.webkitExitFullscreen) await doc.webkitExitFullscreen()
+    else if (target.requestFullscreen) await target.requestFullscreen()
+    else if (target.webkitRequestFullscreen) await target.webkitRequestFullscreen()
+    else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen()
+    else tell('Trình duyệt này chưa hỗ trợ toàn màn hình cho video.')
   } catch {
     tell('Không thể mở toàn màn hình trong trình duyệt này.')
   }
@@ -211,12 +218,16 @@ onMounted(() => {
     setSubtitle(String(selected ?? selectedSubtitle), Boolean(remember))
   }, { signal })
   window.addEventListener('resize', applySubtitles, { signal })
-  video.addEventListener('webkitbeginfullscreen', () => { nativeFullscreen = true; applySubtitles() }, { signal })
-  video.addEventListener('webkitendfullscreen', () => { nativeFullscreen = false; applySubtitles() }, { signal })
-  document.addEventListener('fullscreenchange', () => {
-    fullscreen.value = Boolean(document.fullscreenElement)
+  video.addEventListener('webkitbeginfullscreen', () => { nativeFullscreen = true; fullscreen.value = true; applySubtitles() }, { signal })
+  video.addEventListener('webkitendfullscreen', () => { nativeFullscreen = false; fullscreen.value = false; applySubtitles() }, { signal })
+  const updateFullscreen = () => {
+    const doc = document as FullscreenDocument
+    fullscreen.value = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement)
     applySubtitles()
-  }, { signal })
+  }
+  document.addEventListener('fullscreenchange', updateFullscreen, { signal })
+  document.addEventListener('webkitfullscreenchange', updateFullscreen, { signal })
+  updateFullscreen()
   wrap.addEventListener('keydown', applyKeyboard, { signal })
   video.addEventListener('loadedmetadata', markReady, { signal })
   video.addEventListener('durationchange', updateTime, { signal })

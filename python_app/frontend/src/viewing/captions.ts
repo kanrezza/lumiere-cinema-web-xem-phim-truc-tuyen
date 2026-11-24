@@ -69,9 +69,11 @@ export function initCaptions(video: HTMLVideoElement) {
   const closePanel = (restoreFocus = true) => {panel.hidden = true; toggle.setAttribute('aria-expanded', 'false'); if (restoreFocus) toggle.focus();};
   toggle.addEventListener('click', () => {if (panel.hidden) showPanel(); else closePanel();});
   closeButton.addEventListener('click', () => closePanel());
-  document.addEventListener('keydown', event => {if (!panel.hidden && event.key === 'Escape') {event.preventDefault(); closePanel();}});
-  document.addEventListener('click', event => {if (!panel.hidden && event.target instanceof Node && !panel.contains(event.target) && !toggle.contains(event.target)) closePanel(false);});
-  document.addEventListener('focusin', event => {if (!panel.hidden && event.target instanceof Node && !panel.contains(event.target) && !toggle.contains(event.target)) closePanel(false);});
+  const onKeyDown = (event: KeyboardEvent) => {if (!panel.hidden && event.key === 'Escape') {event.preventDefault(); closePanel();}};
+  const onOutside = (event: Event) => {if (!panel.hidden && event.target instanceof Node && !panel.contains(event.target) && !toggle.contains(event.target)) closePanel(false);};
+  document.addEventListener('keydown', onKeyDown);
+  document.addEventListener('click', onOutside);
+  document.addEventListener('focusin', onOutside);
 
   const refreshSelection = (selected: string | number, remember = false) => {
     selection.disabled = video.querySelectorAll<HTMLTrackElement>('track[data-subtitle]').length === 0;
@@ -220,8 +222,18 @@ export function initCaptions(video: HTMLVideoElement) {
   const stop = () => {stopped = true; for (const state of states) cancel(state);};
   window.addEventListener('pagehide', stop);
   document.addEventListener('lumiere:stop', stop, {once: true});
-  window.addEventListener('pageshow', event => {
+  const onPageShow = (event: PageTransitionEvent) => {
     if (event.persisted) { stopped = false; updateTranslateButton(); }
-  });
+  };
+  window.addEventListener('pageshow', onPageShow);
   updateTranslateButton();
+  return () => {
+    stop();
+    document.removeEventListener('keydown', onKeyDown);
+    document.removeEventListener('click', onOutside);
+    document.removeEventListener('focusin', onOutside);
+    document.removeEventListener('lumiere:stop', stop);
+    window.removeEventListener('pagehide', stop);
+    window.removeEventListener('pageshow', onPageShow);
+  };
 }

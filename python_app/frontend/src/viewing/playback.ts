@@ -114,32 +114,46 @@ export function initPlayback(video: HTMLVideoElement) {
     }
   }
 
-  video.addEventListener('playing', () => { hasPlayed = true })
-  video.addEventListener('lumiere:seek', event => {
+  const onPlaying = () => { hasPlayed = true }
+  const onSeek = (event: Event) => {
     if (loading || video.dataset.loading === 'true') {
       requestedPosition = safePosition((event as CustomEvent<{position: number}>).detail.position)
     }
-  })
+  }
+  video.addEventListener('playing', onPlaying)
+  video.addEventListener('lumiere:seek', onSeek)
   retry.addEventListener('click', loadSource)
   video.addEventListener('ended', saveProgress)
   video.addEventListener('pause', saveProgress)
   const renewal = window.setInterval(loadSource, 480000)
   const progress = window.setInterval(() => { if (!video.paused) saveProgress() }, 15000)
-  document.addEventListener('lumiere:stop', () => {
+  const dispose = () => {
+    if (stopped) return
+    saveProgress()
     stopped = true
     generation += 1
     window.clearInterval(renewal)
     window.clearInterval(progress)
+    video.removeEventListener('playing', onPlaying)
+    video.removeEventListener('lumiere:seek', onSeek)
+    retry.removeEventListener('click', loadSource)
+    video.removeEventListener('ended', saveProgress)
+    video.removeEventListener('pause', saveProgress)
+    document.removeEventListener('lumiere:stop', dispose)
+    window.removeEventListener('pagehide', onPageHide)
     removeReady()
     hls?.destroy()
     video.pause()
     video.removeAttribute('src')
     video.load()
-  }, {once: true})
-  window.addEventListener('pagehide', () => {
+  }
+  const onPageHide = () => {
     if (canSaveProgress()) {
       navigator.sendBeacon?.(progressUrl, formParams({position: video.currentTime, csrfmiddlewaretoken: csrfToken()}))
     }
-  })
+  }
+  document.addEventListener('lumiere:stop', dispose, {once: true})
+  window.addEventListener('pagehide', onPageHide)
   void loadSource()
+  return dispose
 }

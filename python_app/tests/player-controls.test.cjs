@@ -84,7 +84,7 @@ function environment({guest = false, deferredSeek = false, subtitles = true} = {
       const value = await context.postForm(url, fields);
       return {ok: true, redirected: false, json: async () => value};
     };
-    if (name === 'playback') loadFrontend('viewing/playback.ts', context).initPlayback(video);
+    if (name === 'playback') return loadFrontend('viewing/playback.ts', context).initPlayback(video);
     else {
       const room = doc.getElementById('room');
       const form = doc.getElementById('chat-form');
@@ -136,6 +136,58 @@ test('retry removes stale metadata callbacks from failed sources', async () => {
   env.context.Hls = Hls; env.win.Hls = Hls;
   env.load('playback'); await tick(); handlers[0]('error', {fatal: true}); assert.equal(env.video.dataset.loading, 'false');
   env.retry.fire('click'); await tick(); env.video.writes.length = 0; env.video.fire('loadedmetadata'); assert.deepEqual(env.video.writes, [14]);
+});
+
+test('switching a room film disposes the old stream and saves its final progress once', async () => {
+  const env = environment(), saves = [], cleared = [];
+  let destroyed = 0, requests = 0;
+  env.win.clearInterval = id => cleared.push(id);
+  env.context.postForm = async (url, data) => {
+    if (url === '/progress') saves.push(data.position);
+    else requests++;
+    return {url: '/old-film.m3u8'};
+  };
+  class Hls {
+    static isSupported() {return true;}
+    static Events = {ERROR: 'error'};
+    loadSource() {} attachMedia() {} on() {}
+    destroy() {destroyed++;}
+  }
+  env.win.Hls = Hls;
+  const dispose = env.load('playback');
+  await tick();
+  env.video.fire('loadedmetadata');
+  env.video.fire('playing');
+  env.video.setActualTime(42);
+  dispose();
+  await tick();
+  env.video.fire('pause');
+  env.retry.fire('click');
+  env.win.fire('pagehide');
+  env.intervals.forEach(interval => interval.callback());
+  await tick();
+  assert.deepEqual(saves, [42]);
+  assert.equal(destroyed, 1);
+  assert.equal(requests, 1);
+  assert.equal(cleared.length, 2);
+});
+
+test('a ticket returned after switching films cannot start the removed player', async () => {
+  const env = environment();
+  let resolveTicket, loaded = 0;
+  env.context.postForm = () => new Promise(resolve => {resolveTicket = resolve;});
+  class Hls {
+    static isSupported() {return true;}
+    static Events = {ERROR: 'error'};
+    loadSource() {loaded++;} attachMedia() {} on() {} destroy() {}
+  }
+  env.win.Hls = Hls;
+  const dispose = env.load('playback');
+  dispose();
+  resolveTicket({url: '/late-old-film.m3u8'});
+  await tick();
+  assert.equal(loaded, 0);
+  assert.equal(env.video.src, undefined);
 });
 
 test('watch-party host sync serializes requests and sends the latest queued seek', async () => {
