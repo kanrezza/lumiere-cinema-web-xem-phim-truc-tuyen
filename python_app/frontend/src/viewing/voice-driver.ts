@@ -1,4 +1,5 @@
 import { csrfToken } from '../shared/http'
+import { createVoiceActivityMonitor } from './voice-activity'
 
 type SignalType = 'offer' | 'answer'
 type VoiceAction = 'join' | 'leave' | 'signal' | 'mic' | 'mute'
@@ -96,6 +97,9 @@ export function initVoice(room: HTMLElement): void {
   let suspended = false
   let recovering = false
   let notice = ''
+  const activity = createVoiceActivityMonitor(detail => {
+    room.dispatchEvent(new CustomEvent('lumiere:voice-activity', {detail}))
+  })
 
   const joinDisabled = () => closed || joinBusy || !canListen
   const micDisabled = () => closed || !session || selfMuted || micBusy || !canSpeak || recovering
@@ -156,6 +160,7 @@ export function initVoice(room: HTMLElement): void {
     micChange += 1
     micBusy = false
     const wasOn = Boolean(microphone)
+    activity.remove(selfId)
     microphone?.stop()
     pendingMicrophone?.stop()
     microphone = null
@@ -165,6 +170,7 @@ export function initVoice(room: HTMLElement): void {
   }
 
   function closePeer(peer: Peer) {
+    activity.remove(peer.id)
     if (peers.get(peer.id) === peer) peers.delete(peer.id)
     window.clearTimeout(peer.deadline)
     peer.connection.close()
@@ -183,6 +189,7 @@ export function initVoice(room: HTMLElement): void {
     window.clearTimeout(leaseTimer)
     clearMicrophone()
     for (const peer of peers.values()) closePeer(peer)
+    activity.suspend()
     retries.clear()
     return oldSession
   }
@@ -191,6 +198,7 @@ export function initVoice(room: HTMLElement): void {
     closed = true
     notice = ''
     stopSession()
+    activity.dispose()
     window.clearTimeout(pollTimer)
     renderMembers()
     render()
@@ -209,6 +217,7 @@ export function initVoice(room: HTMLElement): void {
     notice = ''
     if (clearMicrophone()) post('mic', {session, enabled: 'false'}).catch(() => {})
     for (const peer of peers.values()) closePeer(peer)
+    activity.suspend()
     render()
   }
 
@@ -233,6 +242,7 @@ export function initVoice(room: HTMLElement): void {
     if (!peer.audio) return
     const member = members.get(peer.id)
     const audible = Boolean(session && !recovering && member?.voice_session === peer.session && member.mic_on && !member.host_muted)
+    activity.setEnabled(peer.id, audible)
     const wasMuted = peer.audio.muted
     peer.audio.muted = !audible
     if (audible && wasMuted) playPeerAudio(peer)
@@ -280,6 +290,7 @@ export function initVoice(room: HTMLElement): void {
         audioArea.append(peer.audio)
       }
       peer.audio.srcObject = new MediaStream([track])
+      activity.attach(peer.id, track, false)
       updatePeerAudio(peer)
     })
     return peer
@@ -377,7 +388,9 @@ export function initVoice(room: HTMLElement): void {
       const data = await voiceRequest<VoiceSnapshot>(url)
       if (closed || suspended || observed !== revision) return
       renewLease()
+      const wasRecovering = recovering
       recovering = false
+      if (wasRecovering && session) activity.resume()
       if (session && data.self.voice_session !== session) {
         stopSession()
         notice = 'Phiên thoại đã kết thúc. Chọn Tham gia thoại để kết nối lại.'
@@ -412,6 +425,7 @@ export function initVoice(room: HTMLElement): void {
 
   joinButton.addEventListener('click', async () => {
     if (joinDisabled()) return
+    if (!session) activity.resume()
     joinBusy = true
     notice = ''
     render()
@@ -442,6 +456,7 @@ export function initVoice(room: HTMLElement): void {
 
   micButton.addEventListener('click', async () => {
     if (micDisabled()) return
+    if (!microphone) activity.resume()
     notice = ''
     const activeSession = session
     if (microphone) {
@@ -470,6 +485,7 @@ export function initVoice(room: HTMLElement): void {
         }
         microphone = track
         microphone.enabled = true
+        activity.attach(selfId, microphone, true)
         for (const peer of peers.values()) peer.sender?.replaceTrack(microphone).catch(() => failPeer(peer))
         microphone.addEventListener('ended', () => {
           if (microphone !== track) return
@@ -526,6 +542,7 @@ export function initVoice(room: HTMLElement): void {
   })
 
   playButton?.addEventListener('click', () => {
+    activity.resume()
     for (const peer of peers.values()) playPeerAudio(peer)
   })
   room.addEventListener('lumiere:room-members', renderMembers)
