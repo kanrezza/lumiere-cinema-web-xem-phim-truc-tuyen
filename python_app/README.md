@@ -104,9 +104,15 @@ Nút **CC / Phụ đề** luôn xuất hiện trên thanh điều khiển, kể 
 
 Nút ±10 giây và phím ←/→ khi focus trong trình phát cập nhật vị trí ngay, giới hạn trong thời lượng/vùng có thể tua. Thao tác liên tiếp cộng dồn; lần làm mới nguồn HLS giữ vị trí vừa chọn. Phím mũi tên không can thiệp ô nhập/chọn ngôn ngữ. Trong phòng xem chung, chỉ chủ phòng được tua và điều khiển vị trí chung; khách vẫn chọn phụ đề/âm lượng riêng.
 
-Khi tạo phòng, chủ phòng có thể đặt mật khẩu và bật **Duyệt người vào phòng**. Có thể chỉnh cả hai trong **Duyệt thành viên và cài đặt phòng**. Nếu bật cả hai, khách nhập đúng mật khẩu trước khi gửi yêu cầu, rồi bấm tham gia sau khi được duyệt. Đổi mật khẩu yêu cầu khách đang chờ hoặc đã được duyệt nhưng chưa vào phòng xác minh lại.
+Mở **Xem chung** tại `/rooms/` để tạo phòng trước khi chọn phim. Không gian rạp hỗ trợ giao diện sáng/tối, màn chiếu lớn và lịch chiếu có thứ tự; màn chiếu luôn giữ nền tối. Chủ phòng dùng **Thêm phim** để chuẩn bị danh sách tối đa 50 tập, kéo thả hoặc dùng nút di chuyển để sắp xếp, rồi bấm **Phát** hoặc **Phát tiếp theo**. Nguồn mới bắt đầu từ đầu và chờ chủ phòng bấm phát trong trình chiếu. Đổi phim giữ nguyên liên kết mời, thành viên, tin nhắn và kết nối thoại. Có thể tạo nhanh phòng đã chọn sẵn từ trang xem phim.
+
+Thành viên dùng **Gợi ý phim** và chỉ chủ phòng được duyệt thêm hoặc từ chối. Mỗi người có tối đa 5 đề xuất đang chờ, cả phòng tối đa 20. Thành viên không được sửa lịch chiếu hay điều khiển phim chung. Mọi thao tác quản lý kiểm tra phiên bản danh sách để tránh ghi đè thay đổi ở phiên khác. Mỗi người vẫn cần quyền xem riêng với phim VIP.
+
+Khi tạo phòng, chủ phòng có thể đặt mật khẩu và bật **Duyệt người vào phòng**. Nút **Duyệt** bên phải hiển thị số người chờ và mở danh sách duyệt cùng cài đặt quyền vào phòng. Nếu bật cả hai, khách nhập đúng mật khẩu trước khi gửi yêu cầu, rồi bấm tham gia sau khi được duyệt. Đổi mật khẩu yêu cầu khách đang chờ hoặc đã được duyệt nhưng chưa vào phòng xác minh lại. Thành viên thiếu quyền xem phim VIP vẫn có thể trò chuyện trong phòng. Trình phát kiểm tra riêng quyền phim của từng người.
 
 **Tham gia thoại** cho phép nghe phòng. Chỉ khi bấm **Bật mic** trình duyệt mới xin quyền dùng microphone. Chủ phòng có thể khóa mic từng thành viên. Khi được mở quyền nói, thành viên tự bật lại mic. WebRTC truyền âm thanh giữa các trình duyệt. Trên máy chủ cần HTTPS và có thể cấu hình `ROOM_VOICE_ICE_SERVERS` theo mẫu trong `.env.example` để hỗ trợ các mạng cần STUN/TURN. Localhost có thể thử kết nối trực tiếp.
+
+Thành viên trong phòng hiển thị trên 10 ghế với tên hoặc avatar và giữ vị trí khi cập nhật hiện diện. Chủ phòng bấm avatar để khóa/cho phép bật mic, hoặc dùng nút **×** để loại thành viên. Viền sáng dùng mức âm thanh Web Audio của track thoại đang kết nối, tách biệt với trạng thái chỉ bật mic. Tắt mic hoặc bị khóa sẽ hiện biểu tượng mic gạch chéo. Không có Web Audio thì phòng vẫn hỗ trợ thoại và trạng thái mic, không mô phỏng hiệu ứng đang nói. **Phóng to rạp** mở toàn bộ không gian ở fullscreen; nút toàn màn hình trong video chỉ phóng trình phát.
 
 ## Phụ đề tự động và dịch local
 

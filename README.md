@@ -44,7 +44,7 @@ Sign in and open [Trạm ánh sáng (Demo)](http://127.0.0.1:8000/movies/tram-an
 
 The application lives in `python_app/`. Django renders the pages and handles sessions and access checks. Vite builds the Vue 3 and TypeScript entry points into `static/bundles/catalog/`, where Django reads the manifest. Rebuild the bundle after editing `frontend/src/`.
 
-FFmpeg converts uploads to HLS in private storage. Django checks access before issuing a signed playback URL tied to the viewer's session. Watch rooms sync playback and chat through HTTP polling. Voice uses WebRTC.
+FFmpeg converts uploads to HLS in private storage. Django checks access before issuing a signed playback URL tied to the viewer's session. Viewers create a watch room before choosing a film. In the cinema view, the host builds and reorders a playlist, reviews film suggestions from members, and switches films or episodes while retaining participants, chat, and voice. Playback and chat sync through HTTP polling. Voice uses WebRTC.
 
 The backend lives in [`cinema/`](python_app/cinema/). VNPay checkout reuses the same order when a signed checkout form is submitted again. VIP activates after a successful, verified server callback. Viewers can request account erasure from their profile, and superusers review those requests in Studio.
 
