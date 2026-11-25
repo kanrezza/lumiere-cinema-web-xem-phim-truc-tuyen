@@ -3,6 +3,7 @@ import StudioNavigation from './StudioNavigation.vue'
 import StudioPassword from './StudioPassword.vue'
 import StudioSearch from './StudioSearch.vue'
 import RecentVideoFilter from './RecentVideoFilter.vue'
+import StudioBulkActions from './StudioBulkActions.vue'
 import { mountTheme } from '../shell/theme'
 
 function mountNavigation() {
@@ -83,8 +84,30 @@ function mountPasswordToggle() {
   createApp(StudioPassword, { input }).mount(mount)
 }
 
+function mountBulkActions() {
+  const form = document.querySelector<HTMLFormElement>('#changelist-form')
+  const legacy = form?.querySelector<HTMLElement>('.actions')
+  const action = legacy?.querySelector<HTMLSelectElement>('select[name=action]')
+  const submit = legacy?.querySelector<HTMLButtonElement>('button[name=index]')
+  if (!form || !legacy || !action || !submit) return
+  const options = [...action.options].filter(option => option.value).map(option => ({value: option.value, label: option.textContent?.trim() || option.value}))
+  if (!options.length) return
+  const mount = document.createElement('div')
+  mount.dataset.studioVueBulkActions = ''
+  legacy.before(mount)
+  const app = createApp(StudioBulkActions, {form, legacy, action, submit, options})
+  app.mount(mount)
+  if (!mount.querySelector('.studio-bulk-actions')) {
+    app.unmount()
+    mount.remove()
+    return
+  }
+  for (const original of form.querySelectorAll<HTMLElement>('.actions')) original.hidden = true
+}
+
 mountNavigation()
 mountTheme()
 mountSearch()
 mountVideoFilter()
 mountPasswordToggle()
+mountBulkActions()

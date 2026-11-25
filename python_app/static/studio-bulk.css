@@ -1,0 +1,25 @@
+.studio-bulk-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 18px; padding: 17px 20px; border-bottom: 1px solid var(--studio-line); }
+.studio-bulk-selection { display: flex; align-items: center; gap: 9px; color: var(--studio-muted); font-size: 13px; }
+.studio-bulk-selection strong { color: var(--studio-text); font-weight: 650; }
+.studio-bulk-check { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.studio-bulk-buttons { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.studio-bulk-actions button, .studio-bulk-actions select { min-height: 38px; padding: 8px 12px; font: inherit; font-size: 13px; border: 1px solid var(--studio-line); border-radius: 7px; color: var(--studio-text); background: var(--studio-surface); }
+.studio-bulk-actions .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+.studio-bulk-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; }
+.studio-bulk-actions button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.studio-bulk-actions button:hover:not(:disabled) { border-color: var(--studio-accent); }
+.studio-bulk-actions .studio-bulk-delete { border-color: #bf452938; background: #bf45290a; color: #b33e29; font-weight: 550; }
+html[data-theme="dark"] .studio-bulk-actions .studio-bulk-delete { color: #f4a089; border-color: #f4a08940; background: #f4a0890a; }
+.studio-bulk-actions .studio-bulk-delete:hover:not(:disabled) { background: #bf452918; border-color: #bf452970; }
+.studio-bulk-actions button:disabled, .studio-bulk-actions select:disabled { opacity: .43; cursor: not-allowed; }
+.studio-bulk-actions button:focus-visible, .studio-bulk-actions select:focus-visible { outline: 2px solid var(--studio-accent); outline-offset: 3px; }
+.studio-bulk-more { display: flex; align-items: center; gap: 7px; max-width: 100%; }
+.studio-bulk-more select { max-width: min(330px, 100%); }
+.studio-bulk-across { width: 100%; border-top: 1px solid var(--studio-line); padding-top: 11px; }
+.studio-bulk-across button { border: 0; padding: 0; min-height: 25px; background: transparent; color: var(--studio-accent); }
+@media (max-width: 700px) {
+  .studio-bulk-actions { padding: 15px; align-items: stretch; }
+  .studio-bulk-selection, .studio-bulk-buttons { width: 100%; }
+  .studio-bulk-more { flex: 1; min-width: 0; }
+  .studio-bulk-more select { flex: 1; min-width: 0; width: 0; }
+}
