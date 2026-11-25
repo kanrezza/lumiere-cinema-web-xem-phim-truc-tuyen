@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from .models import Subtitle, SubtitleTranslation, User
 from .translation import LANGUAGE_LABELS, TranslationError, configured_targets, current_source_hash, provider_key, source_snapshot
-from .views import require_watch
+from .access import require_watch
 
 
 def _json(data, status=200):

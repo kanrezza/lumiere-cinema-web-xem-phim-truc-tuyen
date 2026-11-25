@@ -15,10 +15,9 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import Membership, RoomVoiceSignal
-from .views import accessible_room
+from .rooms.access import ROOM_HEARTBEAT, accessible_room, present_members
 
 
-ROOM_HEARTBEAT = timedelta(seconds=30)
 VOICE_HEARTBEAT = timedelta(seconds=20)
 VOICE_REFRESH = timedelta(seconds=6)
 SIGNAL_TTL = timedelta(seconds=45)
@@ -28,10 +27,7 @@ MAX_INTEGER_ID = (1 << 63) - 1
 
 
 def eligible_members(room, now):
-    members = room.members.filter(
-        active=True, banned=False, last_seen__gt=now - ROOM_HEARTBEAT, user__is_active=True,
-    )
-    return members
+    return present_members(room, now)
 
 
 def voice_session(member, now):

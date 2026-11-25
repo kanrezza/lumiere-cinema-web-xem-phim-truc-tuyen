@@ -252,7 +252,7 @@ class CheckoutSelectionTests(TestCase):
         data = {'plan': self.plan.pk, 'checkout_token': self.checkout_token()}
         first = self.client.post(self.url, data)
         Plan.objects.filter(pk=self.plan.pk).update(price=99000, days=30, active=False)
-        with patch('cinema.views.timezone.now', return_value=timezone.now() + timedelta(minutes=3)):
+        with patch('cinema.views.membership.timezone.now', return_value=timezone.now() + timedelta(minutes=3)):
             repeated = self.client.post(self.url, data)
         self.assertEqual(first.url, repeated.url)
         self.assertEqual(Order.objects.count(), 1)
@@ -285,7 +285,7 @@ class CheckoutSelectionTests(TestCase):
         data = {'plan': self.plan.pk, 'checkout_token': self.checkout_token()}
         self.client.post(self.url, data)
         order = Order.objects.get()
-        with patch('cinema.views.timezone.now', return_value=order.created_at + PAYMENT_WINDOW):
+        with patch('cinema.views.membership.timezone.now', return_value=order.created_at + PAYMENT_WINDOW):
             self.assertRedirects(self.client.post(self.url, data), reverse('plans'))
         Order.objects.filter(pk=order.pk).update(status='failed')
         self.assertRedirects(self.client.post(self.url, data), reverse('plans'))
@@ -320,7 +320,7 @@ class CheckoutSelectionTests(TestCase):
             User.objects.filter(pk=user_id).update(is_active=False)
             return key
 
-        with patch('cinema.views.checkout_key_from_token', side_effect=validate_then_deactivate):
+        with patch('cinema.views.membership.checkout_key_from_token', side_effect=validate_then_deactivate):
             response = self.client.post(self.url, {'plan': self.plan.pk, 'checkout_token': token})
         self.assertEqual(response.status_code, 403)
         self.assertFalse(Order.objects.exists())

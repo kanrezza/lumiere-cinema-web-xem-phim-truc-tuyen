@@ -48,7 +48,7 @@ def genre_menu_data(context):
 @register.simple_tag(takes_context=True)
 def country_menu_data(context):
     """Use the same public country grouping as discovery and preserve filters."""
-    from cinema.views import public_country_groups
+    from cinema.queries import public_country_groups
 
     catalog_url, query = _catalog_filters(context, 'country')
     request = context.get('request')

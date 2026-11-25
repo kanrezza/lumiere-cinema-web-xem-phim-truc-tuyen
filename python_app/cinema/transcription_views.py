@@ -9,7 +9,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from .models import Episode, SubtitleTranscription
 from .transcription import TranscriptionError, local_speech_url, private_source_path, source_key
-from .views import require_watch
+from .access import require_watch
 
 
 def allow_request(user):

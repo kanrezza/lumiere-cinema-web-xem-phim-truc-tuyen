@@ -1,0 +1,46 @@
+"""Application routes; names and paths stay stable across feature modules."""
+
+from django.contrib.auth import views as auth
+from django.urls import include, path
+
+from . import privacy_views, room_voice, views as v
+from .forms import LoginForm
+from .privacy_auth import LockedPasswordChangeForm, LockedSetPasswordForm
+from .subtitle_views import subtitle
+from .transcription_views import generate as caption_generate, status as caption_generation_status
+from .translation_views import subtitle_translate, subtitle_translation_status, subtitle_translation_track
+
+urlpatterns = [
+    path('', v.landing, name='landing'), path('browse/', v.catalog, name='catalog'), path('movies/<slug:slug>/', v.movie_detail, name='movie'),
+    path('movies/<slug:slug>/trailer/', v.movie_trailer, name='trailer'),
+    path('accounts/register/', v.register, name='register'), path('accounts/login/', auth.LoginView.as_view(redirect_authenticated_user=True, authentication_form=LoginForm, extra_context={'title':'Chào mừng trở lại', 'subtitle':'Tiếp tục câu chuyện của bạn.', 'button':'Đăng nhập'}), name='login'),
+    path('accounts/password_change/', auth.PasswordChangeView.as_view(form_class=LockedPasswordChangeForm), name='password_change'),
+    path('accounts/reset/<uidb64>/<token>/', auth.PasswordResetConfirmView.as_view(form_class=LockedSetPasswordForm), name='password_reset_confirm'),
+    path('accounts/', include('django.contrib.auth.urls')),
+    path('library/', v.library, name='library'), path('profile/', v.profile, name='profile'), path('profile/avatar/', v.profile_avatar, name='profile_avatar'),
+    path('privacy/', privacy_views.policy, name='privacy_policy'),
+    path('profile/privacy/', privacy_views.account_privacy, name='account_privacy'),
+    path('movies/<int:pk>/save/', v.watchlist_toggle, name='save'), path('movies/<int:pk>/comment/', v.comment, name='comment'), path('movies/<int:pk>/rate/', v.rate, name='rate'),
+    path('watch/<int:pk>/', v.watch, name='watch'), path('watch/<int:pk>/progress/', v.progress, name='progress'), path('watch/<int:pk>/report/', v.report, name='report'),
+    path('watch/<int:pk>/subtitles/<int:subtitle_pk>.vtt', subtitle, name='subtitle'),
+    path('watch/<int:pk>/subtitles/<int:subtitle_pk>/translate/', subtitle_translate, name='subtitle_translate'),
+    path('watch/<int:pk>/translations/<uuid:translation_pk>/', subtitle_translation_status, name='subtitle_translation_status'),
+    path('watch/<int:pk>/translations/<uuid:translation_pk>.vtt', subtitle_translation_track, name='subtitle_translation_track'),
+    path('watch/<int:pk>/captions/generate/', caption_generate, name='caption_generate'),
+    path('watch/<int:pk>/captions/jobs/<uuid:job_pk>/', caption_generation_status, name='caption_generation_status'),
+    path('watch/<int:pk>/ticket/', v.stream_ticket, name='ticket'), path('stream/<int:pk>/<str:filename>/', v.stream, name='stream'),
+    path('vip/', v.plans, name='plans'), path('checkout/<int:pk>/', v.checkout, name='checkout'), path('checkout/', v.checkout, name='checkout_selected'), path('payments/ipn/', v.ipn, name='ipn'), path('payments/return/', v.payment_return, name='payment_return'),
+    path('rooms/', v.rooms, name='rooms'),
+    path('rooms/<uuid:pk>/selection/', v.room_selection, name='room_selection'),
+    path('rooms/<uuid:pk>/playlist/', v.room_playlist, name='room_playlist'),
+    path('rooms/<uuid:pk>/player/', v.room_player, name='room_player'),
+    path('watch/<int:pk>/room/', v.create_room, name='create_room'), path('rooms/<uuid:pk>/', v.room, name='room'), path('rooms/<uuid:pk>/join/', v.join_room, name='join_room'), path('rooms/<uuid:pk>/state/', v.room_state, name='room_state'),
+    path('rooms/<uuid:pk>/admission/', v.room_admission, name='room_admission'),
+    path('rooms/<uuid:pk>/voice/', room_voice.state, name='room_voice'),
+    path('rooms/<uuid:pk>/voice/action/', room_voice.command, name='room_voice_action'),
+    path('countries/', v.countries, name='countries'), path('genres/', v.categories, name='categories'),
+    path('actors/', v.actors, name='actors'), path('actors/<int:pk>/', v.actor_detail, name='actor'),
+    path('history/clear/', v.clear_history, name='clear_history'), path('comments/<int:pk>/delete/', v.delete_comment, name='delete_comment'),
+    path('history/<int:pk>/hide/', v.hide_continue, name='hide_continue'),
+    path('rooms/<uuid:pk>/leave/', v.leave_room, name='leave_room'), path('studio/', v.studio, name='studio'),
+]
