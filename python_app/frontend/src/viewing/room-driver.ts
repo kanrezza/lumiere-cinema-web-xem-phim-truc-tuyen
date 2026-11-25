@@ -4,6 +4,8 @@ import type { FormFields } from '../shared/http'
 export interface RoomMember {
   user_id: number
   user__username: string
+  display_name?: string
+  avatar_url?: string
 }
 
 export interface ChatMessage {
