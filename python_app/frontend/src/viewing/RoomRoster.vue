@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, shallowRef } from 'vue'
-import type { RoomMember } from './room-driver'
+import type { RoomMember } from './room-types'
+import type { VoiceMemberState } from './voice-types'
 
-type VoiceMember = { id: string; mode: 'muted' | 'off' | 'speaking' | 'listening'; disabled: boolean }
 const voiceLabels = {
   muted: 'Chủ phòng đã tắt mic', off: 'Chưa vào thoại',
   speaking: 'Mic đang bật', listening: 'Đang nghe',
@@ -13,7 +13,7 @@ const currentUser = room.dataset.user ?? ''
 const host = room.dataset.hostUser ?? ''
 const isHost = room.dataset.host === 'true'
 const roster = shallowRef<RoomMember[]>([])
-const voiceMembers = shallowRef(new Map<string, VoiceMember>())
+const voiceMembers = shallowRef(new Map<string, VoiceMemberState>())
 const listeners = new AbortController()
 
 function initial(name: string) {
@@ -44,7 +44,7 @@ function voiceState(id: number) {
 }
 
 function applyVoice(event: Event) {
-  const states = (event as CustomEvent<VoiceMember[]>).detail
+  const states = (event as CustomEvent<VoiceMemberState[]>).detail
   voiceMembers.value = new Map(states.map(state => [state.id, state]))
 }
 

@@ -1,30 +1,9 @@
 import { postForm } from '../shared/http'
 import type { FormFields } from '../shared/http'
 import { initRoomMedia } from './room-media'
-import type { MountPlayer, RoomMediaState } from './room-media'
+import type { MountPlayer } from './room-media'
+import type { ChatMessage, RoomMember, RoomSnapshot, RoomMediaState } from './room-types'
 import { confirmRoomKick } from './cinema-confirm'
-
-export interface RoomMember {
-  user_id: number
-  user__username: string
-  display_name?: string
-  avatar_url?: string
-}
-
-export interface ChatMessage {
-  id: number
-  user_id: number
-  user: string
-  content: string
-}
-
-interface RoomSnapshot extends RoomMediaState {
-  closed: boolean
-  position: number
-  playing: boolean
-  messages: ChatMessage[]
-  members: RoomMember[]
-}
 
 export function initRoom(room: HTMLElement, initialVideo: HTMLVideoElement | null, mountPlayer?: MountPlayer) {
   const initialEndpoint = room.dataset.state

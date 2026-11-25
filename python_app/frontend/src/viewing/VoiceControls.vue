@@ -1,17 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, shallowRef } from 'vue'
+import type { VoiceState } from './voice-types'
 
 const props = defineProps<{ room: HTMLElement; initialMessage: string }>()
-interface VoiceState {
-  listening: boolean
-  microphone: boolean
-  joinDisabled: boolean
-  micDisabled: boolean
-  micState: 'muted' | 'live' | 'off'
-  showAudio: boolean
-  message: string
-}
-
 const state = shallowRef<VoiceState>({
   listening: false, microphone: false, joinDisabled: true, micDisabled: true,
   micState: 'off', showAudio: false, message: props.initialMessage,

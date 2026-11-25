@@ -1,11 +1,4 @@
-export interface RoomMediaState {
-  media_version?: number
-  episode_id?: number | null
-  can_watch?: boolean
-  title?: string
-  episode_title?: string
-  player_url?: string
-}
+import type { RoomMediaState } from './room-types'
 
 export type MountPlayer = (video: HTMLVideoElement) => () => void
 

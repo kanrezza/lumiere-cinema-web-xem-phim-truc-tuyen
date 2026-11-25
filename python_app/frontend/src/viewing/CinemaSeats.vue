@@ -1,18 +1,17 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import type { ComponentPublicInstance } from 'vue'
-import type { RoomMember } from './room-driver'
+import type { RoomMember } from './room-types'
 import { allocateSeats, seatDisplayName, seatIsSpeaking, seatLabel } from './seat-state'
-import type { SeatVoiceMode } from './seat-state'
+import type { VoiceMemberState } from './voice-types'
 
-interface SeatVoiceMember { id: string; mode: SeatVoiceMode; disabled: boolean }
 const { room } = defineProps<{room: HTMLElement}>()
 const hostId = Number(room.dataset.hostUser)
 const viewerId = Number(room.dataset.user)
 const isHost = room.dataset.host === 'true'
 const members = shallowRef<RoomMember[]>([])
 const assignments = shallowRef<(number | null)[]>(Array(10).fill(null))
-const voices = shallowRef(new Map<string, SeatVoiceMember>())
+const voices = shallowRef(new Map<string, VoiceMemberState>())
 const speakers = shallowRef(new Set<string>())
 const failedAvatars = shallowRef<Record<number, string>>({})
 const selectedId = ref<number | null>(null)
@@ -94,7 +93,7 @@ function keyboard(event: KeyboardEvent) {
 onMounted(() => {
   room.addEventListener('lumiere:roster-update', roster, {signal: listeners.signal})
   room.addEventListener('lumiere:voice-members', event => {
-    const states = (event as CustomEvent<SeatVoiceMember[]>).detail
+    const states = (event as CustomEvent<VoiceMemberState[]>).detail
     voices.value = new Map(states.map(state => [state.id, state]))
   }, {signal: listeners.signal})
   room.addEventListener('lumiere:voice-activity', event => {

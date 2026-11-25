@@ -1,6 +1,7 @@
-import type { RoomMember } from './room-driver'
+import type { RoomMember } from './room-types'
+import type { VoiceMemberMode } from './voice-types'
 
-export type SeatVoiceMode = 'muted' | 'off' | 'speaking' | 'listening'
+export type SeatVoiceMode = VoiceMemberMode
 
 /** Retain occupied seats across polling, while keeping the host at the front. */
 export function allocateSeats(previous: readonly (number | null)[], members: readonly RoomMember[], host: number, count = 10) {
