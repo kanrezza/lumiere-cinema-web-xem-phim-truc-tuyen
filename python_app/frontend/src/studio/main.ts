@@ -77,6 +77,8 @@ function mountPasswordToggle() {
   const input = document.querySelector<HTMLInputElement>('#login-form input[type=password][id]')
   if (!input) return
   const mount = document.createElement('span')
+  mount.className = 'studio-password-control'
+  mount.dataset.studioPassword = ''
   input.after(mount)
   createApp(StudioPassword, { input }).mount(mount)
 }

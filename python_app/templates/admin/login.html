@@ -1,2 +1,38 @@
-{% extends 'admin/login.html' %}
-{% block content %}<div class="studio-login-intro"><span class="studio-eyebrow">LUMIÈRE STUDIO</span><h1>Chào mừng trở lại.</h1><p>Đăng nhập bằng tài khoản quản trị để quản lý nội dung và hoạt động của Lumière.</p></div>{{ block.super }}{% endblock %}
+{% extends 'admin/login.html' %}{% load static %}
+{% block bodyclass %}{{ block.super }} studio-login-page{% endblock %}
+{% block responsive %}{{ block.super }}<link rel="stylesheet" href="{% static 'studio-login.css' %}?v=studio-access-1">{% endblock %}
+{% block header %}
+<header id="header" class="studio-auth-header">
+  <a class="studio-auth-brand" href="{% url 'catalog' %}" aria-label="Lumière — về trang xem phim"><span class="studio-auth-brand-mark" aria-hidden="true">l<span>›</span></span>lumière<span class="studio-auth-period">.</span><span class="studio-auth-brand-divider" aria-hidden="true"></span><span class="studio-auth-brand-studio">STUDIO</span></a>
+  <div class="studio-auth-header-actions">{% include 'cinema/theme_toggle.html' %}<a href="{% url 'catalog' %}">Về trang xem phim<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5m0-5L9 15M10 5H5v14h14v-5"/></svg></a></div>
+</header>
+{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<div class="studio-auth-layout">
+  <aside class="studio-auth-art" aria-labelledby="studio-auth-story-title">
+    <img class="studio-auth-image" src="{% static 'imagery/landing/hero-worlds.png' %}" alt="" fetchpriority="high">
+    <div class="studio-auth-art-shade" aria-hidden="true"></div>
+    <div class="studio-auth-story"><span class="studio-auth-overline">CHUYỆN PHIM, CỦA BẠN.</span><h2 id="studio-auth-story-title">Phía sau<br>mỗi <em>khung hình.</em></h2><p>Một không gian để chăm chút từng bộ phim<br>và những trải nghiệm đáng nhớ.</p></div>
+    <div class="studio-auth-art-footer"><span>LUMIÈRE ORIGINAL EXPERIENCE</span><span aria-hidden="true">✦</span></div>
+  </aside>
+  <section class="studio-auth-panel" aria-labelledby="studio-login-title">
+    <div class="studio-auth-form-shell">
+      <span class="studio-auth-access"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg> KHÔNG GIAN QUẢN TRỊ</span>
+      <div class="studio-login-intro"><h1 id="studio-login-title">Chào mừng trở lại<span>.</span></h1><p>Đăng nhập để tiếp tục cùng Lumière Studio.</p></div>
+      {% if form.errors %}<div class="studio-auth-error" role="alert"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3v1"/></svg><div><strong>Chưa thể đăng nhập</strong>{% if form.non_field_errors %}{% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}{% else %}<p>Kiểm tra lại thông tin bên dưới rồi thử lại.</p>{% endif %}</div></div>{% endif %}
+      {% if user.is_authenticated %}<p class="studio-auth-account-note" role="status">Bạn đang đăng nhập bằng <strong>{{ username }}</strong>. Hãy dùng tài khoản có quyền quản trị để vào Studio.</p>{% endif %}
+      <div id="content-main">
+        <form action="{{ app_path }}" method="post" id="login-form">{% csrf_token %}
+          <div class="form-row"><label for="{{ form.username.id_for_label }}">Email hoặc tên đăng nhập</label>{{ form.username }}{{ form.username.errors }}</div>
+          <div class="form-row studio-auth-password"><div class="studio-auth-password-label"><label for="{{ form.password.id_for_label }}">Mật khẩu</label>{% url 'admin_password_reset' as password_reset_url %}<a href="{% if password_reset_url %}{{ password_reset_url }}{% else %}{% url 'password_reset' %}{% endif %}">Quên mật khẩu?</a></div><div class="studio-auth-password-field">{{ form.password }}</div>{{ form.password.errors }}</div>
+          <input type="hidden" name="next" value="{{ next }}">
+          <div class="submit-row"><button type="submit" class="studio-auth-submit">Đăng nhập Studio<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button></div>
+        </form>
+      </div>
+      <p class="studio-auth-permission-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/></svg> Chỉ dành cho tài khoản được cấp quyền quản trị.</p>
+    </div>
+    <footer class="studio-auth-panel-footer"><span>© {% now 'Y' %} Lumière Studio</span><a href="{% url 'privacy_policy' %}">Quyền riêng tư</a></footer>
+  </section>
+</div>
+{% endblock %}
