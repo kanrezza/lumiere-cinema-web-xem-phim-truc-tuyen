@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
-from .models import Chat, Comment, ErasureRequest, Episode, History, Movie, Order, Plan, Room, User, Watchlist
+from .models import Chat, Comment, ErasureRequest, Episode, History, Movie, Order, Plan, Room, RoomSuggestion, User, Watchlist
 from .payments import signature
 from .privacy import NOTICE_VERSION
 
@@ -17,6 +17,18 @@ from .privacy import NOTICE_VERSION
 @override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])
 class PrivacyTests(TestCase):
     password = 'test-password-for-privacy'
+
+    def test_erasure_removes_film_suggestions_from_another_users_room(self):
+        room = Room.objects.create(host=self.admin, name='Other room')
+        RoomSuggestion.objects.create(room=room, episode=self.episode, proposed_by=self.viewer)
+        entry = ErasureRequest.objects.create(user=self.viewer, notice_version=NOTICE_VERSION)
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse('admin:privacy_review', args=[entry.pk]), {
+            'action': 'complete', 'confirmed': 'yes',
+        })
+        self.assertRedirects(response, reverse('admin:privacy_requests'))
+        self.assertFalse(RoomSuggestion.objects.filter(proposed_by=self.viewer).exists())
+        self.assertTrue(Room.objects.filter(pk=room.pk).exists())
 
     @classmethod
     def setUpTestData(cls):

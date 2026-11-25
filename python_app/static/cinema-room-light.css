@@ -1,0 +1,204 @@
+/* The room follows the saved site theme; only the projection stays dark. */
+.room-cinema-page .header-actions > .theme-toggle { display: inline-grid; }
+.room-cinema-page .room-screen {
+  color-scheme: dark;
+  --bg: #08070d;
+  --panel: #14141d;
+  --field: #1b1b27;
+  --line: #ffffff20;
+  --border-strong: #ffffff35;
+  --text: #f3f0eb;
+  --muted: #b7adbf;
+  --accent: #f6ad83;
+  --accent-hover: #ffc8a8;
+  --accent-ink: #28160e;
+  color: var(--text);
+}
+html[data-theme="light"] body.room-cinema-page {
+  color-scheme: light;
+  --bg: #f5f3f7;
+  --panel: #ffffff;
+  --field: #f7f5f9;
+  --line: #e4dfe9;
+  --border-strong: #d1c8da;
+  --text: #2b2434;
+  --muted: #72687b;
+  --accent: #855341;
+  --accent-hover: #6f4233;
+  --accent-ink: #ffffff;
+  --surface-raised: #f0edf4;
+  --accent-soft: #f3e6df;
+  background: radial-gradient(ellipse at 30% 8%, #e9ddec66, transparent 55%), #f5f3f7;
+  color: var(--text);
+}
+html[data-theme="light"] .room-cinema-page .site-header.site-header { background: #fdfcfeeF; border-color: var(--line); box-shadow: 0 2px 14px #3e2d4e04; }
+html[data-theme="light"] .room-cinema-page .brand { color: #302537; }
+html[data-theme="light"] .room-cinema-page .account-menu .account-dropdown { background: #fff; box-shadow: 0 18px 55px #33203f16; }
+html[data-theme="light"] .room-cinema-page .room-title p strong { color: #54465f; }
+html[data-theme="light"] .room-cinema-page .cinema-ticket { border-color: #a86c4e60; }
+html[data-theme="light"] .room-cinema-page .btn.secondary { background: #ffffffb3; color: #51445c; border-color: var(--border-strong); }
+html[data-theme="light"] .room-cinema-page .btn.secondary:hover { background: #ede7f2; border-color: #a88cb8; color: #33243f; }
+html[data-theme="light"] .room-cinema-page .room-exit { background: transparent; color: var(--muted); border-color: transparent; }
+html[data-theme="light"] .room-cinema-page .cinema-proscenium { color: #8c7f97; }
+html[data-theme="light"] .room-cinema-page .cinema-screen-shell::before { background: radial-gradient(ellipse, #9b7bba33, #ab90bf12 50%, transparent 72%); }
+html[data-theme="light"] .room-cinema-page .cinema-screen-shell::after { border-color: #ab91a4; background: repeating-linear-gradient(90deg, #ae93a8 0, #d0bdce 3px, #bba1b5 7px); opacity: .75; }
+html[data-theme="light"] .room-cinema-page .room-screen { border-color: #8b729d66; box-shadow: 0 -1px 0 #fff, 0 0 28px #aa87c825, 0 26px 45px -32px #49325a80; }
+html[data-theme="light"] .room-cinema-page .cinema-screen-edge { background: linear-gradient(90deg, transparent, #8b70a5ad, transparent); box-shadow: 0 10px 30px 3px #9d81b52c; }
+html[data-theme="light"] .room-cinema-page .room-screen .btn.secondary { background: #211a2e; color: #f3eaf8; border-color: #6a557d; }
+html[data-theme="light"] .room-cinema-page .room-screen .btn.secondary:hover { background: #31263f; color: #fff; border-color: #bd9bcb; }
+html[data-theme="light"] .room-cinema-page .room-panel,
+html[data-theme="light"] .room-cinema-page .room-access-panel { background: #ffffffd9; border-color: var(--line); box-shadow: 0 5px 22px #3c294705; }
+html[data-theme="light"] .room-cinema-page .room-count { color: #776583; background: #f5f1f8; border-color: #e0d7e8; }
+html[data-theme="light"] .room-cinema-page .room-member-avatar { background: #f3e5dd; color: #7e513e; border-color: #dec6ba; }
+html[data-theme="light"] .room-cinema-page .room-voice-bar { background: #f8f5fa80; }
+html[data-theme="light"] .room-cinema-page #chat-form input { background: #f5f2f8; border-color: var(--line); }
+html[data-theme="light"] .room-cinema-page #chat-form button { background: var(--accent); color: #fff; }
+html[data-theme="light"] .room-cinema-page #chat-messages .room-chat-message { background: #f8f5fa; border-color: #e8dfee; }
+html[data-theme="light"] .room-cinema-page .room-chat-author { color: #855341; }
+html[data-theme="light"] .room-cinema-page .playlist-item { background: #ffffffd9; border-color: #e3dce9; }
+html[data-theme="light"] .room-cinema-page .playlist-item.is-current,
+html[data-theme="light"] .room-cinema-page .playlist-item[data-current=true] { background: linear-gradient(90deg, #f3e6df, #fffaf7); border-color: #c79a80; }
+html[data-theme="light"] .room-cinema-page .playlist-number { color: #8a7b96; }
+html[data-theme="light"] .room-cinema-page .playlist-poster { background: linear-gradient(145deg, #c2a9ce, #e8dfea); }
+html[data-theme="light"] .room-cinema-page .playlist-actions button,
+html[data-theme="light"] .room-cinema-page .suggestion-actions button { color: #695574; border-color: #dbd0e3; background: #fff; }
+html[data-theme="light"] .room-cinema-page .playlist-actions button:hover,
+html[data-theme="light"] .room-cinema-page .suggestion-actions button:hover { color: #6f4535; border-color: #b78b71; background: #fbf3ec; }
+html[data-theme="light"] .room-cinema-page .playlist-actions .playlist-play,
+html[data-theme="light"] .room-cinema-page .suggestion-actions .suggestion-approve { color: #855341; background: #f6ebe4; border-color: #d8b7a4; }
+html[data-theme="light"] .room-cinema-page .playlist-next { background: #fff9f5; border-color: #e6d7cf; }
+html[data-theme="light"] .room-cinema-page .playlist-next.is-ready { background: #f2e3d9; border-color: #c79a80; }
+html[data-theme="light"] .room-cinema-page .suggestion-item { background: #fff; border-color: var(--line); }
+html[data-theme="light"] .room-cinema-page .room-picker { background: #fff; border-color: #d3c8de; box-shadow: 0 0 0 100vmax #21172975, 0 30px 90px #21172938; }
+html[data-theme="light"] .room-cinema-page .room-picker-art { background: linear-gradient(135deg, #c4b0cf, #eadfeb); }
+html[data-theme="light"] .room-cinema-page .cinema-audience-live { border-color: #e4d9e9; background: radial-gradient(ellipse at 50% 0, #d9c8e12e, transparent 70%), #fdfbfe; }
+html[data-theme="light"] .room-cinema-page .cinema-seats-heading h2,
+html[data-theme="light"] .room-cinema-page .cinema-seats-heading h3 { color: #5c4967; }
+html[data-theme="light"] .room-cinema-page .cinema-seats-heading p,
+html[data-theme="light"] .room-cinema-page .cinema-seats-heading span { color: #8a7797; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-place::before { background: linear-gradient(145deg, #e8dfe9, #d5c5d9); border-color: #bda3c452; box-shadow: inset 0 2px 0 #fff8, 0 8px 17px #6c4b7a13; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-place::after { border-inline-color: #c0a5bd; border-bottom-color: #bba2ba; box-shadow: 0 8px 9px #6c4b7a12; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-place.is-occupied::before { background: linear-gradient(145deg, #a7839f, #7a5a7c); border-color: #876482; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-place.is-self::before { border-color: #b3764c; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-place.is-speaking::before { background: linear-gradient(145deg, #ad8266, #7e5c70); border-color: #a66e3a; box-shadow: 0 0 22px #bc7f3f42, inset 0 1px 2px #fff6; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-place.is-speaking::after { border-color: #a67d5a; box-shadow: 0 8px 22px #ac783e2e; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-avatar { color: #fff1e5; background: #644761; border-color: #e5c6d9; }
+html[data-theme="light"] .room-cinema-page .is-speaking .cinema-seat-avatar { border-color: #ffe3b4; box-shadow: 0 0 0 4px #b7844325, 0 0 22px #be8c424d; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-name { color: #51405d; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-role { color: #8d7b99; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-mic { color: #755369; border-color: #c2a9bd; background: #fff7fc; }
+html[data-theme="light"] .room-cinema-page .is-muted .cinema-seat-mic { color: #9a4b59; border-color: #c28b95; background: #fff0f2; }
+html[data-theme="light"] .room-cinema-page .is-speaking .cinema-seat-mic { color: #6d471f; border-color: #b7874c; background: #ffecd0; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-kick { color: #7e4e68; border-color: #c8a9bd; background: #fff5fb; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-kick:hover { color: #fff; background: #98526e; border-color: #98526e; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-menu { background: #fff; border-color: #c8b4d1; box-shadow: 0 12px 40px #3f25462b; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-menu-title { color: #47334f; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-menu-title > button { color: #80678c; border-color: #d8cbe0; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-menu > p,
+html[data-theme="light"] .room-cinema-page .cinema-seat-menu > small,
+html[data-theme="light"] .room-cinema-page .cinema-seats-legend { color: #8c7998; }
+html[data-theme="light"] .room-cinema-page .cinema-seats-legend > span { background: #a77a3e; box-shadow: 0 0 8px #b1874450; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-menu-actions button { background: #faf7fc; color: #63476e; border-color: #e1d4e8; }
+html[data-theme="light"] .room-cinema-page .cinema-seat-menu-actions button:hover { background: #eee5f3; border-color: #ad8cbe; }
+html[data-theme="light"] .room-cinema-page .cinema-approval-trigger { color: #88513a; background: #f7eae2; border-color: #d5af99; }
+html[data-theme="light"] .room-cinema-page .cinema-approval-trigger:hover { background: #efdbcf; border-color: #bd8d70; }
+html[data-theme="light"] .room-cinema-page .cinema-approval-trigger .room-count { color: #88513a; border-color: #dbb9a4; background: #fff9f4; }
+html[data-theme="light"] .room-cinema-page .cinema-access-settings summary { color: #766180; }
+html[data-theme="light"] .room-cinema-page .cinema-kick-confirm { background: #fff; border-color: #d6bac5; box-shadow: 0 30px 80px #33203f3b; }
+html[data-theme="light"] .room-cinema-page .cinema-kick-confirm p { color: #7c6d87; }
+html[data-theme="light"] .room-cinema-page [data-room-approval-dialog] { border-color: #d1c2db; box-shadow: 0 30px 100px #33203f30; }
+html[data-theme="light"] .room-cinema-page [data-room-approval-dialog]::backdrop { background: #251b3673; }
+html[data-theme="light"] .room-cinema-page #room:fullscreen,
+html[data-theme="light"] .room-cinema-page #room.is-immersive { background: radial-gradient(ellipse at 35% 15%, #d8c8e342, transparent 55%), #f5f3f7; }
+html[data-theme="light"] .room-cinema-page #room:-webkit-full-screen { background: #f5f3f7; }
+@media (max-width: 430px) {
+  .room-cinema-page .cinema-return { display: none; }
+  .room-cinema-page .header-actions { gap: 13px; }
+}
+
+/* Open floor, quiet rows and one shared conversation surface in either theme. */
+body.room-cinema-page .room-stage .cinema-audience-live {
+  padding-inline: 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+body.room-cinema-page .cinema-playlist .playlist-list,
+body.room-cinema-page .cinema-playlist .suggestion-list { gap: 0; }
+body.room-cinema-page .cinema-playlist .playlist-item {
+  padding-inline: 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-inline-start: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+body.room-cinema-page .cinema-playlist .playlist-item.is-current,
+body.room-cinema-page .cinema-playlist .playlist-item[data-current=true] {
+  border-color: var(--line);
+  border-inline-start-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-soft) 48%, transparent);
+}
+body.room-cinema-page .cinema-playlist .playlist-item.is-drag-over {
+  border-inline-start-color: var(--accent);
+  background: var(--accent-soft);
+}
+body.room-cinema-page .cinema-playlist .playlist-actions .playlist-icon {
+  background: transparent;
+  border-color: transparent;
+}
+body.room-cinema-page .cinema-playlist .playlist-actions .playlist-icon:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+body.room-cinema-page .cinema-playlist .playlist-next,
+body.room-cinema-page .cinema-playlist .playlist-next.is-ready {
+  padding-inline: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+body.room-cinema-page .cinema-playlist .playlist-empty {
+  padding: 18px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+}
+body.room-cinema-page .cinema-playlist .suggestion-item {
+  padding-inline: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+body.room-cinema-page .room-sidebar {
+  display: block;
+  margin-top: 20px;
+  padding-top: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: none;
+}
+body.room-cinema-page .room-sidebar > .room-panel {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+body.room-cinema-page .room-sidebar > .room-panel > header { border: 0; }
+body.room-cinema-page .room-sidebar > .room-chat { border-top: 1px solid var(--line); }
+body.room-cinema-page .room-sidebar .room-voice-bar {
+  border: 0;
+  background: transparent;
+}
+body.room-cinema-page .room-sidebar #chat-form { border-top: 0; }
+@media (max-width: 850px) {
+  body.room-cinema-page .room-sidebar { margin-top: 0; }
+}

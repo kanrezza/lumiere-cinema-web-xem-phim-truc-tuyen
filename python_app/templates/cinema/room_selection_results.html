@@ -1,0 +1,39 @@
+{% load l10n cinema_format %}
+<div data-room-picker-content>
+  <form method="get" action="{% url 'room_selection' room.pk %}" data-room-search-form class="room-picker-search">
+    <label class="sr-only" for="room-film-search">Tìm phim hoặc diễn viên</label>
+    <input id="room-film-search" type="search" name="q" value="{{ q }}" placeholder="Tìm phim hoặc diễn viên…" maxlength="150">
+    <button class="btn secondary small" type="submit">Tìm kiếm</button>
+  </form>
+  {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+  <div class="room-picker-list">
+    {% for candidate in episodes %}
+      <article class="room-picker-film">
+        <div class="room-picker-art"><img src="{{ candidate.movie|cinema_poster }}" alt="" loading="lazy"></div>
+        <div class="room-picker-copy"><h3>{{ candidate.movie.title }}</h3><p>{% if candidate.movie.kind == 'series' %}Tập {{ candidate.number }} · {% endif %}{{ candidate.title }}</p><small>{{ candidate.movie.year }}{% if candidate.movie.is_vip %} · VIP{% endif %}</small></div>
+        <form method="post" action="{% url 'room_playlist' room.pk %}" data-room-playlist-selection>
+          {% csrf_token %}
+          <input type="hidden" name="episode" value="{{ candidate.pk|unlocalize }}">
+          <input type="hidden" name="action" value="{% if is_host %}add{% else %}suggest{% endif %}">
+          <input type="hidden" name="playlist_version" value="{{ room.playlist_version|unlocalize }}">
+          <button class="btn secondary small" type="submit">{% if is_host %}Thêm phim{% else %}Gợi ý phim{% endif %}</button>
+        </form>
+      </article>
+    {% empty %}
+      <p class="room-picker-empty">{% if q %}Chưa có phim phù hợp với tìm kiếm này.{% else %}Chưa có tập phim sẵn sàng phát trong thư viện của bạn.{% endif %}</p>
+    {% endfor %}
+  </div>
+  {% if episodes.has_other_pages %}
+    <nav class="room-picker-pages" aria-label="Trang phim">
+      {% if episodes.has_previous %}<a class="btn secondary small" data-room-picker-page href="{% url 'room_selection' room.pk %}?q={{ q|urlencode }}&amp;page={{ episodes.previous_page_number }}">Trang trước</a>{% endif %}
+      <span>{{ episodes.number }} / {{ episodes.paginator.num_pages }}</span>
+      {% if episodes.has_next %}<a class="btn secondary small" data-room-picker-page href="{% url 'room_selection' room.pk %}?q={{ q|urlencode }}&amp;page={{ episodes.next_page_number }}">Trang sau</a>{% endif %}
+    </nav>
+  {% endif %}
+  {% if is_host and room.episode_id %}
+    <form method="post" action="{% url 'room_selection' room.pk %}" data-room-selection-form class="room-clear-media">
+      {% csrf_token %}<input type="hidden" name="action" value="clear"><input type="hidden" name="media_version" value="{{ room.media_version|unlocalize }}">
+      <button class="btn secondary small" type="submit">Trở về phòng chờ</button>
+    </form>
+  {% endif %}
+</div>

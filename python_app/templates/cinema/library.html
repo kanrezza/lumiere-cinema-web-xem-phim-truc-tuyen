@@ -8,6 +8,7 @@
 <section class="content-section library-page">
   <header class="library-heading">
     <h1>Tủ phim của bạn</h1>
+    <a class="btn secondary small" href="{% url 'rooms' %}"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg>Phòng xem chung</a>
   </header>
   {% include 'cinema/continue_shelf.html' with source='library' shelf_vue=True %}
   <section class="film-shelf">

@@ -1,3 +1,4 @@
+import json
 import math
 import re
 from contextlib import nullcontext, suppress
@@ -17,6 +18,7 @@ from django.db.models import Avg, Q, Sum, Count, OuterRef, Subquery, F, IntegerF
 from django.db.models.functions import Cast, Ceil
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
@@ -32,7 +34,7 @@ from .search import filter_movie_search, filter_actor_search, normalize_search
 
 
 def can_watch(user, episode):
-    return user.is_authenticated and user.is_active and episode.movie.published and episode.status == 'ready' and (not episode.movie.is_vip or user.is_vip or user.is_staff)
+    return bool(episode and user.is_authenticated and user.is_active and episode.movie.published and episode.status == 'ready' and (not episode.movie.is_vip or user.is_vip or user.is_staff))
 
 
 def require_watch(user, episode):
@@ -576,8 +578,7 @@ def plans(request):
     active_member = bool(request.user.is_authenticated and request.user.is_vip)
     renewing = active_member and request.GET.get('renew') == '1'
     member_dashboard = active_member and not renewing
-    first_ready = catalog_movies().filter(ready_episode_id__isnull=False).first() if member_dashboard else None
-    watch_together_url = reverse('watch', args=[first_ready.ready_episode_id]) + '#watch-together' if first_ready else reverse('catalog')
+    watch_together_url = reverse('rooms')
     payment_ready = bool(settings.VNPAY_TMN_CODE and settings.VNPAY_HASH_SECRET)
     checkout_token = None
     if payment_ready and request.user.is_authenticated and request.user.is_active and not member_dashboard:
@@ -646,51 +647,366 @@ def payment_return(request):
     return redirect('profile')
 
 
+def can_host_room(user):
+    return user.is_active and (user.is_vip or user.is_staff)
+
+
+def create_watch_room(request, episode, form):
+    password = form.cleaned_data['password']
+    password_hash = make_password(password) if password else ''
+    with transaction.atomic():
+        host = User.objects.select_for_update().get(pk=request.user.pk)
+        if not can_host_room(host):
+            raise PermissionDenied('VIP mới có thể tạo phòng.')
+        if episode:
+            require_watch(host, episode)
+        if Room.objects.filter(host=host, closed=False, created_at__gt=timezone.now() - timedelta(hours=6)).count() >= 3:
+            return None
+        name = request.POST.get('name', '').strip()[:100]
+        room = Room.objects.create(
+            host=host, episode=episode,
+            name=name or (episode.movie.title[:100] if episode else 'Phòng xem của ' + host.username[:80]),
+            password_hash=password_hash, requires_approval=form.cleaned_data['requires_approval'],
+        )
+        Membership.objects.create(room=room, user=host)
+        if episode:
+            RoomPlaylistItem.objects.create(room=room, episode=episode, position=1)
+    return room
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def rooms(request):
+    form = RoomAccessForm(request.POST if request.method == 'POST' else None)
+    error = ''
+    if request.method == 'POST':
+        if not can_host_room(request.user):
+            raise PermissionDenied('VIP mới có thể tạo phòng.')
+        if form.is_valid():
+            created = create_watch_room(request, None, form)
+            if created:
+                return redirect('room', pk=created.pk)
+            error = 'Bạn đã có 3 phòng đang hoạt động.'
+    available = Room.objects.filter(
+        Q(host=request.user) | Q(members__user=request.user, members__banned=False, members__active=True),
+        closed=False, created_at__gt=timezone.now() - timedelta(hours=6),
+    ).select_related('host', 'episode__movie').distinct().order_by('-created_at')
+    return render(request, 'cinema/rooms.html', {
+        'rooms': available, 'form': form, 'can_create_room': can_host_room(request.user), 'error': error,
+    }, status=400 if request.method == 'POST' else 200)
+
+
 @login_required
 @require_POST
 def create_room(request, pk):
     episode = get_object_or_404(Episode.objects.select_related('movie'), pk=pk)
     require_watch(request.user, episode)
-    if not request.user.is_vip and not request.user.is_staff: raise PermissionDenied('VIP mới có thể tạo phòng.')
+    if not can_host_room(request.user):
+        raise PermissionDenied('VIP mới có thể tạo phòng.')
     form = RoomAccessForm(request.POST)
     if not form.is_valid():
         messages.error(request, 'Mật khẩu phòng cần từ 4 đến 128 ký tự.')
         return redirect(reverse('watch', args=[pk]) + '#watch-together')
-    password = form.cleaned_data['password']
-    password_hash = make_password(password) if password else ''
-    with transaction.atomic():
-        User.objects.select_for_update().get(pk=request.user.pk)
-        if Room.objects.filter(host=request.user, closed=False, created_at__gt=timezone.now() - timedelta(hours=6)).count() >= 3:
-            messages.error(request, 'Bạn đã có 3 phòng đang hoạt động.')
-            return redirect('watch', pk=pk)
-        room = Room.objects.create(
-            host=request.user, episode=episode, name=request.POST.get('name', '').strip()[:100] or episode.movie.title[:100],
-            password_hash=password_hash, requires_approval=form.cleaned_data['requires_approval'],
-        )
-        Membership.objects.create(room=room, user=request.user)
-    return redirect('room', pk=room.pk)
+    created = create_watch_room(request, episode, form)
+    if not created:
+        messages.error(request, 'Bạn đã có 3 phòng đang hoạt động.')
+        return redirect('watch', pk=pk)
+    return redirect('room', pk=created.pk)
 
 
 def accessible_room(request, pk, lock=False):
-    qs = Room.objects.select_related('episode__movie', 'host')
-    if lock: qs = qs.select_for_update()
+    qs = Room.objects.all()
+    if lock:
+        qs = qs.select_for_update()
+    else:
+        qs = qs.select_related('episode__movie', 'host')
     room = get_object_or_404(qs, pk=pk, closed=False, created_at__gt=timezone.now() - timedelta(hours=6))
-    require_watch(request.user, room.episode)
-    if not (room.host.is_active and (room.host.is_vip or room.host.is_staff)): raise PermissionDenied('Quyền tạo phòng của chủ phòng đã hết hạn.')
+    if not can_host_room(room.host):
+        raise PermissionDenied('Quyền tạo phòng của chủ phòng đã hết hạn.')
     return room
+
+
+def active_room_member(request, room):
+    return get_object_or_404(Membership, room=room, user=request.user, banned=False, active=True)
+
+
+def room_member_roster(room):
+    members = room.members.filter(
+        banned=False, active=True, user__is_active=True,
+        last_seen__gt=timezone.now() - timedelta(seconds=30),
+    ).select_related('user').order_by('user_id')
+    return [{
+        'user_id': member.user_id,
+        'user__username': member.user.username,
+        'display_name': member.user.get_full_name().strip() or member.user.username,
+        'avatar_url': member.user.avatar.url if member.user.avatar else '',
+    } for member in members]
+
+
+def room_media_state(room, user):
+    episode = room.episode
+    published = bool(episode and episode.movie.published and episode.status == 'ready')
+    return {
+        'episode_id': episode.pk if episode else None,
+        'media_version': room.media_version,
+        'can_watch': can_watch(user, episode),
+        'title': episode.movie.title if published else '',
+        'episode_title': episode.title if published else '',
+        'player_url': reverse('room_player', args=[room.pk]) + '?' + urlencode({'v': room.media_version}),
+    }
+
+
+def room_player_context(room, user):
+    episode = room.episode
+    return {
+        'room': room, 'episode': episode if episode and episode.movie.published else None,
+        'is_host': room.host_id == user.pk, 'position': room.position,
+        'media_version': room.media_version, 'can_watch_room': can_watch(user, room.episode),
+        'room_media': room_media_state(room, user),
+        'playlist_url': reverse('room_playlist', args=[room.pk]),
+    }
+
+
+@login_required
+@require_GET
+def room_player(request, pk):
+    room = accessible_room(request, pk)
+    active_room_member(request, room)
+    response = render(request, 'cinema/room_player.html', room_player_context(room, request.user))
+    response['Cache-Control'] = 'private, no-store'
+    return response
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+@vary_on_headers('X-Lumiere-Room-Selection')
+def room_selection(request, pk):
+    with transaction.atomic() if request.method == 'POST' else nullcontext():
+        room = accessible_room(request, pk, lock=request.method == 'POST')
+        active_room_member(request, room)
+        if request.method == 'POST':
+            if room.host_id != request.user.pk:
+                raise PermissionDenied
+            if request.POST.get('media_version') != str(room.media_version):
+                return JsonResponse({
+                    **room_media_state(room, request.user), 'code': 'media_changed',
+                    'error': 'Phim trong phòng đã thay đổi. Kiểm tra lại rồi chọn phim.',
+                }, status=409)
+            action = request.POST.get('action', 'select')
+            episode = None
+            if action == 'select':
+                try:
+                    episode_id = int(request.POST.get('episode', ''))
+                except (TypeError, ValueError):
+                    return JsonResponse({'error': 'Tập phim không hợp lệ.'}, status=400)
+                if not 0 < episode_id < 2**63:
+                    return JsonResponse({'error': 'Tập phim không hợp lệ.'}, status=400)
+                episode = get_object_or_404(Episode.objects.select_related('movie'), pk=episode_id, status='ready', movie__published=True)
+                require_watch(request.user, episode)
+            elif action != 'clear':
+                return JsonResponse({'error': 'Thao tác không hợp lệ.'}, status=400)
+            room.episode = episode
+            room.media_version += 1
+            room.position = 0
+            room.playing = False
+            room.updated_at = timezone.now()
+            room.save(update_fields=['episode', 'media_version', 'position', 'playing', 'updated_at'])
+            if request.headers.get('X-Lumiere-Room-Selection') == '1':
+                return JsonResponse(room_media_state(room, request.user))
+            return redirect('room', pk=room.pk)
+
+        query = request.GET.get('q', '').strip()[:150]
+        movies = filter_movie_search(Movie.objects.filter(published=True), query)
+        episodes = Episode.objects.select_related('movie').filter(movie__in=movies, status='ready')
+        if not (request.user.is_vip or request.user.is_staff):
+            episodes = episodes.filter(movie__is_vip=False)
+        context = {
+            'room': room, 'q': query, 'is_host': room.host_id == request.user.pk,
+            'episodes': Paginator(episodes.order_by('movie__title', 'movie_id', 'number', 'pk'), 12).get_page(request.GET.get('page')),
+        }
+        template = 'cinema/room_selection_results.html' if request.headers.get('X-Lumiere-Room-Selection') == '1' else 'cinema/room_selection.html'
+        return render(request, template, context)
+
+
+def playlist_episode_data(episode):
+    if not episode.movie.published or episode.status != 'ready':
+        return {
+            'episode_id': episode.pk, 'title': 'Phim không còn khả dụng',
+            'episode_title': '', 'poster_url': '', 'available': False,
+        }
+    movie = episode.movie
+    if movie.poster:
+        poster_url = movie.poster.url
+    elif movie.backdrop:
+        poster_url = movie.backdrop.url
+    elif movie.slug in {'big-buck-bunny', 'orbit', 'dusk', 'forest', 'city', 'ocean', 'summer'}:
+        poster_url = static(f'imagery/posters/{movie.slug}.svg')
+    else:
+        artwork = movie.artwork if movie.artwork in {'orbit', 'dusk', 'forest', 'city', 'ocean', 'summer'} else 'orbit'
+        poster_url = static(f'art/{artwork}.svg')
+    return {
+        'episode_id': episode.pk, 'title': episode.movie.title,
+        'episode_title': episode.title, 'poster_url': poster_url, 'available': True,
+    }
+
+
+def room_playlist_state(room, user):
+    items = room.playlist_items.select_related('episode__movie').all()
+    is_host = room.host_id == user.pk
+    suggestions_query = room.suggestions.select_related('episode__movie', 'proposed_by')
+    suggestions = list(suggestions_query.filter(status=RoomSuggestion.Status.PENDING))
+    if not is_host:
+        suggestions.extend(suggestions_query.filter(proposed_by=user).exclude(
+            status=RoomSuggestion.Status.PENDING,
+        ).order_by('-created_at', '-pk')[:20])
+    return {
+        'playlist_version': room.playlist_version, 'is_host': is_host, 'can_manage': is_host,
+        'items': [dict(id=item.pk, position=item.position, **playlist_episode_data(item.episode)) for item in items],
+        'suggestions': [dict(
+            id=entry.pk, proposed_by=entry.proposed_by.username, proposer_id=entry.proposed_by_id,
+            status=entry.status, **playlist_episode_data(entry.episode),
+        ) for entry in suggestions],
+    }
+
+
+def room_playlist_error(room, user, message, status=400):
+    data = {**room_playlist_state(room, user), 'error': message}
+    if status == 409:
+        data['code'] = 'playlist_changed'
+    return JsonResponse(data, status=status)
+
+
+def playlist_request_id(request, key):
+    try:
+        value = int(request.POST.get(key, ''))
+    except (TypeError, ValueError):
+        return None
+    return value if 0 < value < 2**63 else None
+
+
+def append_playlist_item(room, episode):
+    existing = room.playlist_items.filter(episode=episode).first()
+    if existing:
+        return False
+    count = room.playlist_items.count()
+    if count >= 50:
+        raise ValueError('Danh sách đã đủ 50 tập phim.')
+    last_position = room.playlist_items.order_by('-position').values_list('position', flat=True).first() or 0
+    room.playlist_items.create(episode=episode, position=last_position + 1)
+    return True
+
+
+def renumber_playlist(room, ordered_ids):
+    positions = {pk: index for index, pk in enumerate(ordered_ids, 1)}
+    items = list(room.playlist_items.all())
+    for item in items:
+        item.position = positions[item.pk]
+    RoomPlaylistItem.objects.bulk_update(items, ['position'])
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def room_playlist(request, pk):
+    with transaction.atomic():
+        room = accessible_room(request, pk, lock=True)
+        active_room_member(request, room)
+        if request.method == 'GET':
+            return JsonResponse(room_playlist_state(room, request.user))
+        action = request.POST.get('action')
+        if action != 'suggest':
+            if room.host_id != request.user.pk:
+                raise PermissionDenied
+            if request.POST.get('playlist_version') != str(room.playlist_version):
+                return room_playlist_error(room, request.user, 'Danh sách đã thay đổi. Kiểm tra lại rồi thử tiếp.', 409)
+        changed = True
+        playing = False
+        try:
+            if action in ('add', 'suggest'):
+                episode_id = playlist_request_id(request, 'episode')
+                episode = get_object_or_404(Episode.objects.select_related('movie'), pk=episode_id, status='ready', movie__published=True)
+                require_watch(request.user, episode)
+                if action == 'add':
+                    changed = append_playlist_item(room, episode)
+                else:
+                    existing = room.suggestions.filter(episode=episode).first()
+                    if room.playlist_items.filter(episode=episode).exists() or (existing and existing.status == RoomSuggestion.Status.PENDING):
+                        changed = False
+                    else:
+                        pending = room.suggestions.filter(status=RoomSuggestion.Status.PENDING)
+                        if pending.count() >= 20 or pending.filter(proposed_by=request.user).count() >= 5:
+                            raise ValueError('Đã đủ đề xuất đang chờ. Hãy chờ chủ phòng phản hồi.')
+                        if existing:
+                            existing.status = RoomSuggestion.Status.PENDING
+                            existing.proposed_by = request.user
+                            existing.created_at = timezone.now()
+                            existing.save(update_fields=['status', 'proposed_by', 'created_at'])
+                        else:
+                            room.suggestions.create(episode=episode, proposed_by=request.user)
+            elif action == 'remove':
+                item = get_object_or_404(room.playlist_items, pk=playlist_request_id(request, 'item'))
+                item.delete()
+                renumber_playlist(room, list(room.playlist_items.values_list('pk', flat=True)))
+            elif action == 'reorder':
+                try:
+                    ordered_ids = json.loads(request.POST.get('item_ids', ''))
+                except (ValueError, TypeError, RecursionError):
+                    raise ValueError('Thứ tự danh sách không hợp lệ.')
+                current_ids = list(room.playlist_items.values_list('pk', flat=True))
+                if (
+                    not isinstance(ordered_ids, list) or len(ordered_ids) != len(current_ids)
+                    or any(type(value) is not int for value in ordered_ids)
+                    or set(ordered_ids) != set(current_ids)
+                ):
+                    raise ValueError('Thứ tự danh sách không hợp lệ.')
+                changed = ordered_ids != current_ids
+                if changed:
+                    renumber_playlist(room, ordered_ids)
+            elif action == 'play':
+                item = get_object_or_404(room.playlist_items.select_related('episode__movie'), pk=playlist_request_id(request, 'item'))
+                require_watch(request.user, item.episode)
+                room.episode = item.episode
+                room.position = 0
+                room.playing = False
+                room.updated_at = timezone.now()
+                room.media_version += 1
+                room.save(update_fields=['episode', 'position', 'playing', 'updated_at', 'media_version'])
+                playing = True
+            elif action in ('approve', 'reject'):
+                suggestion = get_object_or_404(
+                    room.suggestions.select_related('episode__movie'),
+                    pk=playlist_request_id(request, 'suggestion'), status=RoomSuggestion.Status.PENDING,
+                )
+                if action == 'approve':
+                    require_watch(request.user, suggestion.episode)
+                    append_playlist_item(room, suggestion.episode)
+                    suggestion.status = RoomSuggestion.Status.APPROVED
+                else:
+                    suggestion.status = RoomSuggestion.Status.REJECTED
+                suggestion.save(update_fields=['status'])
+            else:
+                raise ValueError('Thao tác không hợp lệ.')
+        except ValueError as error:
+            return room_playlist_error(room, request.user, str(error))
+        if changed:
+            room.playlist_version += 1
+            room.save(update_fields=['playlist_version'])
+        data = room_playlist_state(room, request.user)
+        if playing:
+            data.update(room_media_state(room, request.user))
+        return JsonResponse(data)
 
 
 @login_required
 def room(request, pk):
     room = accessible_room(request, pk)
     member = Membership.objects.filter(room=room, user=request.user).first()
-    if member and member.banned: raise PermissionDenied('Bạn đã bị loại khỏi phòng.')
+    if member and member.banned:
+        raise PermissionDenied('Bạn đã bị loại khỏi phòng.')
     if not member or not member.active:
         return room_lobby(request, room)
-    is_host = room.host_id == request.user.pk
     response = render(request, 'cinema/room.html', {
-        'room': room, 'episode': room.episode, 'is_host': is_host, 'position': room.position,
-        'room_access_version': room_access_settings(room)['settings_version'] if is_host else '',
+        **room_player_context(room, request.user),
+        'room_access_version': room_access_settings(room)['settings_version'] if room.host_id == request.user.pk else '',
     })
     response.allow_room_microphone = True
     return response
@@ -835,6 +1151,15 @@ def room_state(request, pk):
                     if removed:
                         RoomVoiceSignal.objects.filter(room=room).filter(Q(sender_id=target) | Q(recipient_id=target)).delete()
                 elif action == 'sync':
+                    version = request.POST.get('media_version')
+                    if version != str(room.media_version) and not (version is None and room.media_version == 1):
+                        return JsonResponse({
+                            **room_media_state(room, request.user), 'code': 'media_changed',
+                            'error': 'Phim trong phòng đã thay đổi. Đang cập nhật nguồn phát.',
+                        }, status=409)
+                    if not room.episode:
+                        return JsonResponse({'error': 'Chọn phim trước khi bắt đầu phát.'}, status=400)
+                    require_watch(request.user, room.episode)
                     try: position = float(request.POST.get('position', 0))
                     except ValueError: return JsonResponse({'error': 'Vị trí không hợp lệ'}, status=400)
                     if not math.isfinite(position) or not 0 <= position <= room.episode.duration + 1: return JsonResponse({'error': 'Vị trí không hợp lệ'}, status=400)
@@ -845,9 +1170,9 @@ def room_state(request, pk):
                 room.save()
         member.last_seen = timezone.now()
         member.save(update_fields=['last_seen'])
-        position = min(room.episode.duration, room.position + ((timezone.now() - room.updated_at).total_seconds() if room.playing else 0))
+        position = min(room.episode.duration, room.position + ((timezone.now() - room.updated_at).total_seconds() if room.playing else 0)) if room.episode else 0
         chats = list(Chat.objects.filter(room=room).select_related('user').order_by('-id')[:60])
-        return JsonResponse({'position': position, 'playing': room.playing, 'closed': room.closed, 'members': list(room.members.filter(banned=False, active=True, last_seen__gt=timezone.now() - timedelta(seconds=30)).values('user_id', 'user__username')), 'messages': [{'id': c.pk, 'user_id': c.user_id, 'user': c.user.username, 'content': c.content} for c in reversed(chats)]})
+        return JsonResponse({**room_media_state(room, request.user), 'position': position, 'playing': bool(room.episode and room.playing), 'closed': room.closed, 'members': room_member_roster(room), 'messages': [{'id': c.pk, 'user_id': c.user_id, 'user': c.user.username, 'content': c.content} for c in reversed(chats)]})
 
 
 @login_required

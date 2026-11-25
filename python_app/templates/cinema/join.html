@@ -3,11 +3,11 @@
 {% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=vue-viewing-1">{% endblock %}
 {% block content %}
 <section class="content-section room-lobby">
-  <a class="room-back" href="{% url 'movie' room.episode.movie.slug %}">← Thông tin phim</a>
+  <a class="room-back" href="{% url 'rooms' %}">← Phòng xem chung</a>
   <article class="room-panel">
     <span class="room-lobby-icon"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg></span>
     <h1>{{ room.name }}</h1>
-    <p>{{ room.episode.movie.title }} · Chủ phòng {{ room.host.username }}</p>
+    <p>Chủ phòng {{ room.host.username }}{% if room.episode and room.episode.movie.published %} · {{ room.episode.movie.title }}{% endif %}</p>
     {% if join_error %}<p class="room-lobby-error" role="alert">{{ join_error }}</p>{% endif %}
     <div data-room-lobby="{% url 'room_admission' room.pk %}" data-lobby-status="{{ join_status|default:'' }}" data-requires-approval="{{ room.requires_approval|yesno:'true,false' }}">
       <div data-vue-lobby></div>

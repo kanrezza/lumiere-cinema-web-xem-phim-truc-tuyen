@@ -12,7 +12,7 @@ from django.views.decorators.debug import sensitive_variables
 from .avatars import is_managed_avatar
 from .models import (
     Chat, Comment, ErasureRequest, History, Membership, Rating, Report, Room,
-    RoomJoinRequest, RoomVoiceSignal, SubtitleTranscription, SubtitleTranslation,
+    RoomJoinRequest, RoomSuggestion, RoomVoiceSignal, SubtitleTranscription, SubtitleTranslation,
     User, Watchlist,
 )
 
@@ -67,6 +67,7 @@ def complete_erasure(erasure_id, reviewer):
         raise ValidationError('Tài khoản này cần được xử lý qua quy trình quản trị riêng.')
 
     Room.objects.filter(host=user).delete()
+    RoomSuggestion.objects.filter(proposed_by=user).delete()
     for model in (Watchlist, History, Comment, Rating, Report, RoomJoinRequest, Membership, Chat):
         model.objects.filter(user=user).delete()
     RoomVoiceSignal.objects.filter(Q(sender=user) | Q(recipient=user)).delete()

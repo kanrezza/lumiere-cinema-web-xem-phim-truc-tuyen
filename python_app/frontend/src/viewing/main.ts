@@ -5,6 +5,8 @@ import RoomChat from './RoomChat.vue'
 import RoomLobby from './RoomLobby.vue'
 import RoomQueue from './RoomQueue.vue'
 import RoomRoster from './RoomRoster.vue'
+import RoomPlaylist from './RoomPlaylist.vue'
+import CinemaSeats from './CinemaSeats.vue'
 import TrailerPlayer from './TrailerPlayer.vue'
 import { mountVoiceControls } from './voice-controls'
 import { initVoice } from './voice-driver'
@@ -12,9 +14,10 @@ import { initRoom } from './room-driver'
 import { initAdmission } from './admission-driver'
 import { initPlayback } from './playback'
 import { initCaptions } from './captions'
+import { initCinemaControls } from './cinema-controls'
 
-const video = document.getElementById('player')
-if (video instanceof HTMLVideoElement) {
+function mountPlayer(video: HTMLVideoElement) {
+  const disposers: (() => void)[] = []
   const wrap = video.closest<HTMLElement>('.player-wrap')
   const root = wrap?.querySelector('[data-vue-player-controls]')
   if (wrap && root) {
@@ -24,7 +27,9 @@ if (video instanceof HTMLVideoElement) {
     if (root.querySelector('.player-controls')) {
       fallback.forEach(node => node?.remove())
       wrap.dataset.vuePlayer = 'true'
-      initCaptions(video)
+      const disposeCaptions = initCaptions(video)
+      if (disposeCaptions) disposers.push(disposeCaptions)
+      disposers.push(() => app.unmount())
     } else app.unmount()
   }
 
@@ -44,18 +49,24 @@ if (video instanceof HTMLVideoElement) {
     if (mount.querySelector('[data-next-episode]')) {
       next.remove()
       legacySetting.remove()
+      disposers.push(() => { app.unmount(); mount.remove(); preference.remove() })
     } else {
       app.unmount()
       mount.remove()
       preference.remove()
     }
   }
-  initPlayback(video)
+  const disposePlayback = initPlayback(video)
+  if (disposePlayback) disposers.push(disposePlayback)
+  return () => { for (const dispose of disposers) dispose() }
 }
 
 const room = document.getElementById('room')
 if (room) {
+  initCinemaControls(room)
   mountVoiceControls(room)
+  const seats = room.querySelector('[data-cinema-seats]')
+  if (seats) createApp(CinemaSeats, { room }).mount(seats)
   const queue = room.querySelector<HTMLElement>('[data-room-queue]')
   if (queue) {
     createApp(RoomQueue, {
@@ -71,9 +82,17 @@ if (room) {
     createApp(RoomRoster, { room, count: room.querySelector('[data-room-member-count]') }).mount(roster)
     room.dataset.vueRoom = 'true'
   }
-  if (video instanceof HTMLVideoElement) initRoom(room, video)
+  const playlist = room.querySelector('[data-room-playlist]')
+  if (playlist && room.dataset.playlist) createApp(RoomPlaylist, { room }).mount(playlist)
+  const initialVideo = room.querySelector('video#player')
+  initRoom(room, initialVideo instanceof HTMLVideoElement ? initialVideo : null, mountPlayer)
   initAdmission(room)
   initVoice(room)
+}
+
+if (!room) {
+  const video = document.getElementById('player')
+  if (video instanceof HTMLVideoElement) mountPlayer(video)
 }
 
 const lobby = document.querySelector<HTMLElement>('[data-room-lobby]')

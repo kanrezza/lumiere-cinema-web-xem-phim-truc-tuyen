@@ -175,10 +175,13 @@ class ApplicationTests(TestCase):
         self.assertEqual(self.client.post(reverse('join_room', args=[room.pk])).status_code, 403)
         self.assertEqual(self.client.get(reverse('room_state', args=[room.pk])).status_code, 404)
 
-    def test_vip_movie_requires_every_member_vip(self):
+    def test_vip_movie_requires_vip_for_playback_while_room_remains_accessible(self):
         self.movie.is_vip = True; self.movie.save()
         room = self.make_room(); self.client.force_login(self.user)
-        self.assertEqual(self.client.post(reverse('join_room', args=[room.pk])).status_code, 403)
+        self.assertEqual(self.client.post(reverse('join_room', args=[room.pk])).status_code, 302)
+        self.assertFalse(self.client.get(reverse('room_state', args=[room.pk])).json()['can_watch'])
+        self.assertNotContains(self.client.get(reverse('room_player', args=[room.pk])), 'data-ticket=')
+        self.assertEqual(self.client.post(reverse('ticket', args=[self.episode.pk])).status_code, 403)
 
     def test_room_capacity(self):
         room = self.make_room()

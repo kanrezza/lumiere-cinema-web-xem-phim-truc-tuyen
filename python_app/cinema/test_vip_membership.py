@@ -31,7 +31,8 @@ class VipMembershipExperienceTests(TestCase):
         self.assertContains(response, 'VIP của bạn đang hoạt động.')
         self.assertContains(response, 'Quyền lợi đang có')
         self.assertContains(response, reverse('plans') + '?renew=1')
-        self.assertContains(response, reverse('watch', args=[self.episode.pk]) + '#watch-together')
+        self.assertEqual(response.context['watch_together_url'], reverse('rooms'))
+        self.assertContains(response, 'href="' + reverse('rooms') + '"')
         self.assertNotContains(response, 'id="membership-form"')
         self.assertNotContains(response, 'Chọn gói của bạn')
         self.assertNotContains(response, 'Thêm phim hay.')
@@ -85,9 +86,9 @@ class VipMembershipExperienceTests(TestCase):
         self.assertContains(response, 'VIP của bạn đang hoạt động.')
         self.assertNotContains(response, 'Thanh toán đang được thiết lập')
 
-    def test_watch_together_action_does_not_point_at_an_unready_or_hidden_episode(self):
+    def test_watch_together_action_opens_rooms_without_requiring_a_ready_film(self):
         self.client.force_login(self.member)
         self.episode.status = 'processing'
         self.episode.save(update_fields=['status'])
         response = self.client.get(reverse('plans'))
-        self.assertEqual(response.context['watch_together_url'], reverse('catalog'))
+        self.assertEqual(response.context['watch_together_url'], reverse('rooms'))

@@ -1,0 +1,42 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}Phòng xem chung · Lumière{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=rooms-2">{% endblock %}
+{% block content %}
+<section class="content-section rooms-page" aria-labelledby="rooms-title">
+  <header class="rooms-heading"><div><h1 id="rooms-title">Phòng xem chung</h1><p>Tạo phòng, mời bạn bè rồi chọn phim cho buổi tối của bạn.</p></div>{% if can_create_room %}<a class="btn small" href="#create-room">Tạo phòng</a>{% endif %}</header>
+  <div class="rooms-grid">
+    {% for entry in rooms %}
+      <article class="room-panel room-card">
+        <div class="room-card-art">
+          {% if entry.episode.movie.published and entry.episode.movie.backdrop %}<img src="{{ entry.episode.movie.backdrop.url }}" alt="" loading="lazy">{% elif entry.episode.movie.published and entry.episode.movie.poster %}<img src="{{ entry.episode.movie.poster.url }}" alt="" loading="lazy">{% else %}<svg class="icon" aria-hidden="true"><use href="#i-users"/></svg>{% endif %}
+        </div>
+        <div class="room-card-body">
+          <span class="room-card-role">{% if entry.host_id == user.pk %}Phòng của bạn{% else %}Chủ phòng {{ entry.host.username }}{% endif %}</span>
+          <h2><a href="{% url 'room' entry.pk %}">{{ entry.name }}</a></h2>
+          <p>{% if entry.episode and entry.episode.movie.published %}{{ entry.episode.movie.title }}{% if entry.episode.movie.kind == 'series' %} · Tập {{ entry.episode.number }}{% endif %}{% else %}Chưa chọn phim{% endif %}</p>
+          <a class="btn secondary small" href="{% url 'room' entry.pk %}">Vào phòng <span aria-hidden="true">↗</span></a>
+        </div>
+      </article>
+    {% empty %}
+      <div class="rooms-empty"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg><h2>Chưa có phòng đang hoạt động</h2><p>Phòng bạn tạo hoặc đã tham gia sẽ xuất hiện ở đây.</p></div>
+    {% endfor %}
+  </div>
+  <section class="room-panel room-create" id="create-room" aria-labelledby="room-create-title">
+    <div><h2 id="room-create-title">Tạo phòng riêng</h2><p>Phòng giữ nguyên khi bạn đổi phim hoặc chuyển tập. Tối đa 10 người, hoạt động trong 6 giờ.</p></div>
+    {% if can_create_room %}
+      <form method="post" action="{% url 'rooms' %}" class="room-create-form">
+        {% csrf_token %}
+        {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+        {{ form.non_field_errors }}
+        <label for="room-name">Tên phòng<input id="room-name" name="name" maxlength="100" value="{{ request.POST.name }}" placeholder="Buổi xem cùng bạn bè" required></label>
+        <label for="room-password">Mật khẩu phòng <span class="muted">(tùy chọn)</span><input id="room-password" name="password" type="password" minlength="4" maxlength="128" autocomplete="new-password"></label>
+        {{ form.password.errors }}
+        <label class="room-check"><input type="checkbox" name="requires_approval"{% if form.requires_approval.value %} checked{% endif %}> Duyệt người vào phòng</label>
+        <button class="btn small" type="submit">Tạo phòng và chọn phim</button>
+      </form>
+    {% else %}
+      <div><p>Thành viên VIP có thể tạo phòng. Bạn có thể tham gia phòng được bạn bè mời bằng liên kết.</p><a class="btn secondary small" href="{% url 'plans' %}">Khám phá VIP</a></div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

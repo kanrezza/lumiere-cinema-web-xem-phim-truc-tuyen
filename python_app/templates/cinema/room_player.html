@@ -1,0 +1,18 @@
+{% load l10n %}
+<div data-room-player-fragment data-media-version="{{ media_version|unlocalize }}" data-can-watch="{{ can_watch_room|yesno:'true,false' }}">
+  {% if episode and can_watch_room %}
+    {% include 'cinema/player.html' %}
+  {% else %}
+    <div class="room-waiting">
+      <svg class="icon" aria-hidden="true"><use href="#i-users"/></svg>
+      {% if not room.episode_id %}
+        <h2>Phòng đã sẵn sàng</h2>
+        <p>{% if is_host %}Chọn một phim để bắt đầu buổi xem cùng nhau.{% else %}Chủ phòng đang chọn phim. Bạn có thể trò chuyện trong lúc chờ.{% endif %}</p>
+      {% else %}
+        <h2>Chưa thể phát phim này</h2>
+        <p>Bạn có thể tiếp tục trò chuyện trong phòng và xem khi có quyền truy cập bộ phim.</p>
+        {% if episode.movie.published and episode.movie.is_vip and not user.is_vip %}<a class="btn secondary small" href="{% url 'plans' %}">Xem gói VIP</a>{% endif %}
+      {% endif %}
+    </div>
+  {% endif %}
+</div>

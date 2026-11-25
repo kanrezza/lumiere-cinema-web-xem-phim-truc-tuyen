@@ -121,7 +121,11 @@ class CommunityModerationTests(TestCase):
     def test_room_rows_show_movie_and_episode(self):
         episode = Episode.objects.create(movie=self.movie, title='Gặp nhau', number=2)
         room = Room.objects.create(host=self.viewer, episode=episode, name='Phòng thử')
+        empty = Room.objects.create(host=self.viewer, name='Phòng chờ chọn phim')
         self.client.force_login(self.admin)
+        unfiltered = self.client.get(reverse('admin:cinema_room_changelist'))
+        self.assertContains(unfiltered, empty.name)
+        self.assertContains(unfiltered, 'Chưa chọn phim')
         response = self.client.get(reverse('admin:cinema_room_changelist'), {'movie': self.movie.pk})
         self.assertEqual([row.pk for row in response.context['cl'].result_list], [room.pk])
         self.assertContains(response, self.movie.title)

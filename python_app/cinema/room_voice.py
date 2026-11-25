@@ -31,8 +31,6 @@ def eligible_members(room, now):
     members = room.members.filter(
         active=True, banned=False, last_seen__gt=now - ROOM_HEARTBEAT, user__is_active=True,
     )
-    if room.episode.movie.is_vip:
-        members = members.filter(Q(user__is_staff=True) | Q(user__vip_until__gt=now))
     return members
 
 

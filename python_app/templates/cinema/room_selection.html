@@ -1,0 +1,10 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}Chọn phim cho phòng · Lumière{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=rooms-2">{% endblock %}
+{% block content %}
+<section class="content-section rooms-selection-page">
+  <a class="room-back" href="{% url 'room' room.pk %}">← Quay lại {{ room.name }}</a>
+  <header class="rooms-heading"><div><h1>{% if is_host %}Thêm phim vào lịch chiếu{% else %}Gợi ý phim cho phòng{% endif %}</h1><p>{% if is_host %}Thêm nhiều phim rồi sắp xếp thứ tự trong phòng.{% else %}Chủ phòng sẽ duyệt trước khi phim được thêm vào lịch chiếu.{% endif %}</p></div></header>
+  {% include 'cinema/room_selection_results.html' %}
+</section>
+{% endblock %}

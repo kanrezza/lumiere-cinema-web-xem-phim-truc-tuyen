@@ -6,6 +6,7 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Avg, BooleanField, Count, Q
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.html import format_html, format_html_join
 from urllib.parse import urlencode
 
@@ -363,7 +364,7 @@ class CommunityMovieFilter(admin.SimpleListFilter):
         key = f'{self.movie_field}__pk'
         rows = model_admin.get_queryset(request).order_by(title, key)
         choices = dict(Movie.objects.filter(published=True).values_list('pk', 'title'))
-        choices.update(rows.values_list(key, title).distinct())
+        choices.update((pk, name) for pk, name in rows.values_list(key, title).distinct() if pk is not None and name is not None)
         return sorted(choices.items(), key=lambda item: (item[1].casefold(), item[0]))
 
     def queryset(self, request, queryset):
@@ -644,11 +645,22 @@ class RoomAdmin(CommunityAdmin):
     search_fields = ('name', 'host__username', 'episode__movie__title', 'episode__title')
     community_description = 'Theo dõi phòng theo phim, tập đang chiếu và chủ phòng.'
     community_search_placeholder = 'Tìm tên phòng, phim, tập hoặc chủ phòng…'
-    community_empty_detail = 'Phòng xem chung sẽ xuất hiện tại đây khi người xem tạo phòng trên trang phim.'
+    community_empty_detail = 'Phòng xem chung sẽ xuất hiện tại đây khi người xem tạo phòng.'
     ordering = ('-created_at', '-pk')
     readonly_fields = ('created_time',)
     fields = ('name', 'host', 'episode', 'closed', 'playing', 'position', 'created_time')
     field_labels = {'name': 'Tên phòng', 'host': 'Chủ phòng', 'episode': 'Tập phim', 'closed': 'Đã đóng phòng', 'playing': 'Đang phát', 'position': 'Vị trí phát (giây)'}
+
+    def save_model(self, request, obj, form, change):
+        if change:
+            current = Room.objects.select_for_update().get(pk=obj.pk)
+            obj.media_version = current.media_version
+            if obj.episode_id != current.episode_id:
+                obj.media_version += 1
+                obj.position = 0
+                obj.playing = False
+                obj.updated_at = timezone.now()
+        super().save_model(request, obj, form, change)
 
     @admin.display(description='Phòng xem', ordering='name')
     def room_name(self, obj): return obj.name
@@ -657,10 +669,10 @@ class RoomAdmin(CommunityAdmin):
     def host_name(self, obj): return obj.host.username
 
     @admin.display(description='Phim', ordering='episode__movie__title')
-    def movie_name(self, obj): return self.movie_filter_link(obj.episode.movie)
+    def movie_name(self, obj): return self.movie_filter_link(obj.episode.movie) if obj.episode_id else 'Chưa chọn phim'
 
     @admin.display(description='Tập đang chiếu', ordering='episode__number')
-    def episode_name(self, obj): return f'Tập {obj.episode.number} · {obj.episode.title}'
+    def episode_name(self, obj): return f'Tập {obj.episode.number} · {obj.episode.title}' if obj.episode_id else 'Phòng chờ'
 
     @admin.display(description='Đã đóng', boolean=True, ordering='closed')
     def is_closed(self, obj): return obj.closed

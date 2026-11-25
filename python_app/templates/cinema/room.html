@@ -1,19 +1,28 @@
 {% extends 'base.html' %}{% load static l10n frontend_assets %}
 {% block title %}{{ room.name }} · Lumière{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=vue-viewing-1">{% endblock %}
+{% block body_class %}room-cinema-page{% endblock %}
+{% block navigation %}<span class="cinema-header-label">Phòng chiếu riêng</span>{% endblock %}
+{% block header_search %}<a class="cinema-return" href="{% url 'rooms' %}">Các phòng của bạn</a>{% endblock %}
+{% block footer %}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=cinema-playlist-3"><link rel="stylesheet" href="{% static 'cinema-room.css' %}?v=live-seats-2"><link rel="stylesheet" href="{% static 'cinema-controls.css' %}?v=full-cinema-1"><link rel="stylesheet" href="{% static 'cinema-room-light.css' %}?v=room-theme-1">{% endblock %}
 {% block content %}
 <section class="content-section room-page watch-room" id="room"
   data-state="{% url 'room_state' room.pk %}" data-host="{{ is_host|yesno:'true,false' }}"
+  data-media-version="{{ media_version|unlocalize }}" data-can-watch="{{ can_watch_room|yesno:'true,false' }}"
+  data-episode-id="{{ room.episode_id|unlocalize|default_if_none:'' }}"
+  data-selection="{% url 'room_selection' room.pk %}"
+  data-playlist="{% url 'room_playlist' room.pk %}"
   data-user="{{ user.pk|unlocalize }}" data-host-user="{{ room.host_id|unlocalize }}" data-username="{{ user.username }}"
   data-voice="{% url 'room_voice' room.pk %}" data-voice-action="{% url 'room_voice_action' room.pk %}"
   {% if is_host %}data-admission="{% url 'room_admission' room.pk %}"{% endif %}>
   <header class="room-header">
     <div class="room-title">
-      <a class="room-back" href="{% url 'movie' episode.movie.slug %}"><span aria-hidden="true">←</span> Thông tin phim</a>
+      <div class="cinema-eyebrow"><span class="cinema-ticket" aria-hidden="true">L</span> LUMIÈRE CINEMA <span class="cinema-private">{% if room.password_hash %}Có mật khẩu{% else %}Phòng riêng{% endif %}</span></div>
       <h1>{{ room.name }}</h1>
-      <p>{{ episode.movie.title }}{% if episode.movie.kind == 'series' %} <span aria-hidden="true">·</span> Tập {{ episode.number }}{% endif %} <span aria-hidden="true">·</span> Chủ phòng {{ room.host.username }}</p>
+      <p>Buổi chiếu của <strong>{{ room.host.get_full_name|default:room.host.username }}</strong><span aria-hidden="true"> · </span>Cùng một bộ phim. Cùng một khoảnh khắc.</p>
     </div>
     <div class="room-header-actions">
+      <button class="btn secondary small" type="button" data-cinema-fullscreen aria-pressed="false"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg><span data-cinema-fullscreen-label>Phóng to rạp</span></button>
       <button class="btn secondary small" type="button" id="copy-invite"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M10 13a4 4 0 0 0 6 .5l4-4a4 4 0 0 0-6-6l-2 2m2 5.5a4 4 0 0 0-6-.5l-4 4a4 4 0 0 0 6 6l2-2"/></svg>Mời bạn</button>
       {% if is_host %}
       <button class="btn secondary small room-exit" type="button" id="close-room">Kết thúc phòng</button>
@@ -25,36 +34,25 @@
 
   <div class="room-layout">
     <div class="room-stage">
-      <div class="room-screen">{% include 'cinema/player.html' %}</div>
-      <div class="room-sync"><span class="live-dot" aria-hidden="true"></span><span>{% if is_host %}Điều khiển của bạn đồng bộ cho cả phòng{% else %}Đồng bộ với chủ phòng{% endif %}</span></div>
+      <div class="cinema-screen-shell">
+        <div class="cinema-proscenium" aria-hidden="true"><span>LUMIÈRE</span><span>PRIVATE SCREENING</span></div>
+        <div class="room-screen" data-room-player>{% include 'cinema/room_player.html' %}</div>
+        <div class="cinema-screen-edge" aria-hidden="true"></div>
+      </div>
+      <div class="cinema-now-playing"><div><span class="cinema-section-label">TRÊN MÀN CHIẾU</span><h2 data-room-film-title>{% if episode and episode.movie.published %}{{ episode.movie.title }}{% if episode.movie.kind == 'series' %} · Tập {{ episode.number }}{% endif %}{% else %}Chờ bộ phim đầu tiên{% endif %}</h2></div><div class="room-sync"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg><span>{% if is_host %}Bạn điều khiển buổi chiếu{% else %}Đồng bộ với chủ phòng{% endif %}</span></div></div>
       <p id="room-status" role="status"></p>
-      {% if is_host %}
-      <details class="room-access-panel">
-        <summary><span>Duyệt thành viên và cài đặt phòng</span><span class="room-count" data-room-pending-count aria-label="Số yêu cầu đang chờ">0</span></summary>
-        <section class="room-access-section" aria-labelledby="room-queue-heading">
-          <h2 id="room-queue-heading">Yêu cầu vào phòng</h2>
-          <p data-room-queue-empty>Chưa có yêu cầu.</p>
-          <ul data-room-queue class="room-queue"></ul>
-        </section>
-        <form data-room-access-form class="room-access-form room-access-section">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="settings">
-          <input type="hidden" name="settings_version" value="{{ room_access_version }}">
-          <h2>Quyền vào phòng</h2>
-          <p data-room-password-status>{% if room.password_hash %}Phòng đang có mật khẩu.{% else %}Phòng chưa đặt mật khẩu.{% endif %}</p>
-          <label>Mật khẩu mới<input name="password" type="password" minlength="4" maxlength="128" autocomplete="new-password" placeholder="Giữ nguyên nếu để trống"></label>
-          <label class="room-check"><input type="checkbox" name="remove_password" {% if not room.password_hash %}disabled{% endif %}> Bỏ mật khẩu</label>
-          <label class="room-check"><input type="checkbox" name="requires_approval" {% if room.requires_approval %}checked{% endif %}> Duyệt người vào phòng</label>
-          <button class="btn secondary small">Lưu cài đặt</button>
-        </form>
-        <p data-room-access-status role="status"></p>
-      </details>
-      {% endif %}
+      <div data-cinema-seats><p class="cinema-loading" role="status">Đang sắp chỗ ngồi cho mọi người…</p></div>
+      <div class="cinema-program-toolbar"><div><span class="cinema-section-label">BUỔI TỐI CỦA CHÚNG TA</span><h2>Lịch chiếu trong phòng</h2></div><a class="btn small" href="{% url 'room_selection' room.pk %}" data-room-picker-open><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>{% if is_host %}Thêm phim{% else %}Gợi ý phim{% endif %}</a></div>
+      <div data-room-playlist><p class="cinema-loading" role="status">Đang tải lịch chiếu…</p></div>
+      <section class="room-panel room-picker" data-room-picker hidden role="dialog" aria-modal="true" tabindex="-1" aria-labelledby="room-picker-title">
+        <header><div><span class="cinema-section-label">THƯ VIỆN LUMIÈRE</span><h2 id="room-picker-title">{% if is_host %}Thêm vào lịch chiếu{% else %}Gợi ý cho buổi chiếu{% endif %}</h2></div><button type="button" class="room-picker-close" data-room-picker-close aria-label="Đóng chọn phim">×</button></header>
+        <p class="playlist-notice" data-room-picker-status role="status"></p><div data-room-picker-results></div>
+      </section>
     </div>
 
     <aside class="room-sidebar" aria-label="Thành viên và trò chuyện">
       <section class="room-panel room-people" aria-labelledby="room-people-title">
-        <header><h2 id="room-people-title"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg> Thành viên</h2><span class="room-count" data-room-member-count>1</span></header>
+        <header><h2 id="room-people-title"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg> Trong rạp <span class="room-count" data-room-member-count>1</span></h2>{% if is_host %}<button type="button" class="cinema-approval-trigger" data-room-approval-toggle aria-haspopup="dialog" aria-expanded="false" aria-controls="room-approval-dialog">Duyệt <span class="room-count" data-room-pending-count data-room-approval-count aria-label="Yêu cầu đang chờ">0</span></button>{% endif %}</header>
         <div id="members" aria-label="Thành viên đang ở trong phòng"></div>
         <div class="room-voice-bar">
           <div class="room-voice-actions">
@@ -81,6 +79,29 @@
       </section>
     </aside>
   </div>
+  {% if is_host %}
+  <dialog id="room-approval-dialog" data-room-approval-dialog aria-labelledby="approval-dialog-title">
+    <header class="cinema-approval-header"><div><span class="cinema-section-label">QUẢN LÝ PHÒNG CHIẾU</span><h2 id="approval-dialog-title">Duyệt vào rạp</h2></div><button type="button" data-room-approval-close aria-label="Đóng duyệt thành viên">×</button></header>
+    <div class="cinema-approval-content">
+      <section class="room-access-section" aria-labelledby="room-queue-heading">
+        <h3 id="room-queue-heading">Người đang chờ</h3>
+        <p data-room-queue-empty>Chưa có yêu cầu vào phòng.</p>
+        <ul data-room-queue class="room-queue"></ul>
+      </section>
+      <details class="cinema-access-settings"><summary>Mật khẩu và quyền vào phòng</summary>
+        <form data-room-access-form class="room-access-form room-access-section">
+          {% csrf_token %}<input type="hidden" name="action" value="settings"><input type="hidden" name="settings_version" value="{{ room_access_version }}">
+          <p data-room-password-status>{% if room.password_hash %}Phòng đang có mật khẩu.{% else %}Phòng chưa đặt mật khẩu.{% endif %}</p>
+          <label>Mật khẩu mới<input name="password" type="password" minlength="4" maxlength="128" autocomplete="new-password" placeholder="Giữ nguyên nếu để trống"></label>
+          <label class="room-check"><input type="checkbox" name="remove_password" {% if not room.password_hash %}disabled{% endif %}> Bỏ mật khẩu</label>
+          <label class="room-check"><input type="checkbox" name="requires_approval" {% if room.requires_approval %}checked{% endif %}> Duyệt người vào phòng</label>
+          <button class="btn secondary small">Lưu cài đặt</button>
+        </form>
+      </details>
+      <p data-room-access-status role="status"></p>
+    </div>
+  </dialog>
+  {% endif %}
 </section>
 {% endblock %}
 {% block scripts %}

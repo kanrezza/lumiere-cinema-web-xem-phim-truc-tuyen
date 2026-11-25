@@ -1,5 +1,8 @@
 import { postForm } from '../shared/http'
 import type { FormFields } from '../shared/http'
+import { initRoomMedia } from './room-media'
+import type { MountPlayer, RoomMediaState } from './room-media'
+import { confirmRoomKick } from './cinema-confirm'
 
 export interface RoomMember {
   user_id: number
@@ -15,7 +18,7 @@ export interface ChatMessage {
   content: string
 }
 
-interface RoomSnapshot {
+interface RoomSnapshot extends RoomMediaState {
   closed: boolean
   position: number
   playing: boolean
@@ -23,7 +26,7 @@ interface RoomSnapshot {
   members: RoomMember[]
 }
 
-export function initRoom(room: HTMLElement, video: HTMLVideoElement) {
+export function initRoom(room: HTMLElement, initialVideo: HTMLVideoElement | null, mountPlayer?: MountPlayer) {
   const initialEndpoint = room.dataset.state
   const initialStatus = room.querySelector<HTMLElement>('#room-status')
   const invite = room.querySelector<HTMLButtonElement>('#copy-invite')
@@ -45,6 +48,57 @@ export function initRoom(room: HTMLElement, video: HTMLVideoElement) {
   let sendingChat = false;
   let reconnecting = false;
 
+  let video = initialVideo;
+  let pendingSync: FormFields | null = null;
+  let sendingSync = false;
+  let syncTimer: ReturnType<typeof setInterval> | undefined;
+  let pollingTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const sync = async () => {
+    if (stopped || !video || video.dataset.loading === 'true' || !Number.isFinite(video.duration) || !Number.isFinite(video.currentTime)) return;
+    pendingSync = {
+      action: 'sync', position: video.currentTime, playing: !video.paused && !video.ended,
+      media_version: media?.version() || 1,
+    };
+    if (sendingSync) return;
+    sendingSync = true;
+    try {
+      while (pendingSync && !stopped) {
+        const next = pendingSync;
+        pendingSync = null;
+        try { await send(next); } catch { /* send reports the failure. */ }
+      }
+    } finally {
+      sendingSync = false;
+    }
+  };
+
+  function setVideo(next: HTMLVideoElement | null) {
+    if (isHost && video) {
+      for (const event of ['play', 'pause', 'seeked', 'ended']) video.removeEventListener(event, sync);
+      video.removeEventListener('ended', filmEnded);
+    }
+    pendingSync = null;
+    video = next;
+    if (isHost && video) {
+      for (const event of ['play', 'pause', 'seeked', 'ended']) video.addEventListener(event, sync);
+      video.addEventListener('ended', filmEnded);
+    }
+  }
+  function filmEnded() {
+    room.dispatchEvent(new Event('lumiere:room-film-ended'));
+  }
+  const media = mountPlayer ? initRoomMedia(room, initialVideo, mountPlayer, setVideo) : undefined;
+  setVideo(initialVideo);
+  room.addEventListener('lumiere:room-media-change', async event => {
+    if (stopped || !media) return;
+    const state = (event as CustomEvent<RoomMediaState>).detail;
+    await media.apply(state);
+    if (state.media_version === media.version()) {
+      room.dispatchEvent(new CustomEvent('lumiere:room-media-update', {detail: state}));
+    }
+  });
+
   invite.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(location.href);
@@ -65,6 +119,9 @@ export function initRoom(room: HTMLElement, video: HTMLVideoElement) {
 
   function stopRoom(message: string) {
     stopped = true;
+    if (syncTimer !== undefined) clearInterval(syncTimer);
+    if (pollingTimer !== undefined) clearTimeout(pollingTimer);
+    media?.stop();
     for (const control of chatForm.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input, button')) control.disabled = true;
     if (close) close.disabled = true;
     document.dispatchEvent(new Event('lumiere:stop'));
@@ -72,33 +129,14 @@ export function initRoom(room: HTMLElement, video: HTMLVideoElement) {
   }
 
   if (isHost) {
-    // Serialize host updates so a slower old seek cannot arrive after a new one.
-    let pendingSync: FormFields | null = null;
-    let sendingSync = false;
-    const sync = async () => {
-      if (stopped || video.dataset.loading === 'true' || !Number.isFinite(video.duration) || !Number.isFinite(video.currentTime)) return;
-      pendingSync = {action: 'sync', position: video.currentTime, playing: !video.paused && !video.ended};
-      if (sendingSync) return;
-      sendingSync = true;
-      try {
-        while (pendingSync && !stopped) {
-          const next = pendingSync;
-          pendingSync = null;
-          try { await send(next); } catch { /* send reports the failure. */ }
-        }
-      } finally {
-        sendingSync = false;
-      }
-    };
-    for (const event of ['play', 'pause', 'seeked', 'ended']) video.addEventListener(event, sync);
-    setInterval(sync, 6000);
+    syncTimer = setInterval(sync, 6000);
     close?.addEventListener('click', async () => {
       if (stopped || !confirm('Kết thúc phòng cho tất cả thành viên?')) return;
       close.disabled = true;
       try {
         await send({action: 'close'});
         stopRoom('Phòng đã đóng.');
-        location.href = '/library/';
+        location.href = '/rooms/';
       } catch {
         close.disabled = false;
       }
@@ -137,8 +175,13 @@ export function initRoom(room: HTMLElement, video: HTMLVideoElement) {
   let previousRoster = '';
 
   async function kickMember(member: RoomMember, button: HTMLButtonElement) {
-    if (stopped || button.disabled || !confirm(`Loại ${member.user__username} khỏi phòng?`)) return;
+    if (stopped || button.disabled) return;
     button.disabled = true;
+    if (!await confirmRoomKick(room, member.display_name || member.user__username)) {
+      button.disabled = stopped;
+      return;
+    }
+    if (stopped) return;
     try {
       const data = await send({action: 'kick', user: member.user_id});
       // A poll started before the kick can briefly return the prior roster.
@@ -182,11 +225,16 @@ export function initRoom(room: HTMLElement, video: HTMLVideoElement) {
         stopRoom('Phòng đã đóng.');
         return;
       }
+      if (media) {
+        await media.apply(data);
+        if (data.media_version !== media.version()) return;
+      }
+      room.dispatchEvent(new CustomEvent('lumiere:room-media-update', {detail: data}));
       if (reconnecting) {
         status.textContent = '';
         reconnecting = false;
       }
-      if (!isHost && video.readyState >= 1) {
+      if (!isHost && video && video.readyState >= 1) {
         const position = Number(data.position);
         if (Number.isFinite(position) && Number.isFinite(video.duration) && Math.abs(video.currentTime - position) > 2) {
           video.currentTime = Math.max(0, Math.min(video.duration, position));
@@ -207,8 +255,17 @@ export function initRoom(room: HTMLElement, video: HTMLVideoElement) {
         status.textContent = 'Đang kết nối lại phòng…';
       }
     } finally {
-      if (!stopped) setTimeout(poll, 2000);
+      if (!stopped) pollingTimer = setTimeout(poll, 2000);
     }
   }
+  window.addEventListener('pagehide', () => {
+    stopped = true;
+    media?.stop();
+    if (syncTimer !== undefined) clearInterval(syncTimer);
+    if (pollingTimer !== undefined) clearTimeout(pollingTimer);
+  }, {once: true});
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) location.reload();
+  });
   void poll()
 }
