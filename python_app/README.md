@@ -2,6 +2,8 @@
 
 Lumière dùng Python và Django cho máy chủ, Django Templates để dựng nội dung ban đầu và Vue 3 với TypeScript cho phần tương tác ở trang công khai, tài khoản, phòng xem và Studio. Tài liệu này trình bày các tính năng, tích hợp và cách vận hành ứng dụng. [Hướng dẫn cài đặt nhanh](../README.md)
 
+[Cấu trúc code và quy tắc tái sử dụng](docs/ARCHITECTURE.md) mô tả các module backend theo nghiệp vụ, phần quản trị và luồng trạng thái/giao tiếp mạng của frontend.
+
 ## Đã có trong bản này
 
 - Giao diện sáng/tối responsive, khám phá/tìm kiếm/lọc phim, chi tiết phim, tủ phim và lịch sử xem.

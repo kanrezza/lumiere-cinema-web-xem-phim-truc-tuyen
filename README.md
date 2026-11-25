@@ -48,6 +48,8 @@ FFmpeg converts uploads to HLS in private storage. Django checks access before i
 
 The backend lives in [`cinema/`](python_app/cinema/). VNPay checkout reuses the same order when a signed checkout form is submitted again. VIP activates after a successful, verified server callback. Viewers can request account erasure from their profile, and superusers review those requests in Studio.
 
+HTTP endpoints are grouped by feature in [`cinema/views/`](python_app/cinema/views/). Shared access policies, catalog queries and room operations live outside the view layer; model admin implementations live in `cinema/admin_components/`. Frontend room state, voice transport and WebRTC peers have separate modules. See the [code organization guide](python_app/docs/ARCHITECTURE.md) for entry points and reuse rules.
+
 ## Checks
 
 ```bash
