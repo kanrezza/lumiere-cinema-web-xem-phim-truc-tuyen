@@ -1,57 +1,8 @@
 import { csrfToken } from '../shared/http'
 import { createVoiceActivityMonitor } from './voice-activity'
-
-type SignalType = 'offer' | 'answer'
-type VoiceAction = 'join' | 'leave' | 'signal' | 'mic' | 'mute'
-
-interface VoiceMember {
-  user_id: number
-  voice_session: string | null
-  host_muted: boolean
-  mic_on: boolean
-}
-
-interface Signal {
-  id: number
-  from_user_id: number
-  from_session: string
-  type: SignalType
-  payload: { sdp?: unknown; negotiation?: unknown } | null
-}
-
-interface VoiceSnapshot {
-  self: VoiceMember
-  peers: VoiceMember[]
-  signals: Signal[]
-  ice_servers: RTCIceServer[]
-}
-
-interface Peer {
-  id: string
-  session: string
-  negotiation: string
-  connection: RTCPeerConnection
-  deadline?: number
-  audio?: HTMLAudioElement
-  sender?: RTCRtpSender
-  blocked?: boolean
-}
-
-export interface VoiceState {
-  listening: boolean
-  microphone: boolean
-  joinDisabled: boolean
-  micDisabled: boolean
-  micState: 'muted' | 'live' | 'off'
-  showAudio: boolean
-  message: string
-}
-
-class VoiceRequestError extends Error {
-  constructor(readonly status: number) {
-    super('Không kết nối được với phòng thoại.')
-  }
-}
+import { createVoicePeers } from './voice-peers'
+import { postVoiceAction, voiceRequest, VoiceRequestError } from './voice-transport'
+import type { VoiceAction, VoiceMember, VoiceSnapshot, VoiceState } from './voice-types'
 
 export function initVoice(room: HTMLElement): void {
   const { voice: initialVoiceUrl, voiceAction: initialActionUrl, user: initialSelfId } = room.dataset
@@ -74,8 +25,6 @@ export function initVoice(room: HTMLElement): void {
   const canListen = typeof window.RTCPeerConnection === 'function'
   const canSpeak = Boolean(window.isSecureContext && navigator.mediaDevices?.getUserMedia)
   const members = new Map<string, VoiceMember>()
-  const peers = new Map<string, Peer>()
-  const retries = new Map<string, { attempt: number; after: number }>()
   const muteRequests = new Set<string>()
   const leaseLimit = 6000
   let session = ''
@@ -101,6 +50,12 @@ export function initVoice(room: HTMLElement): void {
     room.dispatchEvent(new CustomEvent('lumiere:voice-activity', {detail}))
   })
 
+  const peers = createVoicePeers({
+    selfId, audioArea, members, activity, session: () => session, recovering: () => recovering,
+    microphone: () => microphone, iceServers: () => iceServers,
+    signal: fields => post('signal', fields), changed: render,
+  })
+
   const joinDisabled = () => closed || joinBusy || !canListen
   const micDisabled = () => closed || !session || selfMuted || micBusy || !canSpeak || recovering
 
@@ -112,13 +67,13 @@ export function initVoice(room: HTMLElement): void {
       else if (!canListen) message = 'Trình duyệt này chưa hỗ trợ trò chuyện thoại.'
       else if (!session) message = 'Tham gia thoại để nghe mọi người. Mic mặc định tắt.'
       else if (selfMuted) message = 'Chủ phòng đã tắt mic của bạn. Bạn vẫn nghe được mọi người.'
-      else if (retries.size) message = 'Đang thử lại kết nối thoại với thành viên.'
+      else if (peers.retrying()) message = 'Đang thử lại kết nối thoại với thành viên.'
       else if (microphone) message = 'Mic đang bật.'
       else if (!canSpeak) message = 'Bạn đang nghe. Bật mic cần trình duyệt hỗ trợ và kết nối HTTPS.'
       else message = 'Đang nghe phòng thoại. Mic đang tắt.'
     }
     const micState = selfMuted ? 'muted' : microphone ? 'live' : 'off'
-    const showAudio = [...peers.values()].some(peer => peer.blocked && !peer.audio?.muted)
+    const showAudio = peers.blockedAudio()
     room.dispatchEvent(new CustomEvent<VoiceState>('lumiere:voice-state', {detail: {
       listening: Boolean(session), microphone: Boolean(microphone), joinDisabled: joinDisabled(),
       micDisabled: micDisabled(), micState, showAudio, message,
@@ -134,27 +89,7 @@ export function initVoice(room: HTMLElement): void {
     room.dispatchEvent(new CustomEvent('lumiere:voice-members', {detail: states}))
   }
 
-  async function voiceRequest<T>(url: string | URL, options: RequestInit = {}): Promise<T> {
-    const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 4500)
-    try {
-      const response = await fetch(url, {credentials: 'same-origin', cache: 'no-store', ...options, signal: controller.signal})
-      if (response.redirected || !response.ok) {
-        throw new VoiceRequestError(response.redirected ? 403 : response.status)
-      }
-      return await response.json()
-    } finally {
-      window.clearTimeout(timeout)
-    }
-  }
-
-  function post<T = unknown>(action: VoiceAction, fields: Record<string, string> = {}) {
-    return voiceRequest<T>(actionUrl, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrfToken()},
-      body: new URLSearchParams({action, ...fields}),
-    })
-  }
+  const post = <T = unknown>(action: VoiceAction, fields: Record<string, string> = {}) => postVoiceAction<T>(actionUrl, action, fields)
 
   function clearMicrophone() {
     micChange += 1
@@ -165,20 +100,8 @@ export function initVoice(room: HTMLElement): void {
     pendingMicrophone?.stop()
     microphone = null
     pendingMicrophone = null
-    for (const peer of peers.values()) peer.sender?.replaceTrack(null).catch(() => {})
+    peers.replaceMicrophone(null)
     return wasOn
-  }
-
-  function closePeer(peer: Peer) {
-    activity.remove(peer.id)
-    if (peers.get(peer.id) === peer) peers.delete(peer.id)
-    window.clearTimeout(peer.deadline)
-    peer.connection.close()
-    if (peer.audio) {
-      peer.audio.pause()
-      peer.audio.srcObject = null
-      peer.audio.remove()
-    }
   }
 
   function stopSession() {
@@ -188,9 +111,8 @@ export function initVoice(room: HTMLElement): void {
     latestSignal = '0'
     window.clearTimeout(leaseTimer)
     clearMicrophone()
-    for (const peer of peers.values()) closePeer(peer)
+    peers.reset()
     activity.suspend()
-    retries.clear()
     return oldSession
   }
 
@@ -216,7 +138,7 @@ export function initVoice(room: HTMLElement): void {
     recovering = true
     notice = ''
     if (clearMicrophone()) post('mic', {session, enabled: 'false'}).catch(() => {})
-    for (const peer of peers.values()) closePeer(peer)
+    peers.closeAll()
     activity.suspend()
     render()
   }
@@ -225,153 +147,6 @@ export function initVoice(room: HTMLElement): void {
     lastSnapshot = Date.now()
     window.clearTimeout(leaseTimer)
     if (session) leaseTimer = window.setTimeout(checkLease, leaseLimit)
-  }
-
-  function playPeerAudio(peer: Peer) {
-    if (!peer.audio || peer.audio.muted || !peerCurrent(peer)) return
-    peer.audio.play().then(() => {
-      peer.blocked = false
-      render()
-    }).catch(() => {
-      peer.blocked = true
-      render()
-    })
-  }
-
-  function updatePeerAudio(peer: Peer) {
-    if (!peer.audio) return
-    const member = members.get(peer.id)
-    const audible = Boolean(session && !recovering && member?.voice_session === peer.session && member.mic_on && !member.host_muted)
-    activity.setEnabled(peer.id, audible)
-    const wasMuted = peer.audio.muted
-    peer.audio.muted = !audible
-    if (audible && wasMuted) playPeerAudio(peer)
-  }
-
-  function offeredFirst(id: string) {
-    return BigInt(selfId) < BigInt(id)
-  }
-
-  function peerCurrent(peer: Peer) {
-    return Boolean(session && !recovering && peers.get(peer.id) === peer && members.get(peer.id)?.voice_session === peer.session)
-  }
-
-  function failPeer(peer: Peer) {
-    if (!peerCurrent(peer)) return
-    const previous = retries.get(peer.id) || {attempt: 0}
-    const attempt = Math.min(previous.attempt + 1, 5)
-    retries.set(peer.id, {attempt, after: Date.now() + Math.min(1000 * 2 ** attempt, 15000)})
-    closePeer(peer)
-    render()
-  }
-
-  function createPeer(member: VoiceMember & { voice_session: string }, negotiation: string) {
-    const connection = new RTCPeerConnection({iceServers})
-    const peer: Peer = {id: String(member.user_id), session: member.voice_session, negotiation, connection}
-    peers.set(peer.id, peer)
-    peer.deadline = window.setTimeout(() => failPeer(peer), 22000)
-    connection.addEventListener('connectionstatechange', () => {
-      if (connection.connectionState === 'failed') failPeer(peer)
-      if (connection.connectionState === 'connected') {
-        window.clearTimeout(peer.deadline)
-        retries.delete(peer.id)
-      }
-      if (connection.connectionState === 'disconnected') {
-        window.clearTimeout(peer.deadline)
-        peer.deadline = window.setTimeout(() => failPeer(peer), 7000)
-      }
-    })
-    connection.addEventListener('track', ({track}) => {
-      if (track.kind !== 'audio' || !peerCurrent(peer)) return
-      if (!peer.audio) {
-        peer.audio = document.createElement('audio')
-        peer.audio.muted = true
-        peer.audio.setAttribute('playsinline', '')
-        audioArea.append(peer.audio)
-      }
-      peer.audio.srcObject = new MediaStream([track])
-      activity.attach(peer.id, track, false)
-      updatePeerAudio(peer)
-    })
-    return peer
-  }
-
-  async function attachSender(peer: Peer, transceiver: RTCRtpTransceiver) {
-    transceiver.direction = 'sendrecv'
-    peer.sender = transceiver.sender
-    await peer.sender.replaceTrack(microphone)
-  }
-
-  function waitForIce(connection: RTCPeerConnection): Promise<void> {
-    if (connection.iceGatheringState === 'complete') return Promise.resolve()
-    return new Promise<void>(resolve => {
-      const finish = () => {
-        window.clearTimeout(timer)
-        connection.removeEventListener('icegatheringstatechange', check)
-        resolve()
-      }
-      const check = () => { if (connection.iceGatheringState === 'complete') finish(); }
-      const timer = window.setTimeout(finish, 4500)
-      connection.addEventListener('icegatheringstatechange', check)
-    })
-  }
-
-  async function sendDescription(peer: Peer, type: SignalType) {
-    await waitForIce(peer.connection)
-    if (!peerCurrent(peer) || !peer.connection.localDescription) return
-    await post('signal', {session, user: peer.id, target_session: peer.session, type,
-      payload: JSON.stringify({sdp: peer.connection.localDescription.sdp, negotiation: peer.negotiation})})
-  }
-
-  async function makeOffer(member: VoiceMember & { voice_session: string }) {
-    const peer = createPeer(member, crypto.randomUUID())
-    try {
-      await attachSender(peer, peer.connection.addTransceiver('audio'))
-      await peer.connection.setLocalDescription(await peer.connection.createOffer())
-      await sendDescription(peer, 'offer')
-    } catch { failPeer(peer); }
-  }
-
-  async function receiveSignal(signal: Signal) {
-    const id = String(signal.from_user_id)
-    const member = members.get(id)
-    const {type, payload} = signal
-    if (id === selfId || !member?.voice_session || member.voice_session !== signal.from_session) return
-    if (typeof payload?.sdp !== 'string' || typeof payload.negotiation !== 'string') return
-    const media = [...payload.sdp.matchAll(/^m=(\S+)/gm)]
-    if (media.length !== 1 || media[0][1] !== 'audio') return
-    let peer = peers.get(id)
-    if (type === 'offer' && !offeredFirst(id)) {
-      if (peer?.negotiation === payload.negotiation) return
-      if (peer) closePeer(peer)
-      peer = createPeer({ ...member, voice_session: member.voice_session }, payload.negotiation)
-      try {
-        await peer.connection.setRemoteDescription({type, sdp: payload.sdp})
-        if (!peerCurrent(peer)) return
-        await attachSender(peer, peer.connection.getTransceivers()[0])
-        await peer.connection.setLocalDescription(await peer.connection.createAnswer())
-        await sendDescription(peer, 'answer')
-      } catch { failPeer(peer); }
-    } else if (type === 'answer' && offeredFirst(id) && peer?.negotiation === payload.negotiation && peerCurrent(peer)) {
-      try { await peer.connection.setRemoteDescription({type, sdp: payload.sdp}); }
-      catch { failPeer(peer); }
-    }
-  }
-
-  function reconcilePeers() {
-    for (const peer of peers.values()) {
-      if (!peerCurrent(peer)) closePeer(peer)
-      else updatePeerAudio(peer)
-    }
-    for (const id of retries.keys()) {
-      if (!members.get(id)?.voice_session) retries.delete(id)
-    }
-    if (!session || recovering) return
-    for (const [id, member] of members) {
-      if (id !== selfId && member.voice_session && !peers.has(id) && offeredFirst(id) && (retries.get(id)?.after || 0) <= Date.now()) {
-        makeOffer({ ...member, voice_session: member.voice_session }).catch(() => {})
-      }
-    }
   }
 
   async function poll() {
@@ -403,11 +178,11 @@ export function initVoice(room: HTMLElement): void {
       iceServers = data.ice_servers
       members.clear()
       for (const member of [data.self, ...data.peers]) members.set(String(member.user_id), member)
-      reconcilePeers()
+      peers.reconcile()
       if (session) {
         for (const signal of data.signals) {
           latestSignal = String(signal.id)
-          receiveSignal(signal).catch(() => {})
+          peers.receiveSignal(signal).catch(() => {})
         }
       }
       renderMembers()
@@ -486,7 +261,7 @@ export function initVoice(room: HTMLElement): void {
         microphone = track
         microphone.enabled = true
         activity.attach(selfId, microphone, true)
-        for (const peer of peers.values()) peer.sender?.replaceTrack(microphone).catch(() => failPeer(peer))
+        peers.replaceMicrophone(microphone)
         microphone.addEventListener('ended', () => {
           if (microphone !== track) return
           clearMicrophone()
@@ -531,7 +306,7 @@ export function initVoice(room: HTMLElement): void {
         current.mic_on = false
       }
       notice = ''
-      reconcilePeers()
+      peers.reconcile()
     } catch { notice = 'Chưa cập nhật được mic của thành viên.'; }
     finally {
       muteRequests.delete(id)
@@ -543,7 +318,7 @@ export function initVoice(room: HTMLElement): void {
 
   playButton?.addEventListener('click', () => {
     activity.resume()
-    for (const peer of peers.values()) playPeerAudio(peer)
+    peers.playAudio()
   })
   room.addEventListener('lumiere:room-members', renderMembers)
   document.addEventListener('lumiere:stop', disconnect)
