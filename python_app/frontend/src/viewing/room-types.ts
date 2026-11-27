@@ -1,4 +1,7 @@
+export type RoomCapacity = 3 | 10
+
 export interface RoomMediaState {
+  capacity?: RoomCapacity
   media_version?: number
   episode_id?: number | null
   can_watch?: boolean
@@ -18,6 +21,8 @@ export interface ChatMessage {
   id: number
   user_id: number
   user: string
+  display_name?: string
+  avatar_url?: string
   content: string
 }
 

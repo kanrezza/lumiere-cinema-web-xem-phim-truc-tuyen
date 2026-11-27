@@ -15,7 +15,7 @@ export function initAdmission(room: HTMLElement) {
   const initialForm = room.querySelector<HTMLFormElement>('[data-room-access-form]')
   const initialStatus = room.querySelector<HTMLElement>('[data-room-access-status]')
   const initialPasswordStatus = room.querySelector<HTMLElement>('[data-room-password-status]')
-  const initialSave = initialForm?.querySelector<HTMLButtonElement>('button')
+  const initialSave = initialForm?.querySelector<HTMLButtonElement>('button[type=submit]')
   const initialApproval = initialForm?.querySelector<HTMLInputElement>('[name=requires_approval]')
   const initialPassword = initialForm?.querySelector<HTMLInputElement>('[name=password]')
   const initialRemovePassword = initialForm?.querySelector<HTMLInputElement>('[name=remove_password]')

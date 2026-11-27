@@ -36,12 +36,14 @@ function mountMembership() {
     name: radio.parentElement?.querySelector('strong')?.textContent?.trim() || '',
     duration: radio.parentElement?.querySelector('small')?.textContent?.trim() || '',
     price: radio.dataset.price || '',
+    start: radio.dataset.start || '',
+    end: radio.dataset.end || '',
   }))
   const selected = radios.find(radio => radio.checked)?.value || plans[0]?.id
   if (!selected || plans.some(plan => !plan.id || !plan.name || !plan.price)) return
 
   const fallback = [...root.childNodes]
-  const app = createApp(MembershipPlans, { plans, selected })
+  const app = createApp(MembershipPlans, { plans, selected, renewing: root.dataset.renewing === 'true' })
   app.mount(root)
   if (!root.querySelector('input[name="plan"]')) {
     app.unmount()

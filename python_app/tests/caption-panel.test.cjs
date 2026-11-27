@@ -14,11 +14,12 @@ class Element {
   replaceChildren(...elements) {for (const element of this.children) element.parent = null; this.children = []; this.append(...elements);}
   remove() {if (this.parent) {this.parent.children = this.parent.children.filter(element => element !== this); this.parent = null;}}
   get options() {return this.children;}
+  getClientRects() {return this.hidden ? [] : [{}];}
   contains(element) {return this === element || this.children.some(child => child.contains(element));}
   focus() {this.focused = true;}
 }
 const tick = () => new Promise(resolve => setImmediate(resolve));
-function fixture({empty = false, responses = []} = {}) {
+function fixture({empty = false, responses = [], settingsMenu = false} = {}) {
   const video = new Element('video'), wrap = new Element(), panel = new Element(), toggle = new Element('button');
   const close = new Element('button'), selection = new Element('select'), source = new Element('select'), target = new Element('select');
   const translateForm = new Element('form'), translateButton = new Element('button'), translateStatus = new Element();
@@ -41,7 +42,9 @@ function fixture({empty = false, responses = []} = {}) {
   ]);
   panel.querySelector = selector => selectors.get(selector) || null;
   panel.append(...[...selectors.values()].filter(Boolean));
-  wrap.querySelector = selector => selector === '[data-caption-panel]' ? panel : selector === '[data-caption-toggle]' ? toggle : null;
+  const settingsButton = new Element('button');
+  if (settingsMenu) toggle.hidden = true;
+  wrap.querySelector = selector => selector === '[data-caption-panel]' ? panel : selector === '[data-caption-toggle]' ? toggle : selector === '[data-player-settings-toggle]' ? settingsButton : null;
   wrap.append(video, panel, toggle); video.closest = () => wrap;
   video.querySelectorAll = selector => video.children.filter(element => element.tag === 'track' && (selector.includes('data-translated') ? element.dataset.translated === 'true' : Object.hasOwn(element.dataset, 'subtitle')));
   const doc = new Element(), win = new Element();
@@ -55,7 +58,7 @@ function fixture({empty = false, responses = []} = {}) {
     async fetch(url, options) {requests.push({url, options}); const next = responses.shift(); if (!next) throw new Error('Missing test response'); if (next.then) return next; return {ok: next.ok !== false, async json() {return next.payload || next;}};},
   };
   loadFrontend('viewing/captions.ts', context).initCaptions(video);
-  return {video, panel, toggle, close, selection, source, target, translateForm, translateButton, translateStatus, generateForm, speechLanguage, generateButton, generateStatus, emptyNode, doc, win, timers, requests,
+  return {video, panel, toggle, settingsButton, close, selection, source, target, translateForm, translateButton, translateStatus, generateForm, speechLanguage, generateButton, generateStatus, emptyNode, doc, win, timers, requests,
     async poll() {const item = [...timers.entries()].find(([, value]) => value.delay === 1500); assert.ok(item, 'poll was scheduled'); timers.delete(item[0]); await item[1].callback(); await tick();}};
 }
 const ready = {id: 'job', status: 'ready', target: 'vi', label: 'Tiếng Việt (dịch tự động)', status_url: '/watch/1/translations/job/', track_url: '/watch/1/translations/job.vtt', error: ''};
@@ -66,6 +69,15 @@ test('caption button opens the empty panel and supports Escape, outside click an
   env.toggle.fire('click'); assert.equal(env.panel.hidden, false); assert.equal(env.toggle.attributes['aria-expanded'], 'true'); assert.equal(env.close.focused, true);
   const event = env.doc.fire('keydown', {key: 'Escape'}); assert.equal(event.defaultPrevented, true); assert.equal(env.panel.hidden, true); assert.equal(env.toggle.focused, true);
   env.toggle.fire('click'); env.doc.fire('click', {target: new Element()}); assert.equal(env.panel.hidden, true);
+});
+
+test('closing captions returns focus to the visible settings trigger when the caption row is hidden', () => {
+  const env = fixture({settingsMenu: true});
+  env.toggle.fire('click');
+  env.close.fire('click');
+  assert.equal(env.panel.hidden, true);
+  assert.equal(env.settingsButton.focused, true);
+  assert.notEqual(env.toggle.focused, true);
 });
 
 test('ready translation adds a native track, activates its option and sends CSRF with the target', async () => {

@@ -34,6 +34,7 @@ export function initVoice(room: HTMLElement): void {
   let microphone: MediaStreamTrack | null = null
   let pendingMicrophone: MediaStreamTrack | null = null
   let joinBusy = false
+  let joining: Promise<boolean> | null = null
   let micBusy = false
   let micChange = 0
   let revision = 0
@@ -57,7 +58,7 @@ export function initVoice(room: HTMLElement): void {
   })
 
   const joinDisabled = () => closed || joinBusy || !canListen
-  const micDisabled = () => closed || !session || selfMuted || micBusy || !canSpeak || recovering
+  const micDisabled = () => closed || suspended || selfMuted || micBusy || !canListen || !canSpeak || recovering
 
   function render() {
     let message = notice
@@ -65,12 +66,13 @@ export function initVoice(room: HTMLElement): void {
       if (closed) message = 'Đã ngắt trò chuyện thoại.'
       else if (recovering) message = 'Đang kết nối lại trò chuyện thoại…'
       else if (!canListen) message = 'Trình duyệt này chưa hỗ trợ trò chuyện thoại.'
-      else if (!session) message = 'Tham gia thoại để nghe mọi người. Mic mặc định tắt.'
+      else if (joinBusy) message = 'Đang kết nối âm thanh phòng. Mic đang tắt.'
+      else if (!session) message = 'Chưa kết nối âm thanh. Bấm avatar của bạn để thử lại.'
       else if (selfMuted) message = 'Chủ phòng đã tắt mic của bạn. Bạn vẫn nghe được mọi người.'
       else if (peers.retrying()) message = 'Đang thử lại kết nối thoại với thành viên.'
       else if (microphone) message = 'Mic đang bật.'
       else if (!canSpeak) message = 'Bạn đang nghe. Bật mic cần trình duyệt hỗ trợ và kết nối HTTPS.'
-      else message = 'Đang nghe phòng thoại. Mic đang tắt.'
+      else message = 'Đang nghe phòng. Bấm avatar trên ghế của bạn để bật mic.'
     }
     const micState = selfMuted ? 'muted' : microphone ? 'live' : 'off'
     const showAudio = peers.blockedAudio()
@@ -168,7 +170,7 @@ export function initVoice(room: HTMLElement): void {
       if (wasRecovering && session) activity.resume()
       if (session && data.self.voice_session !== session) {
         stopSession()
-        notice = 'Phiên thoại đã kết thúc. Chọn Tham gia thoại để kết nối lại.'
+        notice = 'Phiên thoại đã kết thúc. Bấm avatar của bạn để kết nối lại.'
       }
       selfMuted = data.self.host_muted
       if (selfMuted) {
@@ -198,64 +200,88 @@ export function initVoice(room: HTMLElement): void {
     }
   }
 
-  joinButton.addEventListener('click', async () => {
-    if (joinDisabled()) return
-    if (!session) activity.resume()
+  function ensureSession(): Promise<boolean> {
+    if (closed || suspended || !canListen) return Promise.resolve(false)
+    if (session) return Promise.resolve(true)
+    if (joining) return joining
     joinBusy = true
     notice = ''
     render()
-    try {
-      if (session) {
-        const oldSession = stopSession()
-        render()
-        await post('leave', {session: oldSession}).catch(() => {})
-      } else {
-        session = (await post<{ session: string }>('join')).session
+    joining = (async () => {
+      try {
+        const result = await post<{ session: string }>('join')
         if (closed || suspended) {
-          await post('leave', {session: stopSession()}).catch(() => {})
-          return
+          await post('leave', {session: result.session}).catch(() => {})
+          return false
         }
+        session = result.session
         latestSignal = '0'
         renewLease()
         recovering = false
         revision += 1
+        return true
+      } catch {
+        notice = 'Chưa kết nối được âm thanh. Bấm avatar của bạn để thử lại.'
+        return false
+      } finally {
+        joining = null
+        joinBusy = false
+        render()
+        schedulePoll()
       }
-    } catch {
-      notice = 'Chưa vào được phòng thoại. Hãy thử lại.'
-    } finally {
-      joinBusy = false
+    })()
+    return joining
+  }
+
+  // Legacy controls remain backstage; the visible control is the viewer's seat.
+  joinButton.addEventListener('click', async () => {
+    if (joinDisabled()) return
+    activity.resume()
+    if (session) {
+      const oldSession = stopSession()
+      await post('leave', {session: oldSession}).catch(() => {})
       render()
       schedulePoll()
-    }
+    } else await ensureSession()
   })
 
-  micButton.addEventListener('click', async () => {
+  async function toggleMicrophone() {
     if (micDisabled()) return
-    if (!microphone) activity.resume()
+    activity.resume()
     notice = ''
-    const activeSession = session
     if (microphone) {
       clearMicrophone()
       micBusy = true
       render()
-      try { await post('mic', {session, enabled: 'false'}); } catch { notice = 'Mic đã tắt trên thiết bị.'; }
+      try { await post('mic', {session, enabled: 'false'}) }
+      catch { notice = 'Mic đã tắt trên thiết bị.' }
       micBusy = false
     } else {
       const change = ++micChange
       micBusy = true
       render()
       let track: MediaStreamTrack | undefined
+      let enabledSession = ''
       try {
+        // Capture is requested in the actual avatar-click call stack. Automatic
+        // listening and reconnection never request microphone permission.
         const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true}})
-        track = stream.getAudioTracks()[0]
-        if (activeSession !== session || change !== micChange) return void track?.stop()
+        const tracks = stream.getAudioTracks()
+        track = tracks[0]
+        for (const extra of tracks.slice(1)) extra.stop()
+        if (change !== micChange || closed || suspended) return void track?.stop()
         if (!track || track.readyState !== 'live') throw new Error('no microphone track')
         track.enabled = false
         pendingMicrophone = track
-        await post('mic', {session, enabled: 'true'})
-        if (activeSession !== session || change !== micChange || selfMuted || recovering || track.readyState !== 'live') {
+        if (!await ensureSession() || change !== micChange || selfMuted || recovering || closed || suspended) {
           track.stop()
-          if (activeSession === session && !selfMuted) post('mic', {session, enabled: 'false'}).catch(() => {})
+          return
+        }
+        enabledSession = session
+        await post('mic', {session: enabledSession, enabled: 'true'})
+        if (enabledSession !== session || change !== micChange || selfMuted || recovering || closed || suspended || track.readyState !== 'live') {
+          track.stop()
+          if (enabledSession === session && !selfMuted) post('mic', {session, enabled: 'false'}).catch(() => {})
           return
         }
         microphone = track
@@ -272,7 +298,8 @@ export function initVoice(room: HTMLElement): void {
         }, {once: true})
       } catch (error) {
         track?.stop()
-        if (activeSession !== session || change !== micChange) return
+        if (enabledSession && enabledSession === session) post('mic', {session, enabled: 'false'}).catch(() => {})
+        if (change !== micChange || closed || suspended) return
         const reason = error instanceof Error ? error.name : ''
         notice = reason === 'NotAllowedError' ? 'Hãy cấp quyền dùng mic trong trình duyệt.'
           : reason === 'NotFoundError' ? 'Chưa tìm thấy mic trên thiết bị.'
@@ -285,7 +312,10 @@ export function initVoice(room: HTMLElement): void {
     revision += 1
     render()
     schedulePoll()
-  })
+  }
+
+  micButton.addEventListener('click', toggleMicrophone)
+  room.addEventListener('lumiere:voice-toggle-mic', toggleMicrophone)
 
   room.addEventListener('click', async event => {
     const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('[data-voice-mute]') : null
@@ -316,10 +346,9 @@ export function initVoice(room: HTMLElement): void {
     }
   })
 
-  playButton?.addEventListener('click', () => {
-    activity.resume()
-    peers.playAudio()
-  })
+  const playAudio = () => { activity.resume(); peers.playAudio() }
+  playButton?.addEventListener('click', playAudio)
+  room.addEventListener('lumiere:voice-play-audio', playAudio)
   room.addEventListener('lumiere:room-members', renderMembers)
   document.addEventListener('lumiere:stop', disconnect)
   document.addEventListener('visibilitychange', () => {
@@ -338,8 +367,10 @@ export function initVoice(room: HTMLElement): void {
     if (!suspended) return
     suspended = false
     render()
+    void ensureSession()
     schedulePoll()
   })
   render()
+  void ensureSession()
   schedulePoll()
 }

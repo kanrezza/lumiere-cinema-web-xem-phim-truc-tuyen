@@ -15,6 +15,8 @@ import { initAdmission } from './admission-driver'
 import { initPlayback } from './playback'
 import { initCaptions } from './captions'
 import { initCinemaControls } from './cinema-controls'
+import PremiereExperience from './PremiereExperience.vue'
+import type { PremiereState } from './premiere-state'
 
 function mountPlayer(video: HTMLVideoElement) {
   const disposers: (() => void)[] = []
@@ -90,7 +92,26 @@ if (room) {
   initVoice(room)
 }
 
-if (!room) {
+const premiere = document.querySelector<HTMLElement>('[data-premiere-root]')
+if (premiere) {
+  const initial = document.getElementById('premiere-initial-state')
+  const playerTemplate = document.getElementById('premiere-player-template')
+  if (initial?.textContent && playerTemplate instanceof HTMLTemplateElement && premiere.dataset.state && premiere.dataset.control) {
+    try {
+      const initialState = JSON.parse(initial.textContent) as PremiereState
+      const app = createApp(PremiereExperience, {
+        initialState, endpoint: premiere.dataset.state, controlEndpoint: premiere.dataset.control,
+        canManage: premiere.dataset.manage === 'true', authenticated: premiere.dataset.authenticated === 'true',
+        playerTemplate, mountPlayer,
+      })
+      app.mount(premiere)
+      window.addEventListener('pagehide', () => app.unmount(), {once: true})
+      window.addEventListener('pageshow', event => { if (event.persisted) location.reload() })
+    } catch { /* Keep the server-rendered premiere status if initialization fails. */ }
+  }
+}
+
+if (!room && !premiere) {
   const video = document.getElementById('player')
   if (video instanceof HTMLVideoElement) mountPlayer(video)
 }

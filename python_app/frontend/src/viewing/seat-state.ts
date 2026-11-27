@@ -1,11 +1,23 @@
-import type { RoomMember } from './room-types'
+import type { RoomCapacity, RoomMember } from './room-types'
 import type { VoiceMemberMode } from './voice-types'
 
 export type SeatVoiceMode = VoiceMemberMode
 
-/** Retain occupied seats across polling, while keeping the host at the front. */
-export function allocateSeats(previous: readonly (number | null)[], members: readonly RoomMember[], host: number, count = 10) {
-  const ids = [...new Set(members.map(member => member.user_id).filter(id => Number.isSafeInteger(id) && id > 0))].slice(0, count)
+export function roomSeatCapacity(value: unknown, fallback: RoomCapacity = 3): RoomCapacity {
+  const capacity = typeof value === 'string' ? Number(value) : value
+  return capacity === 3 || capacity === 10 ? capacity : fallback
+}
+
+/** Retain occupied seats across polling and resizing, with the host at the front. */
+export function allocateSeats(previous: readonly (number | null)[], members: readonly RoomMember[], host: number, count: RoomCapacity) {
+  const incoming = [...new Set(members.map(member => member.user_id).filter(id => Number.isSafeInteger(id) && id > 0))]
+  const presentIds = new Set(incoming)
+  const priority = [
+    ...(presentIds.has(host) ? [host] : []),
+    ...previous.filter((id): id is number => id !== null && presentIds.has(id)),
+    ...incoming,
+  ]
+  const ids = [...new Set(priority)].slice(0, count)
   const present = new Set(ids)
   const assigned = new Set<number>()
   const seats = Array.from({length: count}, (_, index): number | null => {

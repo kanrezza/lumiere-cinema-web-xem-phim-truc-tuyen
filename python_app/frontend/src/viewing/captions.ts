@@ -66,7 +66,7 @@ export function initCaptions(video: HTMLVideoElement) {
     return url.href;
   };
   const showPanel = () => {panel.hidden = false; toggle.setAttribute('aria-expanded', 'true'); closeButton.focus();};
-  const closePanel = (restoreFocus = true) => {panel.hidden = true; toggle.setAttribute('aria-expanded', 'false'); if (restoreFocus) toggle.focus();};
+  const closePanel = (restoreFocus = true) => {panel.hidden = true; toggle.setAttribute('aria-expanded', 'false'); if (restoreFocus) { const control = toggle.getClientRects().length ? toggle : wrap?.querySelector<HTMLButtonElement>('[data-player-settings-toggle]'); control?.focus(); }};
   toggle.addEventListener('click', () => {if (panel.hidden) showPanel(); else closePanel();});
   closeButton.addEventListener('click', () => closePanel());
   const onKeyDown = (event: KeyboardEvent) => {if (!panel.hidden && event.key === 'Escape') {event.preventDefault(); closePanel();}};

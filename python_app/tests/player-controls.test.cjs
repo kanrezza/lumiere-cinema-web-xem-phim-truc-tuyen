@@ -220,3 +220,72 @@ test('a pause while awaiting a new HLS ticket is preserved', async () => {
   env.load('playback'); env.video.pause(); resolveTicket({url: '/source.m3u8'}); await tick(); env.video.fire('loadedmetadata');
   assert.equal(env.video.paused, true); assert.equal(env.video.dataset.loading, 'false');
 });
+
+test('changing HLS quality keeps the current position and playing state', async () => {
+  const env = environment(), sources = [];
+  const qualities = [720, 1080].map(height => ({height, label: `${height}p`, url: `/q${height}.m3u8`}));
+  env.context.postForm = async () => ({url: '/auto.m3u8', qualities, max_quality: 1440});
+  class Hls {
+    static isSupported() {return true;}
+    static Events = {ERROR: 'error'};
+    loadSource(url) {sources.push(url);}
+    attachMedia() {} on() {}
+    destroy() {env.video.fire('emptied');}
+  }
+  env.win.Hls = Hls;
+  env.load('playback'); await tick(); env.video.fire('loadedmetadata');
+  env.video.setActualTime(42); env.video.paused = false;
+  env.video.dispatchEvent(new env.context.CustomEvent('lumiere:quality-select', {detail: {height: 1080}}));
+  await tick(); env.video.fire('loadedmetadata');
+  assert.deepEqual(sources, ['/auto.m3u8', '/q1080.m3u8']);
+  assert.equal(env.video.currentTime, 42);
+  assert.equal(env.video.paused, false);
+  assert.equal(env.video.dataset.loading, 'false');
+});
+
+test('quality choices use the ticket list and native HLS preserves a paused position', async () => {
+  const env = environment(); let requests = 0;
+  env.video.canPlayType = () => 'maybe';
+  env.context.postForm = async () => ({url: `/auto-${++requests}.m3u8`, qualities: [{height: 720, label: '720p', url: `/q720-${requests}.m3u8`}], max_quality: 720});
+  env.load('playback'); await tick(); env.video.fire('loadedmetadata');
+  env.video.setActualTime(37);
+  env.video.dispatchEvent(new env.context.CustomEvent('lumiere:quality-select', {detail: {height: 1080}}));
+  await tick();
+  assert.equal(requests, 1);
+  env.video.dispatchEvent(new env.context.CustomEvent('lumiere:quality-select', {detail: {height: 720}}));
+  await tick(); env.video.fire('loadedmetadata');
+  assert.equal(env.video.src, '/q720-2.m3u8');
+  assert.equal(env.video.currentTime, 37);
+  assert.equal(env.video.paused, true);
+});
+
+test('renewing a ticket drops an expired VIP quality and updates the picker', async () => {
+  const env = environment(), states = []; let vip = true;
+  env.video.canPlayType = () => 'maybe';
+  env.video.addEventListener('lumiere:qualities', event => states.push(event.detail));
+  env.context.postForm = async () => ({url: '/auto.m3u8', qualities: (vip ? [720, 1080] : [720]).map(height => ({height, label: `${height}p`, url: `/q${height}.m3u8`})), max_quality: vip ? 1440 : 720});
+  env.load('playback'); await tick(); env.video.fire('loadedmetadata');
+  env.video.dispatchEvent(new env.context.CustomEvent('lumiere:quality-select', {detail: {height: 1080}}));
+  await tick(); env.video.fire('loadedmetadata');
+  assert.equal(env.video.src, '/q1080.m3u8');
+  vip = false;
+  env.intervals.find(interval => interval.delay === 480000).callback();
+  await tick(); env.video.fire('loadedmetadata');
+  assert.equal(env.video.src, '/auto.m3u8');
+  assert.equal(states.at(-1).selected, 'auto');
+  assert.equal(states.at(-1).maxQuality, 720);
+  assert.deepEqual(Array.from(states.at(-1).qualities, quality => quality.height), [720]);
+});
+
+test('premiere playback starts without a personal progress endpoint and never saves watch progress', async () => {
+  const env = environment(), requests = [];
+  env.video.canPlayType = () => 'maybe';
+  env.video.dataset.premiere = 'true';
+  delete env.video.dataset.progress;
+  env.context.postForm = async url => {requests.push(url); return {url: '/premiere.m3u8'};};
+  const dispose = env.load('playback');
+  await tick(); env.video.fire('loadedmetadata'); env.video.fire('playing');
+  env.video.setActualTime(30); env.video.fire('pause'); env.win.fire('pagehide'); dispose();
+  await tick();
+  assert.deepEqual(requests, ['/ticket']);
+});

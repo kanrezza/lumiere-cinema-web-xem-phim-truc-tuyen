@@ -12,6 +12,24 @@ interface HlsLibrary {
   isSupported(): boolean
 }
 
+export interface PlaybackQuality {
+  height: number
+  label: string
+  url: string
+}
+export interface PlayerQualityState {
+  qualities: Array<Pick<PlaybackQuality, 'height' | 'label'>>
+  selected: number | 'auto'
+  maxQuality: number
+  sourceMaxQuality?: number
+}
+interface PlaybackTicket {
+  url: string
+  qualities?: PlaybackQuality[]
+  max_quality?: number
+  source_max_quality?: number
+}
+
 function safePosition(value: string | number | undefined) {
   const position = Number(value)
   return Number.isFinite(position) ? Math.max(0, position) : 0
@@ -20,9 +38,10 @@ function safePosition(value: string | number | undefined) {
 export function initPlayback(video: HTMLVideoElement) {
   const ticketUrl = video.dataset.ticket
   const progressUrl = video.dataset.progress
+  const premiere = video.dataset.premiere === 'true'
   const status = document.getElementById('player-status')
   const retry = document.getElementById('retry-player')
-  if (!ticketUrl || !progressUrl || !status || !retry) return
+  if (!ticketUrl || (!progressUrl && !premiere) || !status || !retry) return
 
   const Hls = (window as Window & {Hls?: HlsLibrary}).Hls
   let hls: HlsInstance | undefined
@@ -32,11 +51,13 @@ export function initPlayback(video: HTMLVideoElement) {
   let generation = 0
   let requestedPosition: number | null = null
   let hasPlayed = false
+  let qualities: PlaybackQuality[] = []
+  let selectedHeight: number | 'auto' = 'auto'
   let removeReady = () => {}
 
-  const canSaveProgress = () => hasPlayed && !stopped && video.currentTime > 0 && video.dataset.loading !== 'true'
+  const canSaveProgress = () => !premiere && video.dataset.saveProgress !== 'false' && hasPlayed && !stopped && video.currentTime > 0 && video.dataset.loading !== 'true'
   const saveProgress = () => {
-    if (canSaveProgress()) void postForm(progressUrl, {position: video.currentTime}).catch(() => {})
+    if (progressUrl && canSaveProgress()) void postForm(progressUrl, {position: video.currentTime}).catch(() => {})
   }
   const showFailure = (message: string) => {
     removeReady()
@@ -64,8 +85,23 @@ export function initPlayback(video: HTMLVideoElement) {
     requestedPosition = null
     const current = ++generation
     try {
-      const ticket = await postForm<{url: string}>(ticketUrl, {})
+      const ticket = await postForm<PlaybackTicket>(ticketUrl, {})
       if (stopped || current !== generation) return
+      // Each change obtains fresh server-authorized URLs; a previous VIP
+      // selection falls back to Auto when the current plan no longer allows it.
+      qualities = (ticket.qualities ?? []).filter((option, index, all) =>
+        Number.isInteger(option.height) && option.height > 0 && typeof option.url === 'string' && option.url &&
+        all.findIndex(other => other.height === option.height) === index,
+      ).sort((a, b) => a.height - b.height)
+      const chosen = qualities.find(option => option.height === selectedHeight)
+      if (selectedHeight !== 'auto' && !chosen) selectedHeight = 'auto'
+      video.dispatchEvent(new CustomEvent<PlayerQualityState>('lumiere:qualities', {detail: {
+        qualities: qualities.map(option => ({height: option.height, label: `${option.height}p`})),
+        selected: selectedHeight,
+        maxQuality: Number.isFinite(ticket.max_quality) ? Number(ticket.max_quality) : 0,
+        sourceMaxQuality: Number.isFinite(ticket.source_max_quality) ? Number(ticket.source_max_quality) : undefined,
+      }}))
+      const source = chosen?.url ?? ticket.url
       const position = requestedPosition ?? safePosition(first ? video.dataset.position : video.currentTime)
       const playing = !video.paused
       removeReady()
@@ -98,10 +134,10 @@ export function initPlayback(video: HTMLVideoElement) {
             showFailure('Không thể phát video. Nguồn phát có thể đã hết hạn hoặc phiên đang được dùng ở thiết bị khác.')
           }
         })
-        hls.loadSource(ticket.url)
+        hls.loadSource(source)
         hls.attachMedia(video)
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = ticket.url
+        video.src = source
       } else {
         showFailure('Trình duyệt này chưa hỗ trợ phát HLS. Hãy dùng trình duyệt hiện đại.')
       }
@@ -114,7 +150,17 @@ export function initPlayback(video: HTMLVideoElement) {
     }
   }
 
-  const onPlaying = () => { hasPlayed = true }
+  const onPlaying = () => {
+    hasPlayed = true
+    if (!stopped && video.dataset.loading !== 'true') status.textContent = premiere ? 'Đang công chiếu' : 'Đang phát'
+  }
+  const onQualitySelect = (event: Event) => {
+    const height = (event as CustomEvent<{height?: number | 'auto'}>).detail?.height
+    if (height !== 'auto' && (typeof height !== 'number' || !qualities.some(option => option.height === height))) return
+    if (selectedHeight === height) return
+    selectedHeight = height
+    void loadSource()
+  }
   const onSeek = (event: Event) => {
     if (loading || video.dataset.loading === 'true') {
       requestedPosition = safePosition((event as CustomEvent<{position: number}>).detail.position)
@@ -122,6 +168,7 @@ export function initPlayback(video: HTMLVideoElement) {
   }
   video.addEventListener('playing', onPlaying)
   video.addEventListener('lumiere:seek', onSeek)
+  video.addEventListener('lumiere:quality-select', onQualitySelect)
   retry.addEventListener('click', loadSource)
   video.addEventListener('ended', saveProgress)
   video.addEventListener('pause', saveProgress)
@@ -136,6 +183,7 @@ export function initPlayback(video: HTMLVideoElement) {
     window.clearInterval(progress)
     video.removeEventListener('playing', onPlaying)
     video.removeEventListener('lumiere:seek', onSeek)
+    video.removeEventListener('lumiere:quality-select', onQualitySelect)
     retry.removeEventListener('click', loadSource)
     video.removeEventListener('ended', saveProgress)
     video.removeEventListener('pause', saveProgress)
@@ -148,7 +196,7 @@ export function initPlayback(video: HTMLVideoElement) {
     video.load()
   }
   const onPageHide = () => {
-    if (canSaveProgress()) {
+    if (progressUrl && canSaveProgress()) {
       navigator.sendBeacon?.(progressUrl, formParams({position: video.currentTime, csrfmiddlewaretoken: csrfToken()}))
     }
   }
