@@ -81,6 +81,13 @@ jobs:
           python3 smoke.py --env .env --ca "$RUNNER_TEMP/lumiere-root.crt" --decode
       - name: Rehearse database and media recovery
         run: ./manage.sh exec -T app python manage.py drill_lumiere_restore
+      - name: Show staging diagnostics on failure
+        if: failure()
+        run: |
+          if [ -f .env ]; then
+            ./manage.sh ps -a
+            ./manage.sh logs --no-color --tail=120
+          fi
       - name: Remove the runner's staging stack
         if: always()
         run: |

@@ -22,11 +22,13 @@ Staging chạy Django với `DEBUG=0`, MySQL và Redis riêng, tự tạo hai t�
 Smoke test xác thực các luồng sau:
 
 - Phiên đăng nhập bảo mật và bundle frontend được tải qua HTTPS.
-- Vé phát phim, playlist HLS, đoạn video được FFmpeg giải mã và track WebVTT được phục vụ qua endpoint có quyền.
+- Vé phát phim, master playlist HLS → playlist chất lượng → đoạn video được FFmpeg giải mã và track WebVTT được phục vụ qua endpoint có quyền. Smoke test vẫn hỗ trợ video cũ có playlist trực tiếp và kiểm tra `no-store` ở cả hai tầng playlist.
 - Chủ phòng tạo phòng, tài khoản thứ hai được duyệt và nhận trạng thái phát từ hai phiên HTTPS độc lập.
 - Gửi lại cùng biểu mẫu VIP giữ nguyên mã đơn. Ứng dụng xác nhận callback có chữ ký bằng khóa fixture và xử lý callback lặp đúng một lần. Đích checkout dùng tên miền dành riêng `payments.example.invalid`.
 
 Dừng môi trường bằng `./manage.sh down`. Volume được giữ để lần sau dùng lại dữ liệu fixture. Chỉ dùng `./manage.sh down -v` khi muốn xóa toàn bộ dữ liệu staging của project này.
+
+Nếu job staging lỗi, workflow in trạng thái container và tối đa 120 dòng log mỗi dịch vụ trước khi dọn môi trường. Kiểm thử hồi quy cho bộ đọc HLS của smoke test: `python manage.py test cinema.test_staging_smoke` từ thư mục `python_app`.
 
 ## Staging công khai và VNPay Sandbox
 
