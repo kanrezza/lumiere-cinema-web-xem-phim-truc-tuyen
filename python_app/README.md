@@ -275,6 +275,14 @@ Danh mục có bộ lọc năm, kết hợp với các bộ lọc khác và gi�
 
 ## Giao diện và thành viên VIP
 
+Header có tìm kiếm tức thì bằng Vue/TypeScript: nhập từ 2 ký tự, tìm tiếng Việt có/không dấu, nhận tối đa 6 phim và 3 diễn viên công khai. Hỗ trợ phím lên/xuống, Enter, Escape, tìm kiếm trên điện thoại và biểu mẫu dự phòng khi JavaScript không hoạt động. API không trả về phim nháp, nguồn phát hoặc lịch sử cá nhân.
+
+**Tủ phim** có tìm kiếm, sắp xếp, phân trang và bộ lọc Chưa xem/Đang xem/Đã xem/Đang chuẩn bị. Một phim chỉ được coi là đã xem khi mọi tập đang sẵn sàng đều đạt mốc kết thúc; tập chưa biết thời lượng không được suy đoán là đã hoàn thành. Chọn nhiều phim hoặc cả trang rồi xóa khỏi tủ; lịch sử xem được giữ lại. Endpoint POST chỉ tác động tủ của tài khoản đang đăng nhập, có CSRF và giới hạn 100 mã phim mỗi lần.
+
+Kệ **Dành cho bạn** dựa trên phim của chính bạn đã lưu, xem hoặc chấm từ 4/5. Thể loại được ưu tiên trước diễn viên/quốc gia; từng thẻ giải thích mối liên hệ thực. Phim nháp, phim chưa có bản xem, phim đã xem hết và phim bị chấm thấp không được gợi ý. Lịch sử đã ẩn khỏi Xem tiếp không làm nguồn sở thích; khi chưa đủ dữ liệu, kệ cá nhân không xuất hiện. Không gọi dịch vụ AI bên ngoài hoặc tạo điểm phù hợp giả.
+
+**Studio** có báo cáo 7/30/90 ngày theo múi giờ ứng dụng: chỉ cộng đơn đã thanh toán có `paid_at`, có so sánh kỳ trước, biểu đồ và bảng số liệu theo ngày. Tổng quan toàn thời gian vẫn được ghi riêng. Các kiểm tra phim công khai chưa có bản xem, chưa tải poster riêng, tập thiếu phụ đề và bản nháp đã có video dẫn đến đúng bộ lọc quản trị. Số liệu doanh thu, thành viên và nội dung tuân theo quyền model của nhân viên.
+
 Nút mặt trời/mặt trăng trên header chuyển giữa giao diện sáng và tối. Lựa chọn được lưu trong localStorage của trình duyệt (`lumiere-theme`), áp dụng trước khi tải stylesheet và giữ khi đổi trang/tải lại. Mặc định giữ giao diện tối; nếu trình duyệt chặn lưu trữ, nút vẫn đổi giao diện cho trang hiện tại. Hero/ảnh phim và trình phát giữ bảng màu tối để bảo đảm tương phản; không dùng bộ lọc đảo màu lên nội dung phim.
 
 Thành viên còn hạn VIP mở `/vip/` sẽ thấy quyền lợi/hạn dùng và các lối vào phim VIP, xem chung, tủ phim. Bảng giá chỉ xuất hiện khi chủ động mở liên kết Gia hạn (`/vip/?renew=1`). Khách, tài khoản thường và gói hết hạn vẫn có luồng mua. Tham số `renew` không cấp VIP; quyền vẫn chỉ được thay đổi bởi xác nhận thanh toán hợp lệ hoặc quản trị.

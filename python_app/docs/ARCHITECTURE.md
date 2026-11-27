@@ -11,6 +11,9 @@ Lumière keeps HTTP handling, shared business rules and browser interaction in s
 | `cinema/views/` | HTTP validation, permission checks, transactions and responses, grouped by feature. |
 | `cinema/access.py` | Playback eligibility shared by video, subtitles and rooms. |
 | `cinema/queries.py` | Public catalog, discovery metadata and viewing-history querysets. |
+| `cinema/recommendations.py` | Bounded account-scoped discovery with real shared-feature explanations. |
+| `cinema/content_health.py` | Publication checks reused by Studio and permission-aware movie filters. |
+| `cinema/dashboard_insights.py` | Date-scoped payments and membership reporting, including local-date fallback for MySQL without timezone tables. |
 | `cinema/rooms/access.py` | Room lifetime, membership, presence, capacity and admission settings. |
 | `cinema/rooms/media.py` | Media version changes, source reset and player snapshots/context. |
 | `cinema/rooms/playlist.py` | Playlist serialization, limits, append and ordering operations. |
@@ -41,6 +44,8 @@ Room mutations retain their existing transaction and row-lock boundaries in the 
 | `voice-activity.ts` | Audio-level detection for speaking indicators. |
 
 Vue components render state and dispatch actions. Shared types belong in the contract modules, rather than inside drivers. Browser resources belong to the module that creates them: close peer connections, stop tracks, abort requests and remove listeners when their session or component ends. Keep microphone permission prompts in the session coordinator so rendering or reconnecting a peer cannot enable a microphone.
+
+Header discovery lives in `shell/SearchSuggestions.vue`, with request cancellation, URL validation and stale-response protection in `shell/search-state.ts`. Its published-catalog endpoint is `views/search.py`; it never returns playback tickets or personal history. `public/LibraryTools.vue` enhances the server-rendered library's checkbox form. Filtering, pagination and bulk removal remain functional without JavaScript; `views/library.py` owns account locking and ownership checks.
 
 ## Extending a feature
 

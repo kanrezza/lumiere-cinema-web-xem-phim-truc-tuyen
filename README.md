@@ -54,6 +54,8 @@ The backend lives in [`cinema/`](python_app/cinema/). VNPay checkout reuses the 
 
 HTTP endpoints are grouped by feature in [`cinema/views/`](python_app/cinema/views/). Shared access policies, catalog queries and room operations live outside the view layer; model admin implementations live in `cinema/admin_components/`. Frontend room state, voice transport and WebRTC peers have separate modules. See the [code organization guide](python_app/docs/ARCHITECTURE.md) for entry points and reuse rules.
 
+The header suggests published films and performers as you type, including Vietnamese searches without accents. The saved library supports search, viewing-status filters, sorting, pagination and bulk removal without deleting watch history. A **For you** shelf uses the current account's saved films, viewing history and positive ratings, with a real reason on each card; it sends no activity to external services. Studio adds 7/30/90-day payment reports and permission-aware content checks with links to the exact movie-list filter.
+
 ## Checks
 
 ```bash
