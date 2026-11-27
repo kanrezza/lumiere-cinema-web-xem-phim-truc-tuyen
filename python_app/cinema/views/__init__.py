@@ -16,6 +16,7 @@ from .library import clear_history, hide_continue, library
 from .membership import checkout, ipn, payment_return, plans
 from .movies import movie_detail, movie_trailer
 from .playback import progress, report, stream, stream_ticket, watch
+from .premieres import premiere, premiere_control, premiere_state_view, premieres
 from .room_admission import join_room, room_admission
 from .room_playback import room_selection, room_state
 from .room_playlist import room_playlist
@@ -29,5 +30,5 @@ __all__ = [
     'profile_avatar', 'progress', 'public_country_groups', 'rate', 'register',
     'report', 'require_watch', 'room', 'room_admission', 'room_player', 'room_playlist',
     'room_selection', 'room_state', 'rooms', 'stream', 'stream_ticket', 'studio',
-    'watch', 'watchlist_toggle',
+    'watch', 'watchlist_toggle', 'premieres', 'premiere', 'premiere_state_view', 'premiere_control',
 ]

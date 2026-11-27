@@ -65,8 +65,12 @@ def process_ipn(params):
             user = User.objects.select_for_update().get(pk=order.user_id)
             now = timezone.now()
             if not user.erased_at:
-                user.vip_until = max(user.vip_until or now, now) + timedelta(days=order.days)
+                order.period_start = max(user.vip_until or now, now)
+                order.period_end = order.period_start + timedelta(days=order.days)
+                user.vip_until = order.period_end
                 user.save(update_fields=['vip_until'])
+            if not order.plan_name_snapshot:
+                order.plan_name_snapshot = order.plan.name
             order.paid_at = now
         order.save()
     return {'RspCode': '00', 'Message': 'Confirm success'}

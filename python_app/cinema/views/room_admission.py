@@ -14,12 +14,12 @@ from django.views.decorators.http import require_POST, require_http_methods
 from ..forms import RoomAccessForm
 from ..models import Membership, RoomJoinRequest
 from ..validation import positive_id
-from ..rooms.access import accessible_room, room_access_settings, room_is_full, room_password_attempt_allowed
+from ..rooms.access import accessible_room, room_access_settings, room_capacity, room_full_message, room_is_full, room_password_attempt_allowed
 
 
 def room_lobby(request, room, error='', status=200):
     join_status = RoomJoinRequest.objects.filter(room=room, user=request.user).values_list('status', flat=True).first()
-    return render(request, 'cinema/join.html', {'room': room, 'join_status': join_status, 'join_error': error}, status=status)
+    return render(request, 'cinema/join.html', {'room': room, 'join_status': join_status, 'join_error': error, 'room_capacity': room_capacity(room)}, status=status)
 
 
 @login_required
@@ -29,7 +29,7 @@ def join_room(request, pk):
         room = accessible_room(request, pk, lock=True)
         member = Membership.objects.filter(room=room, user=request.user).first()
         if member and member.banned: raise PermissionDenied
-        if member and member.active:
+        if member and member.active and not room_is_full(room, request.user):
             return redirect('room', pk=pk)
         admission = RoomJoinRequest.objects.filter(room=room, user=request.user).first()
         if admission and admission.status == RoomJoinRequest.Status.REJECTED:
@@ -47,7 +47,7 @@ def join_room(request, pk):
             RoomJoinRequest.objects.get_or_create(room=room, user=request.user)
             return redirect('room', pk=pk)
         if room_is_full(room, request.user):
-            return room_lobby(request, room, 'Phòng đã đủ 10 thành viên.', 409)
+            return room_lobby(request, room, room_full_message(room), 409)
         Membership.objects.update_or_create(room=room, user=request.user, defaults={
             'active': True, 'last_seen': timezone.now(), 'voice_session': None, 'voice_seen_at': None, 'voice_mic_on': False,
         })

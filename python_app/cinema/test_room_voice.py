@@ -44,6 +44,20 @@ class RoomVoiceTests(TestCase):
             payload=json.dumps({'sdp': f'v=0\r\nm={media} 9 UDP/TLS/RTP/SAVPF 111\r\n', 'negotiation': str(uuid4())}),
         )
 
+    def test_reentering_voice_refreshes_admitted_presence_and_always_resets_microphone(self):
+        old_session = uuid4()
+        Membership.objects.filter(pk=self.guest_member.pk).update(
+            last_seen=timezone.now() - timedelta(minutes=1), voice_session=old_session,
+            voice_seen_at=timezone.now(), voice_mic_on=True,
+        )
+        response = self.command(self.guest_client, 'join')
+        self.assertEqual(response.status_code, 200)
+        self.guest_member.refresh_from_db()
+        self.assertNotEqual(self.guest_member.voice_session, old_session)
+        self.assertFalse(self.guest_member.voice_mic_on)
+        self.assertGreater(self.guest_member.last_seen, timezone.now() - timedelta(seconds=5))
+        self.assertFalse(self.guest_client.get(self.voice).json()['self']['mic_on'])
+
     def test_voice_controls_require_admission_and_are_host_only(self):
         self.assertEqual(self.other_client.get(self.voice).status_code, 404)
         self.assertEqual(self.command(self.other_client, 'join').status_code, 404)
@@ -103,7 +117,8 @@ class RoomVoiceTests(TestCase):
     def test_returning_member_can_load_voice_state_while_room_presence_refreshes(self):
         Membership.objects.filter(pk=self.guest_member.pk).update(last_seen=timezone.now() - timedelta(minutes=1))
         self.assertEqual(self.guest_client.get(self.voice).status_code, 200)
-        self.assertEqual(self.command(self.guest_client, 'join').status_code, 404)
+        self.assertEqual(self.command(self.guest_client, 'join').status_code, 200)
+        self.assertFalse(self.guest_client.get(self.voice).json()['self']['mic_on'])
         room_state = reverse('room_state', args=[self.room.pk])
         self.assertEqual(self.guest_client.get(room_state).status_code, 200)
         self.join(self.guest_client)

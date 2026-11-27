@@ -53,7 +53,7 @@ class VipPersonalizationTests(TestCase):
         self.client.force_login(self.member)
         response = self.client.get(reverse('landing'))
         self.assertContains(response, 'Tiếp tục khám phá')
-        self.assertContains(response, reverse('watch', args=[self.episode.pk]) + '#watch-together')
+        self.assertContains(response, 'href="' + reverse('rooms') + '"')
         self.assertNotContains(response, 'Khám phá quyền lợi xem chung')
         self.assertNotContains(response, 'Tìm hiểu xem chung')
 
@@ -86,26 +86,26 @@ class VipPersonalizationTests(TestCase):
                 self.assertIn('Khám phá gói VIP', section)
                 self.assertNotIn('VIP ĐANG HOẠT ĐỘNG', section)
                 banner = self.together_banner(self.client.get(reverse('catalog')))
-                self.assertIn('Khám phá Lumière VIP', banner)
-                self.assertIn('href="' + reverse('plans') + '"', banner)
+                self.assertIn('Bắt đầu xem chung', banner)
+                self.assertIn('href="' + reverse('rooms') + '"', banner)
 
-    def test_active_member_catalog_links_to_a_ready_episode_not_an_upgrade(self):
+    def test_active_member_catalog_links_directly_to_rooms(self):
         self.client.force_login(self.member)
         response = self.client.get(reverse('catalog'))
         banner = self.together_banner(response)
         self.assertIn('Bắt đầu xem chung', banner)
-        self.assertIn('href="' + reverse('watch', args=[self.episode.pk]) + '#watch-together"', banner)
+        self.assertIn('href="' + reverse('rooms') + '"', banner)
         self.assertNotIn('Khám phá Lumière VIP', banner)
         # The VIP genre-bar link is a content filter, so it remains available.
         self.assertContains(response, 'href="' + reverse('catalog') + '?access=vip"')
 
-    def test_member_without_ready_films_gets_discovery_fallback_not_fake_watch_url(self):
+    def test_member_without_ready_films_can_still_open_rooms(self):
         Episode.objects.filter(pk=self.episode.pk).update(status='processing')
         self.client.force_login(self.member)
         response = self.client.get(reverse('catalog'))
         banner = self.together_banner(response)
         self.assertIn('Bắt đầu xem chung', banner)
-        self.assertIn('href="' + reverse('catalog') + '"', banner)
+        self.assertIn('href="' + reverse('rooms') + '"', banner)
         self.assertNotIn('/watch/', banner)
         landing = self.client.get(reverse('landing'))
         self.assertNotContains(landing, reverse('watch', args=[self.episode.pk]) + '#watch-together')

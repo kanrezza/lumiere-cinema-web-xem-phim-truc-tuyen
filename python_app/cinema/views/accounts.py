@@ -16,6 +16,7 @@ from django.views.decorators.http import require_POST
 from ..avatars import is_managed_avatar
 from ..forms import AvatarForm, ProfileForm, RegisterForm
 from ..models import Order, User
+from ..memberships import membership_timeline
 
 
 def register(request):
@@ -41,6 +42,7 @@ def _profile_context(user, *, form=None, avatar_form=None):
         'form': ProfileForm(instance=user) if form is None else form,
         'avatar_form': AvatarForm() if avatar_form is None else avatar_form,
         'orders': Order.objects.filter(user=user).select_related('plan').order_by('-created_at')[:30],
+        'membership': membership_timeline(user),
     }
 
 

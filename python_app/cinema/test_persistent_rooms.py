@@ -62,7 +62,7 @@ class PersistentRoomTests(TestCase):
     def test_create_room_without_a_film_and_reuse_its_invite(self):
         page = reverse('rooms')
         self.assertEqual(Client().get(page).status_code, 302)
-        self.assertEqual(self.guest_client.post(page, {'name': 'Nhóm thường'}).status_code, 403)
+        self.assertEqual(self.guest_client.post(page, {'name': 'Nhóm thường'}).status_code, 302)
         response = self.host_client.post(page, {'name': 'Tối thứ bảy'})
         self.assertEqual(response.status_code, 302)
         room = Room.objects.get(name='Tối thứ bảy')

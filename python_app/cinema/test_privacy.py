@@ -6,10 +6,11 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.files.base import ContentFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
-from .models import Chat, Comment, ErasureRequest, Episode, History, Movie, Order, Plan, Room, RoomSuggestion, User, Watchlist
+from .models import Chat, Comment, ErasureRequest, Episode, History, Movie, Order, Plan, Premiere, PremiereMessage, Room, RoomSuggestion, User, Watchlist
 from .payments import signature
 from .privacy import NOTICE_VERSION
 
@@ -17,6 +18,21 @@ from .privacy import NOTICE_VERSION
 @override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])
 class PrivacyTests(TestCase):
     password = 'test-password-for-privacy'
+
+    def test_erasure_removes_published_and_held_premiere_chat_without_deleting_the_screening(self):
+        screening = Premiere.objects.create(title='Shared screening', episode=self.episode, created_by=self.admin, scheduled_at=timezone.now())
+        for hidden in (False, True):
+            PremiereMessage.objects.create(premiere=screening, user=self.viewer, content='Personal chat', hidden=hidden)
+        other_message = PremiereMessage.objects.create(premiere=screening, user=self.staff, content='Another viewer')
+        entry = ErasureRequest.objects.create(user=self.viewer, notice_version=NOTICE_VERSION)
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse('admin:privacy_review', args=[entry.pk]), {
+            'action': 'complete', 'confirmed': 'yes',
+        })
+        self.assertRedirects(response, reverse('admin:privacy_requests'))
+        self.assertFalse(PremiereMessage.objects.filter(user=self.viewer).exists())
+        self.assertTrue(PremiereMessage.objects.filter(pk=other_message.pk).exists())
+        self.assertTrue(Premiere.objects.filter(pk=screening.pk).exists())
 
     def test_erasure_removes_film_suggestions_from_another_users_room(self):
         room = Room.objects.create(host=self.admin, name='Other room')

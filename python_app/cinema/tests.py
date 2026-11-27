@@ -1,3 +1,4 @@
+import json
 import tempfile
 from datetime import timedelta
 from pathlib import Path
@@ -31,8 +32,12 @@ class ApplicationTests(TestCase):
         self.addCleanup(self.settings.disable)
         folder = Path(self.media.name)/'hls'/str(self.episode.asset_id)
         folder.mkdir(parents=True)
-        (folder/'index.m3u8').write_text('#EXTM3U\n#EXTINF:6,\nseg00000.ts\n#EXT-X-ENDLIST\n')
-        (folder/'seg00000.ts').write_bytes(b'test-video-segment')
+        (folder/'index.m3u8').write_text('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=892000,RESOLUTION=640x360\nq360.m3u8\n')
+        (folder/'q360.m3u8').write_text('#EXTM3U\n#EXTINF:6,\nq360_seg00000.ts\n#EXT-X-ENDLIST\n')
+        (folder/'q360_seg00000.ts').write_bytes(b'test-video-segment')
+        (folder/'quality.json').write_text(json.dumps({'version':1,'renditions':[{
+            'height':360,'width':640,'video_height':360,'playlist':'q360.m3u8','bandwidth':892000,
+        }]}))
 
     def ticket(self, user=None):
         self.client.force_login(user or self.user)
@@ -68,6 +73,8 @@ class ApplicationTests(TestCase):
         url = self.ticket()
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
+        rendition = next(line for line in r.content.decode().splitlines() if line.startswith('/stream/'))
+        r = self.client.get(rendition)
         segment = next(line for line in r.content.decode().splitlines() if line.startswith('/stream/'))
         r = self.client.get(segment)
         self.assertEqual(r.status_code, 200)
@@ -189,9 +196,10 @@ class ApplicationTests(TestCase):
         self.client.force_login(self.user)
         self.assertEqual(self.client.post(reverse('join_room', args=[room.pk])).status_code, 409)
 
-    def test_nonvip_cannot_create_room(self):
+    def test_nonvip_can_create_room_for_a_free_film(self):
         self.client.force_login(self.user)
-        self.assertEqual(self.client.post(reverse('create_room', args=[self.episode.pk])).status_code, 403)
+        self.assertEqual(self.client.post(reverse('create_room', args=[self.episode.pk])).status_code, 302)
+        self.assertTrue(Room.objects.filter(host=self.user, episode=self.episode).exists())
 
     def test_missing_vnpay_config_cannot_create_order(self):
         self.client.force_login(self.user)

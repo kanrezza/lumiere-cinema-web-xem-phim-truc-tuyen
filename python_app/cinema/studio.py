@@ -18,6 +18,8 @@ MODEL_LABELS = {
     'comment': ('bình luận', 'Bình luận'),
     'rating': ('đánh giá', 'Đánh giá'),
     'room': ('phòng xem', 'Phòng xem'),
+    'premiere': ('suất công chiếu', 'Công chiếu'),
+    'premieremessage': ('tin nhắn công chiếu', 'Tin nhắn công chiếu'),
     'report': ('báo lỗi', 'Báo lỗi'),
     'group': ('nhóm quyền', 'Nhóm quyền'),
 }
@@ -39,6 +41,8 @@ NAVIGATION = (
         ('cinema', 'comment', 'chat'),
         ('cinema', 'rating', 'star'),
         ('cinema', 'room', 'room'),
+        ('cinema', 'premiere', 'video'),
+        ('cinema', 'premieremessage', 'chat'),
         ('cinema', 'report', 'flag'),
     )),
     ('Hệ thống', (('auth', 'group', 'shield'),)),
@@ -54,12 +58,18 @@ def can_view_waf(user):
 
 
 def can_view(user, model, app='cinema'):
+    if app == 'cinema' and model in ('premiere', 'premieremessage'):
+        from .premieres import can_manage_premieres
+        return can_manage_premieres(user)
     return is_studio_user(user) and (
         user.has_perm(f'{app}.view_{model}') or user.has_perm(f'{app}.change_{model}')
     )
 
 
 def can_add(user, model, app='cinema'):
+    if app == 'cinema' and model == 'premiere':
+        from .premieres import can_manage_premieres
+        return can_manage_premieres(user)
     return is_studio_user(user) and user.has_perm(f'{app}.add_{model}')
 
 

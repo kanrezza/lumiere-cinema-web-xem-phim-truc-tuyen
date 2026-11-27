@@ -121,7 +121,13 @@ class ExperienceAuditTests(TestCase):
         with tempfile.TemporaryDirectory() as directory, override_settings(PRIVATE_MEDIA_ROOT=Path(directory)):
             folder = Path(directory) / 'hls' / str(self.episode.asset_id)
             folder.mkdir(parents=True)
-            (folder / 'index.m3u8').write_text('#EXTM3U\n#EXT-X-ENDLIST\n')
+            (folder / 'index.m3u8').write_text('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=892000,RESOLUTION=640x360\nq360.m3u8\n')
+            (folder / 'q360.m3u8').write_text('#EXTM3U\n#EXTINF:6,\nq360_seg00000.ts\n#EXT-X-ENDLIST\n')
+            (folder / 'q360_seg00000.ts').write_bytes(b'audit fixture segment')
+            (folder / 'quality.json').write_text(
+                '{"version":1,"renditions":[{"height":360,"width":640,"video_height":360,'
+                '"playlist":"q360.m3u8","bandwidth":892000}]}'
+            )
             self.client.force_login(self.viewer)
             ticket_url = self.client.post(reverse('ticket', args=[self.episode.pk])).json()['url']
             self.assertEqual(self.client.get(ticket_url).status_code, 200)

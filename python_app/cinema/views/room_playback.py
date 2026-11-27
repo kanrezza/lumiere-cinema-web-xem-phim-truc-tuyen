@@ -16,7 +16,8 @@ from django.views.decorators.vary import vary_on_headers
 
 from ..access import require_watch
 from ..models import Chat, Episode, Membership, Movie, RoomVoiceSignal
-from ..rooms.access import accessible_room, active_room_member, room_is_full, room_member_roster
+from ..rooms.access import accessible_room, active_room_member, room_capacity, room_full_message, room_is_full, room_member_roster
+from ..rooms.chat import room_messages
 from ..rooms.media import reset_room_media, room_media_state
 from ..search import filter_movie_search
 from ..validation import positive_id
@@ -72,7 +73,7 @@ def room_state(request, pk):
         room = accessible_room(request, pk, lock=True)
         member = get_object_or_404(Membership, room=room, user=request.user, banned=False, active=True)
         if room_is_full(room, request.user):
-            return JsonResponse({'error': 'Phòng đã đủ 10 thành viên.'}, status=409)
+            return JsonResponse({'error': room_full_message(room), 'capacity': room_capacity(room)}, status=409)
         if request.method == 'POST':
             action = request.POST.get('action')
             if action == 'chat':
@@ -115,5 +116,8 @@ def room_state(request, pk):
         member.last_seen = timezone.now()
         member.save(update_fields=['last_seen'])
         position = min(room.episode.duration, room.position + ((timezone.now() - room.updated_at).total_seconds() if room.playing else 0)) if room.episode else 0
-        chats = list(Chat.objects.filter(room=room).select_related('user').order_by('-id')[:60])
-        return JsonResponse({**room_media_state(room, request.user), 'position': position, 'playing': bool(room.episode and room.playing), 'closed': room.closed, 'members': room_member_roster(room), 'messages': [{'id': c.pk, 'user_id': c.user_id, 'user': c.user.username, 'content': c.content} for c in reversed(chats)]})
+        return JsonResponse({
+            **room_media_state(room, request.user), 'position': position,
+            'playing': bool(room.episode and room.playing), 'closed': room.closed,
+            'members': room_member_roster(room), 'messages': room_messages(room),
+        })

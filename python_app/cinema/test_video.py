@@ -85,6 +85,12 @@ class VideoPipelineTests(TestCase):
         )
         episode.refresh_from_db()
 
+    @staticmethod
+    def media_playlist(folder):
+        master = (folder / 'index.m3u8').read_text()
+        name = next(line for line in master.splitlines() if line and not line.startswith('#'))
+        return (folder / name).read_text()
+
     def test_admin_upload_transcodes_real_video_and_streams_authorized_hls(self):
         response = self.upload()
         self.assertEqual(response.status_code, 302)
@@ -103,20 +109,22 @@ class VideoPipelineTests(TestCase):
         self.assertGreater(episode.duration, 1)
         self.assertLess(episode.duration, 3)
         folder = self.private_root / 'hls' / str(episode.asset_id)
-        playlist = (folder / 'index.m3u8').read_text()
+        master = (folder / 'index.m3u8').read_text()
+        self.assertIn('#EXT-X-STREAM-INF:', master)
+        playlist = self.media_playlist(folder)
         self.assertIn('#EXT-X-ENDLIST', playlist)
         self.assertIn('#EXTINF:', playlist)
-        segments = list(folder.glob('seg*.ts'))
+        segments = list(folder.glob('q*_seg*.ts'))
         self.assertTrue(segments)
         self.assertTrue(all(segment.stat().st_size > 0 for segment in segments))
 
         ticket = self.client.post(reverse('ticket', args=[episode.pk])).json()['url']
         manifest_response = self.client.get(ticket)
         self.assertEqual(manifest_response.status_code, 200)
-        protected_segment = next(
-            line for line in manifest_response.content.decode().splitlines()
-            if line.startswith('/stream/')
-        )
+        rendition_url = next(line for line in manifest_response.content.decode().splitlines() if line.startswith('/stream/'))
+        rendition_response = self.client.get(rendition_url)
+        self.assertEqual(rendition_response.status_code, 200)
+        protected_segment = next(line for line in rendition_response.content.decode().splitlines() if line.startswith('/stream/'))
         segment_response = self.client.get(protected_segment)
         self.assertEqual(segment_response.status_code, 200)
         self.assertGreater(len(b''.join(segment_response.streaming_content)), 0)
@@ -176,7 +184,7 @@ class VideoPipelineTests(TestCase):
 
         self.process(episode)
         self.assertEqual(episode.status, 'ready', episode.error)
-        self.assertIn('#EXT-X-ENDLIST', (output / 'index.m3u8').read_text())
+        self.assertIn('#EXT-X-ENDLIST', self.media_playlist(output))
 
     def test_worker_recovers_a_killed_workers_episode_and_partial_output(self):
         self.upload()
@@ -211,7 +219,7 @@ class VideoPipelineTests(TestCase):
 
         self.process(episode)
         self.assertEqual(episode.status, 'ready', episode.error)
-        self.assertIn('#EXT-X-ENDLIST', (output / 'index.m3u8').read_text())
+        self.assertIn('#EXT-X-ENDLIST', self.media_playlist(output))
         self.assertFalse((output / 'seg99999.ts').exists())
         self.assertFalse(stale.exists())
 

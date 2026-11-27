@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import Membership, RoomVoiceSignal
-from .rooms.access import ROOM_HEARTBEAT, accessible_room, present_members
+from .rooms.access import ROOM_HEARTBEAT, accessible_room, admitted_members, room_full_message, room_is_full
 
 
 VOICE_HEARTBEAT = timedelta(seconds=20)
@@ -27,7 +27,7 @@ MAX_INTEGER_ID = (1 << 63) - 1
 
 
 def eligible_members(room, now):
-    return present_members(room, now)
+    return admitted_members(room, now)
 
 
 def voice_session(member, now):
@@ -75,6 +75,8 @@ def state(request, pk):
     # On page load the video poll may not have refreshed the member's presence yet.
     if requested_session is None:
         me = get_object_or_404(Membership, room=room, user=request.user, active=True, banned=False)
+        if room_is_full(room, request.user):
+            return error(room_full_message(room), 409)
     else:
         me = get_object_or_404(members, user=request.user)
     current_session = voice_session(me, now) if requested_session else None
@@ -158,14 +160,22 @@ def command(request, pk):
         room = accessible_room(request, pk, lock=True)
         now = timezone.now()
         members = eligible_members(room, now)
-        me = get_object_or_404(members, user=request.user)
         action = request.POST.get('action')
+        if action == 'join':
+            # An admitted member may load a room after its video heartbeat has
+            # expired. Reserve their seat under this same room lock.
+            me = get_object_or_404(Membership, room=room, user=request.user, active=True, banned=False)
+            if room_is_full(room, request.user):
+                return error(room_full_message(room), 409)
+        else:
+            me = get_object_or_404(members, user=request.user)
 
         if action == 'join':
+            me.last_seen = now
             me.voice_session = uuid4()
             me.voice_seen_at = now
             me.voice_mic_on = False
-            me.save(update_fields=['voice_session', 'voice_seen_at', 'voice_mic_on'])
+            me.save(update_fields=['last_seen', 'voice_session', 'voice_seen_at', 'voice_mic_on'])
             RoomVoiceSignal.objects.filter(room=room).filter(Q(sender_id=me.user_id) | Q(recipient_id=me.user_id)).delete()
             return JsonResponse({'session': me.voice_session})
 

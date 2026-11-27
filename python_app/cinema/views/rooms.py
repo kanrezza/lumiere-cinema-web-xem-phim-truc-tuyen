@@ -13,7 +13,7 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 from ..access import require_watch
 from ..forms import RoomAccessForm
 from ..models import Episode, Membership, Room, RoomVoiceSignal
-from ..rooms.access import ROOM_LIFETIME, accessible_room, active_room_member, can_host_room, create_watch_room, room_access_settings
+from ..rooms.access import ROOM_LIFETIME, accessible_room, active_room_member, can_host_room, create_watch_room, host_capacity, room_access_settings, room_full_message, room_is_full
 from ..rooms.media import room_player_context
 from .room_admission import room_lobby
 
@@ -25,7 +25,7 @@ def rooms(request):
     error = ''
     if request.method == 'POST':
         if not can_host_room(request.user):
-            raise PermissionDenied('VIP mới có thể tạo phòng.')
+            raise PermissionDenied('Tài khoản không còn hoạt động.')
         if form.is_valid():
             created = create_watch_room(request, None, form)
             if created:
@@ -37,6 +37,7 @@ def rooms(request):
     ).select_related('host', 'episode__movie').distinct().order_by('-created_at')
     return render(request, 'cinema/rooms.html', {
         'rooms': available, 'form': form, 'can_create_room': can_host_room(request.user), 'error': error,
+        'room_capacity': host_capacity(request.user),
     }, status=400 if request.method == 'POST' else 200)
 
 
@@ -46,7 +47,7 @@ def create_room(request, pk):
     episode = get_object_or_404(Episode.objects.select_related('movie'), pk=pk)
     require_watch(request.user, episode)
     if not can_host_room(request.user):
-        raise PermissionDenied('VIP mới có thể tạo phòng.')
+        raise PermissionDenied('Tài khoản không còn hoạt động.')
     form = RoomAccessForm(request.POST)
     if not form.is_valid():
         messages.error(request, 'Mật khẩu phòng cần từ 4 đến 128 ký tự.')
@@ -76,6 +77,8 @@ def room(request, pk):
         raise PermissionDenied('Bạn đã bị loại khỏi phòng.')
     if not member or not member.active:
         return room_lobby(request, room)
+    if room_is_full(room, request.user):
+        return room_lobby(request, room, room_full_message(room), 409)
     response = render(request, 'cinema/room.html', {
         **room_player_context(room, request.user),
         'room_access_version': room_access_settings(room)['settings_version'] if room.host_id == request.user.pk else '',

@@ -14,8 +14,9 @@ from .admin_components.filters import (
 )
 from .admin_components.membership import CustomUserAdmin, OrderAdmin, PlanAdmin
 from .admin_components.reports import ReportAdmin
+from .admin_components.premieres import PremiereAdmin, PremiereMessageAdmin
 from .admin_components.subtitles import SubtitleAdmin, SubtitleAdminForm
-from .models import Actor, Category, Comment, Episode, Movie, Order, Plan, Rating, Report, Room, Subtitle, User
+from .models import Actor, Category, Comment, Episode, Movie, Order, Plan, Premiere, PremiereMessage, Rating, Report, Room, Subtitle, User
 
 __all__ = [
     'ActorAdmin', 'CategoryAdmin', 'CommentAdmin', 'CommentDateFilter', 'CommunityAdmin',
@@ -38,6 +39,8 @@ for model, model_admin in (
     (Report, ReportAdmin),
     (Plan, PlanAdmin),
     (Room, RoomAdmin),
+    (Premiere, PremiereAdmin),
+    (PremiereMessage, PremiereMessageAdmin),
 ):
     admin.site.register(model, model_admin)
 

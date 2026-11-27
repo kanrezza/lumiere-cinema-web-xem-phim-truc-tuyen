@@ -11,6 +11,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from cinema.models import Episode
+from cinema.video_quality import encoding_renditions, master_playlist, probe_dimensions, write_quality_metadata
 
 
 @contextmanager
@@ -31,6 +32,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--episode', type=int)
         parser.add_argument('--retry-failed', action='store_true')
+        parser.add_argument('--reencode', action='store_true', help='Tạo lại các mức chất lượng cho tập đã ready từ video gốc.')
 
     def handle(self, *args, **options):
         if not shutil.which('ffmpeg') or not shutil.which('ffprobe'):
@@ -41,6 +43,8 @@ class Command(BaseCommand):
         statuses = ['pending', 'processing']
         if options['retry_failed']:
             statuses.append('failed')
+        if options.get('reencode'):
+            statuses.append('ready')
         query = Episode.objects.filter(status__in=statuses)
         if options['episode'] is not None:
             query = query.filter(pk=options['episode'])
@@ -112,13 +116,22 @@ class Command(BaseCommand):
 
     @staticmethod
     def encode(source, output):
-        subprocess.run(
-            ['ffmpeg', '-nostdin', '-y', '-v', 'error', '-protocol_whitelist', 'file,pipe',
-             '-format_whitelist', 'mov,matroska,webm', '-i', source, '-map', '0:v:0',
-             '-map', '0:a:0?', '-map_metadata', '-1', '-vf', "scale=w='min(1280,iw)':h=-2",
-             '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-threads', '2',
-             '-c:a', 'aac', '-b:a', '128k', '-force_key_frames', 'expr:gte(t,n_forced*6)',
-             '-f', 'hls', '-hls_time', '6', '-hls_playlist_type', 'vod',
-             '-hls_segment_filename', str(output / 'seg%05d.ts'), str(output / 'index.m3u8')],
-            capture_output=True, check=True, timeout=6 * 3600,
-        )
+        renditions = encoding_renditions(*probe_dimensions(source))
+        for rendition in renditions:
+            subprocess.run(
+                ['ffmpeg', '-nostdin', '-y', '-v', 'error', '-protocol_whitelist', 'file,pipe',
+                 '-format_whitelist', 'mov,matroska,webm', '-i', source, '-map', '0:v:0',
+                 '-map', '0:a:0?', '-map_metadata', '-1',
+                 '-vf', f'scale={rendition.width}:{rendition.video_height},setsar=1',
+                 '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-threads', '2',
+                 '-maxrate', str(rendition.bandwidth - 192000), '-bufsize', str(rendition.bandwidth * 2),
+                 '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '128k',
+                 '-force_key_frames', 'expr:gte(t,n_forced*6)',
+                 '-f', 'hls', '-hls_time', '6', '-hls_playlist_type', 'vod',
+                 '-hls_flags', 'independent_segments',
+                 '-hls_segment_filename', str(output / f'q{rendition.height}_seg%05d.ts'),
+                 str(output / rendition.playlist)],
+                capture_output=True, check=True, timeout=6 * 3600,
+            )
+        write_quality_metadata(output, renditions)
+        (output / 'index.m3u8').write_text(master_playlist(renditions, lambda name: name), encoding='utf-8')

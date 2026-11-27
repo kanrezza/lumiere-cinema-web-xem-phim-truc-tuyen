@@ -6,18 +6,29 @@ from django.contrib.auth.hashers import make_password
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
 from ..access import require_watch
-from ..models import Membership, Room, RoomPlaylistItem, User
+from ..models import Membership, Room, RoomPlaylistItem, RoomVoiceSignal, User
+from .identity import room_user_profile
 
 
 ROOM_LIFETIME = timedelta(hours=6)
 ROOM_HEARTBEAT = timedelta(seconds=30)
-ROOM_CAPACITY = 10
+FREE_ROOM_CAPACITY = 3
+VIP_ROOM_CAPACITY = 10
 MAX_ACTIVE_ROOMS = 3
+
+
+def host_capacity(user):
+    return VIP_ROOM_CAPACITY if user.is_vip or user.is_staff else FREE_ROOM_CAPACITY
+
+
+def room_capacity(room):
+    return host_capacity(room.host)
 
 
 def present_members(room, now=None):
@@ -29,14 +40,42 @@ def present_members(room, now=None):
     )
 
 
+def _present_guests(room, now=None):
+    return present_members(room, now).exclude(user_id=room.host_id).order_by('pk')
+
+
+def admitted_members(room, now=None):
+    """Reserve one host seat; retain the earliest guests if the plan shrinks."""
+    guest_ids = list(_present_guests(room, now).values_list('pk', flat=True)[:room_capacity(room) - 1])
+    return present_members(room, now).filter(Q(user_id=room.host_id) | Q(pk__in=guest_ids))
+
+
+def enforce_room_capacity(room):
+    """Called under the room row lock; release excess seats without banning."""
+    removed = list(_present_guests(room).values_list('pk', 'user_id')[room_capacity(room) - 1:])
+    if removed:
+        member_ids, user_ids = zip(*removed)
+        room.members.filter(pk__in=member_ids).update(
+            active=False, voice_session=None, voice_seen_at=None, voice_mic_on=False,
+        )
+        RoomVoiceSignal.objects.filter(room=room).filter(
+            Q(sender_id__in=user_ids) | Q(recipient_id__in=user_ids),
+        ).delete()
+
+
 def room_is_full(room, user):
-    return room.members.filter(
-        banned=False, active=True, last_seen__gt=timezone.now() - ROOM_HEARTBEAT,
-    ).exclude(user=user).count() >= ROOM_CAPACITY
+    if user.pk == room.host_id:
+        return False
+    guests = list(_present_guests(room).values_list('user_id', flat=True)[:room_capacity(room) - 1])
+    return user.pk not in guests and len(guests) >= room_capacity(room) - 1
+
+
+def room_full_message(room):
+    return f'Phòng đã đủ {room_capacity(room)} người, tính cả chủ phòng.'
 
 
 def can_host_room(user):
-    return user.is_active and (user.is_vip or user.is_staff)
+    return user.is_authenticated and user.is_active
 
 
 def create_watch_room(request, episode, form):
@@ -45,7 +84,7 @@ def create_watch_room(request, episode, form):
     with transaction.atomic():
         host = User.objects.select_for_update().get(pk=request.user.pk)
         if not can_host_room(host):
-            raise PermissionDenied('VIP mới có thể tạo phòng.')
+            raise PermissionDenied('Tài khoản không còn hoạt động.')
         if episode:
             require_watch(host, episode)
         if Room.objects.filter(host=host, closed=False, created_at__gt=timezone.now() - ROOM_LIFETIME).count() >= MAX_ACTIVE_ROOMS:
@@ -70,21 +109,25 @@ def accessible_room(request, pk, lock=False):
         qs = qs.select_related('episode__movie', 'host')
     room = get_object_or_404(qs, pk=pk, closed=False, created_at__gt=timezone.now() - ROOM_LIFETIME)
     if not can_host_room(room.host):
-        raise PermissionDenied('Quyền tạo phòng của chủ phòng đã hết hạn.')
+        raise PermissionDenied('Chủ phòng hiện không thể sử dụng phòng xem.')
+    if lock:
+        enforce_room_capacity(room)
     return room
 
 
 def active_room_member(request, room):
-    return get_object_or_404(Membership, room=room, user=request.user, banned=False, active=True)
+    member = get_object_or_404(Membership, room=room, user=request.user, banned=False, active=True)
+    if room_is_full(room, request.user):
+        raise PermissionDenied(room_full_message(room))
+    return member
 
 
 def room_member_roster(room):
-    members = present_members(room).select_related('user').order_by('user_id')
+    members = admitted_members(room).select_related('user').order_by('user_id')
     return [{
         'user_id': member.user_id,
         'user__username': member.user.username,
-        'display_name': member.user.get_full_name().strip() or member.user.username,
-        'avatar_url': member.user.avatar.url if member.user.avatar else '',
+        **room_user_profile(member.user),
     } for member in members]
 
 

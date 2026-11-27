@@ -36,6 +36,7 @@ class OrderAdmin(LocalizedAdminMixin, admin.ModelAdmin):
     fieldsets = (
         ('Thông tin giao dịch', {'fields': ('full_reference', 'customer', 'plan_name', 'total_amount', 'term_days', 'payment_status')}),
         ('Đối soát thanh toán', {'fields': ('transaction_reference', 'created_time', 'paid_time')}),
+        ('Kỳ sử dụng VIP', {'fields': ('period_start', 'period_end')}),
     )
     field_labels = {'user': 'Khách hàng', 'plan': 'Gói thành viên', 'amount': 'Số tiền', 'days': 'Số ngày sử dụng', 'status': 'Trạng thái', 'transaction_no': 'Mã giao dịch VNPay', 'created_at': 'Ngày tạo', 'paid_at': 'Ngày thanh toán'}
 
@@ -49,7 +50,7 @@ class OrderAdmin(LocalizedAdminMixin, admin.ModelAdmin):
     def customer(self, obj): return obj.user.username
 
     @admin.display(description='Gói thành viên', ordering='plan__name')
-    def plan_name(self, obj): return obj.plan.name
+    def plan_name(self, obj): return obj.membership_name
 
     @admin.display(description='Số tiền', ordering='amount')
     def total_amount(self, obj): return format_vnd(obj.amount)

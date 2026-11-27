@@ -1,5 +1,6 @@
 import uuid
 import re
+import math
 from decimal import Decimal, InvalidOperation
 from datetime import date
 from pathlib import Path
@@ -265,6 +266,20 @@ class Order(models.Model):
     transaction_no = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     paid_at = models.DateTimeField(null=True, blank=True)
+    plan_name_snapshot = models.CharField('Tên gói khi mua', max_length=100, blank=True, default='', editable=False)
+    period_start = models.DateTimeField('VIP bắt đầu', null=True, blank=True, editable=False)
+    period_end = models.DateTimeField('VIP kết thúc', null=True, blank=True, editable=False)
+
+    class Meta:
+        constraints = [models.CheckConstraint(
+            condition=(models.Q(period_start__isnull=True, period_end__isnull=True) |
+                       models.Q(period_start__isnull=False, period_end__isnull=False, period_end__gt=models.F('period_start'))),
+            name='valid_order_vip_period',
+        )]
+
+    @property
+    def membership_name(self):
+        return self.plan_name_snapshot or self.plan.name
 
 class Room(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -490,3 +505,64 @@ class ErasureRequest(models.Model):
     class Meta:
         ordering = ['-requested_at', '-id']
         indexes = [models.Index(fields=['status', 'requested_at'], name='erasure_status_time_idx')]
+
+
+class Premiere(models.Model):
+    """An editorial screening is independent of user-created watch rooms."""
+    MIN_DURATION = 13
+    class Status(models.TextChoices):
+        SCHEDULED = 'scheduled', 'Đã lên lịch'
+        LIVE = 'live', 'Đang công chiếu'
+        ENDED = 'ended', 'Đã kết thúc'
+        CANCELLED = 'cancelled', 'Đã hủy'
+
+    class Audience(models.TextChoices):
+        FREE = 'free', 'Mọi tài khoản'
+        VIP = 'vip', 'Thành viên VIP'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField('Tên suất chiếu', max_length=160)
+    episode = models.ForeignKey(Episode, on_delete=models.PROTECT, related_name='premieres', verbose_name='Tập phim')
+    audience = models.CharField('Người xem', max_length=4, choices=Audience.choices, default=Audience.FREE)
+    scheduled_at = models.DateTimeField('Giờ công chiếu', db_index=True)
+    started_at = models.DateTimeField('Bắt đầu thực tế', null=True, blank=True, editable=False)
+    ended_at = models.DateTimeField('Kết thúc thực tế', null=True, blank=True, editable=False)
+    status = models.CharField('Trạng thái', max_length=9, choices=Status.choices, default=Status.SCHEDULED)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, editable=False, related_name='+')
+    state_version = models.PositiveIntegerField(default=1, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-scheduled_at', '-pk']
+        verbose_name = 'suất công chiếu'
+        verbose_name_plural = 'Công chiếu'
+        permissions = [('manage_premieres', 'Tổ chức và điều khiển công chiếu')]
+
+    def __str__(self):
+        return self.title
+
+    def clean(self):
+        super().clean()
+        if self.episode_id:
+            episode = self.episode
+            if not episode.movie.published or episode.status != 'ready' or not math.isfinite(episode.duration) or episode.duration < self.MIN_DURATION:
+                raise ValidationError({'episode': 'Chọn tập phim đã công khai, xử lý xong và dài ít nhất 13 giây để có đủ bộ đệm công chiếu.'})
+
+
+class PremiereMessage(models.Model):
+    premiere = models.ForeignKey(Premiere, on_delete=models.CASCADE, related_name='messages')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.CharField('Nội dung', max_length=500)
+    hidden = models.BooleanField('Đang ẩn', default=False)
+    moderation_matches = models.JSONField(default=dict, editable=False)
+    created_at = models.DateTimeField('Thời gian gửi', auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'pk']
+        verbose_name = 'tin nhắn công chiếu'
+        verbose_name_plural = 'Tin nhắn công chiếu'
+        indexes = [models.Index(fields=['premiere', '-id'], name='premiere_chat_recent_idx')]
+
+    def __str__(self):
+        return f'{self.user} · {self.premiere}'

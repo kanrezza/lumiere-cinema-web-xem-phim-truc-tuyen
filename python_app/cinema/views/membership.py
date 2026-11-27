@@ -13,6 +13,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from ..models import Movie, Order, Plan, User
+from ..memberships import membership_timeline, renewal_previews
 from ..payments import PAYMENT_WINDOW, checkout_key_from_token, checkout_url, issue_checkout_token, process_ipn
 
 
@@ -26,7 +27,8 @@ def plans(request):
     if payment_ready and request.user.is_authenticated and request.user.is_active and not member_dashboard:
         checkout_token = issue_checkout_token(request.user.pk)
     return render(request, 'cinema/plans.html', {
-        'plans': Plan.objects.filter(active=True).order_by('price'),
+        'plans': renewal_previews(request.user, list(Plan.objects.filter(active=True).order_by('price'))),
+        'membership': membership_timeline(request.user),
         'payment_ready': payment_ready,
         'checkout_token': checkout_token,
         'sandbox': 'sandbox' in settings.VNPAY_URL,
@@ -65,6 +67,7 @@ def checkout(request, pk=None):
             plan = get_object_or_404(Plan, pk=pk, active=True)
             order = Order.objects.create(
                 user=buyer, plan=plan, amount=plan.price, days=plan.days, checkout_key=checkout_key,
+                plan_name_snapshot=plan.name,
             )
         elif order.plan_id != pk:
             messages.error(request, 'Lần thanh toán này đã gắn với một gói khác. Vui lòng chọn lại gói.')

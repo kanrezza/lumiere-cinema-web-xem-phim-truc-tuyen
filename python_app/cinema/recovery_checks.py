@@ -36,6 +36,12 @@ def exported_hls(client, episode, directory):
     playlist = client.get(ticket.json()['url'])
     require(playlist.status_code == 200, 'Không tải được playlist HLS đã khôi phục.')
     lines = playlist.content.decode('utf-8').splitlines()
+    if any(line.startswith('#EXT-X-STREAM-INF:') for line in lines):
+        rendition_url = next((line for line in lines if line and not line.startswith('#')), '')
+        require(rendition_url, 'Không có chất lượng video phù hợp với tài khoản phục hồi.')
+        playlist = client.get(rendition_url)
+        require(playlist.status_code == 200, 'Không tải được chất lượng video đã phục hồi.')
+        lines = playlist.content.decode('utf-8').splitlines()
     require(lines and lines[0] == '#EXTM3U' and '#EXT-X-ENDLIST' in lines, 'Danh sách phát đã khôi phục chưa hoàn chỉnh.')
 
     segment_count = 0
@@ -43,7 +49,7 @@ def exported_hls(client, episode, directory):
         if not line or line.startswith('#'):
             continue
         segment_name = Path(urlsplit(line).path).name
-        require(re.fullmatch(r'seg\d{5,}\.ts', segment_name), 'Danh sách phát chứa tên đoạn HLS không hợp lệ.')
+        require(re.fullmatch(r'(?:q[1-9]\d{0,3}_)?seg\d{5,}\.ts', segment_name), 'Danh sách phát chứa tên đoạn HLS không hợp lệ.')
         response = client.get(line)
         try:
             require(response.status_code == 200 and response.streaming, 'Không tải được đoạn HLS đã khôi phục.')
