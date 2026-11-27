@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="{% static 'trailers.css' %}?v=trailers-2">
   <link rel="stylesheet" href="{% static 'discovery.css' %}?v=genre-dropdown-1">
   <link rel="stylesheet" href="{% static 'avatar.css' %}?v=profile-avatar-2">
+  <link rel="stylesheet" href="{% static 'search-suggestions.css' %}?v=instant-1">
   {% frontend_assets 'shell' %}
   {% block head %}{% endblock %}
   <link rel="stylesheet" href="{% static 'theme.css' %}?v=light-dark-2">
@@ -48,8 +49,8 @@
       <a href="{% url 'library' %}" {% if request.path == '/library/' %}aria-current="page"{% endif %}>Tủ phim</a>
     </nav>{% endblock %}
     <div class="header-actions">{% include 'cinema/theme_toggle.html' %}{% block header_actions %}
-      {% block header_search %}<form class="header-search" method="get" action="/browse/" role="search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="search" name="q" value="{% if request.path == '/browse/' %}{{ request.GET.q }}{% endif %}" placeholder="Tìm phim, diễn viên…" aria-label="Tìm kiếm phim"><button type="submit" class="sr-only">Tìm kiếm</button></form>
-      <a class="mobile-search" href="/browse/?sort=newest#browse-search" aria-label="Tìm phim"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></a>
+      {% block header_search %}<div data-vue-search data-endpoint="{% url 'search_suggestions' %}" data-catalog-url="{% url 'catalog' %}" data-initial-query="{% if request.path == '/browse/' %}{{ request.GET.q }}{% endif %}"><form class="header-search" method="get" action="{% url 'catalog' %}" role="search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="search" name="q" value="{% if request.path == '/browse/' %}{{ request.GET.q }}{% endif %}" placeholder="Tìm phim, diễn viên…" aria-label="Tìm kiếm phim"><button type="submit" class="sr-only">Tìm kiếm</button></form>
+      <a class="mobile-search" href="/browse/?sort=newest#browse-search" aria-label="Tìm phim"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></a></div>
       <a class="header-vip" href="{% url 'plans' %}"{% if user.is_vip %} aria-label="VIP của bạn"{% endif %}>{% if user.is_vip %}<b>VIP</b><span> của bạn</span>{% else %}Lumière <b>VIP</b>{% endif %}</a>{% endblock %}
       {% if user.is_authenticated %}
       <details class="account-menu"><summary aria-label="Menu tài khoản {{ user.username }}"><span class="avatar user-avatar" aria-hidden="true"><span class="avatar-initial">{{ user.username|slice:':1'|upper }}</span>{% if user.avatar %}<img class="avatar-image" data-saved-avatar src="{{ user.avatar.url }}" alt="" width="66" height="66">{% endif %}</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></summary><div class="account-dropdown"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{% if user.is_staff %}Quản trị viên{% elif user.is_vip %}Thành viên VIP{% else %}Thành viên{% endif %}</small><a href="{% url 'profile' %}">Quản lý tài khoản</a><a href="{% url 'library' %}">Tủ phim của tôi</a><a href="{% url 'rooms' %}">Phòng xem chung</a><a href="{% url 'premieres' %}">Lịch công chiếu</a>{% if user.is_staff %}<a href="{% url 'studio' %}">Studio quản trị</a>{% endif %}<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button>Đăng xuất</button></form></div></details>

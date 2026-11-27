@@ -1,0 +1,40 @@
+.studio-dashboard .sd-insights { margin:6px 0 32px; padding:25px 0 28px; border-block:1px solid var(--studio-line); }
+.studio-dashboard .sd-insights-heading { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:24px; }
+.studio-dashboard .sd-insights-kicker { color:var(--studio-accent); font-size:9px; letter-spacing:.18em; margin-bottom:8px; }
+.studio-dashboard .sd-insights-heading h2 { font-size:22px; font-weight:550; color:var(--studio-text); letter-spacing:-.6px; margin-bottom:8px; }
+.studio-dashboard .sd-insights-heading p:not(.sd-insights-kicker) { font-size:11px; color:var(--studio-muted); }
+.studio-dashboard .sd-insights-heading nav { display:flex; gap:6px; flex-shrink:0; }
+.studio-dashboard .sd-insights-heading nav a { padding:8px 12px; border-radius:30px; border:1px solid transparent; color:var(--studio-muted); font-size:11px; }
+.studio-dashboard .sd-insights-heading nav a[aria-current] { border-color:var(--studio-line); color:var(--studio-accent); background:var(--studio-surface); }
+.studio-dashboard .sd-insights-layout { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(230px,1fr); gap:38px; }
+.studio-dashboard .sd-insights-layout > :only-child { grid-column:1/-1; }
+.studio-dashboard .sd-insights-totals { display:flex; flex-wrap:wrap; gap:20px 40px; }
+.studio-dashboard .sd-insights-totals span { font-size:11px; color:var(--studio-muted); }
+.studio-dashboard .sd-insights-totals strong { display:block; font-size:29px; font-weight:550; letter-spacing:-1px; margin:8px 0; font-variant-numeric:tabular-nums; }
+.studio-dashboard .sd-insights-totals strong small { font-size:15px; color:var(--studio-muted); }
+.studio-dashboard .sd-insights-totals p { font-size:10px; color:var(--studio-muted); line-height:1.7; }
+.studio-dashboard .sd-revenue-chart { margin:26px 0 0; }
+.studio-dashboard .sd-revenue-chart figcaption { font-size:11px; color:var(--studio-text); }
+.studio-dashboard .sd-revenue-chart figcaption span { display:block; margin-top:5px; color:var(--studio-muted); font-size:10px; }
+.studio-dashboard .sd-revenue-chart svg { width:100%; height:auto; display:block; margin-top:12px; overflow:visible; }
+.studio-dashboard .sd-revenue-chart rect { fill:var(--studio-accent); opacity:.78; }
+.studio-dashboard .sd-revenue-chart rect:hover { opacity:1; }
+.studio-dashboard .sd-revenue-chart line { stroke:var(--studio-line); }
+.studio-dashboard .sd-revenue-chart text { fill:var(--studio-muted); font-size:11px; }
+.studio-dashboard .sd-insights-data { margin-top:10px; }
+.studio-dashboard .sd-insights-data summary { cursor:pointer; color:var(--studio-muted); font-size:11px; }
+.studio-dashboard .sd-insights-table-scroll { max-height:240px; overflow:auto; margin-top:12px; }
+.studio-dashboard .sd-insights-data table { width:100%; border-collapse:collapse; font-size:11px; background:transparent; }
+.studio-dashboard .sd-insights-data :is(th,td) { padding:10px 8px; background:transparent; border-bottom:1px solid var(--studio-line); text-align:left; color:var(--studio-text); }
+.studio-dashboard .sd-insights-data thead th { color:var(--studio-muted); font-weight:500; }
+.studio-dashboard .sd-content-health { border-left:1px solid var(--studio-line); padding-left:28px; }
+.studio-dashboard .sd-content-health h3 { font-size:14px; color:var(--studio-text); font-weight:550; margin:0 0 8px; }
+.studio-dashboard .sd-content-health > p { font-size:11px; color:var(--studio-muted); line-height:1.7; }
+.studio-dashboard .sd-content-health ul { padding:0; margin:16px 0; list-style:none; }
+.studio-dashboard .sd-content-health li { list-style:none; margin:0; padding:0; border-bottom:1px solid var(--studio-line); }
+.studio-dashboard .sd-content-health a { display:flex; align-items:center; gap:12px; padding:13px 0; font-size:11px; color:var(--studio-text); line-height:1.6; }
+.studio-dashboard .sd-content-health a strong { margin-left:auto; font-size:18px; font-weight:500; }
+.studio-dashboard .sd-content-health a > :last-child { color:var(--studio-muted); }
+.studio-dashboard .sd-content-health > small { display:block; color:var(--studio-muted); font-size:10px; line-height:1.8; }
+@media(max-width:1000px) { .studio-dashboard .sd-insights-layout { gap:24px; grid-template-columns:1fr; } .studio-dashboard .sd-content-health { border-left:0; border-top:1px solid var(--studio-line); padding:22px 0 0; } }
+@media(max-width:600px) { .studio-dashboard .sd-insights-heading { flex-direction:column; align-items:flex-start; } .studio-dashboard .sd-insights-heading h2 { font-size:20px; } .studio-dashboard .sd-insights-totals { gap:22px; } .studio-dashboard .sd-insights-totals strong { font-size:25px; } }

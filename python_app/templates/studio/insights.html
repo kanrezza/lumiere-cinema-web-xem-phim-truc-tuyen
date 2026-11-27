@@ -1,0 +1,18 @@
+{% load cinema_format %}
+{% if insights.available %}
+<section class="sd-insights" aria-labelledby="sd-insights-title">
+  <header class="sd-insights-heading"><div><p class="sd-insights-kicker">NHỊP HOẠT ĐỘNG</p><h2 id="sd-insights-title">Theo dõi để vận hành tốt hơn.</h2><p>{{ insights.start_date|date:'d/m/Y' }} — {{ insights.end_date|date:'d/m/Y' }} · cập nhật đến {{ insights.now|date:'H:i' }}</p></div><nav aria-label="Khoảng thời gian báo cáo">{% for choice in insights.periods %}<a href="{{ choice.href }}"{% if choice.selected %} aria-current="true"{% endif %}>{{ choice.days }} ngày</a>{% endfor %}</nav></header>
+  <div class="sd-insights-layout">
+    {% if insights.revenue != None or insights.new_users != None %}
+    <div class="sd-insights-activity">
+      <div class="sd-insights-totals">
+        {% if insights.revenue != None %}<div><span>Doanh thu đã thanh toán</span><strong>{{ insights.revenue|vnd }} <small>₫</small></strong><p>{{ insights.paid_count }} giao dịch trong kỳ{% if insights.previous_revenue %} · Thay đổi {{ insights.revenue_change }}% so với kỳ trước{% else %} · Kỳ trước chưa có doanh thu{% endif %}</p></div>{% endif %}
+        {% if insights.new_users != None %}<div><span>Thành viên mới</span><strong>{{ insights.new_users|vnd }}</strong><p>{{ insights.expiring_vips|vnd }} tài khoản VIP hết hạn trong 7 ngày tới</p></div>{% endif %}
+      </div>
+      {% if insights.chart %}<figure class="sd-revenue-chart"><figcaption>Doanh thu theo ngày <span>Chỉ tính đơn đã xác nhận và có ngày thanh toán.</span></figcaption><svg viewBox="0 0 720 154" role="img" aria-label="Doanh thu từng ngày trong {{ insights.days }} ngày; số liệu chi tiết nằm trong bảng bên dưới"><line x1="0" y1="121" x2="720" y2="121"/>{% for day in insights.chart %}<rect x="{{ day.x }}" y="{{ day.y }}" width="{{ day.width }}" height="{{ day.height }}" rx="2"><title>{{ day.date|date:'d/m/Y' }}: {{ day.amount|vnd }} ₫ · {{ day.orders }} giao dịch</title></rect>{% endfor %}<text x="0" y="146">{{ insights.start_date|date:'d/m' }}</text><text x="720" y="146" text-anchor="end">{{ insights.end_date|date:'d/m' }}</text></svg></figure><details class="sd-insights-data"><summary>Xem số liệu từng ngày</summary><div class="sd-insights-table-scroll"><table><caption class="sd-visually-hidden">Doanh thu và giao dịch từng ngày</caption><thead><tr><th scope="col">Ngày</th><th scope="col">Giao dịch</th><th scope="col">Doanh thu</th></tr></thead><tbody>{% for day in insights.chart %}<tr><th scope="row">{{ day.date|date:'d/m/Y' }}</th><td>{{ day.orders }}</td><td>{{ day.amount|vnd }} ₫</td></tr>{% endfor %}</tbody></table></div></details>{% endif %}
+    </div>
+    {% endif %}
+    {% if insights.health %}<aside class="sd-content-health" aria-label="Nội dung cần hoàn thiện"><h3>Chuẩn bị cho buổi chiếu</h3><p>Các việc cần kiểm tra trong thư viện hiện tại.</p><ul>{% for check in insights.health %}<li><a href="{{ check.url }}"><span>{{ check.label }}</span><strong>{{ check.count }}</strong><span aria-hidden="true">↗</span></a></li>{% endfor %}</ul><small>Phim vẫn có thể dùng ảnh minh họa dự phòng. Phụ đề không bao gồm chữ đã gắn sẵn trong video.</small></aside>{% endif %}
+  </div>
+</section>
+{% endif %}

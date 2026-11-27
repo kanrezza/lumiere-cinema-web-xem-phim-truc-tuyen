@@ -20,7 +20,7 @@
     <div class="shelf-heading">
       <div><h2>{{ shelf.title }}</h2><p{% if shelf.preparing %} class="shelf-availability-note"{% endif %}>{{ shelf.subtitle }}</p></div>
       <div class="shelf-actions">
-        <a class="shelf-more" href="{{ shelf.href }}">Xem tất cả <span>↗</span></a>
+        {% if shelf.href %}<a class="shelf-more" href="{{ shelf.href }}">Xem tất cả <span>↗</span></a>{% endif %}
         {% include 'cinema/shelf_arrows.html' with shelf_title=shelf.title %}
       </div>
     </div>

@@ -14,12 +14,13 @@
     {% endif %}
   </div>
   {% if dashboard_available %}
+  {% include 'studio/insights.html' %}
   {% if can_manage_movies or can_manage_users or can_view_orders %}
   <div class="sd-metrics" aria-label="Số liệu tổng quan">
     {% if can_manage_movies %}<article class="sd-metric"><div class="sd-metric-top"><span>Thư viện phim</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4m10 0h4M3 15h4m10 0h4"/></svg></div><strong>{{ movies_count|vnd }}</strong><div class="sd-metric-bottom"><span>{{ published_movies_count|default:0 }} phim công khai</span><a href="{% url 'admin:cinema_movie_changelist' %}" aria-label="Quản lý thư viện phim">↗</a></div></article>{% endif %}
     {% if can_manage_users %}<article class="sd-metric"><div class="sd-metric-top"><span>Người dùng</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M21 20v-2a6 6 0 0 0-4-5"/></svg></div><strong>{{ users_count|vnd }}</strong><div class="sd-metric-bottom"><span>Tài khoản trên hệ thống</span><a href="{% url 'admin:cinema_user_changelist' %}" aria-label="Quản lý người dùng">↗</a></div></article>{% endif %}
     {% if can_manage_users %}<article class="sd-metric"><div class="sd-metric-top"><span>Thành viên VIP</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 4 4 5-6 5 6 4-4-2 12H5L3 6ZM6 21h12"/></svg></div><strong>{{ vip_count|vnd }}</strong><div class="sd-metric-bottom"><span>Gói còn hiệu lực</span>{% if can_manage_plans %}<a href="{% url 'admin:cinema_plan_changelist' %}" aria-label="Quản lý gói VIP">↗</a>{% endif %}</div></article>{% endif %}
-    {% if can_view_orders %}<article class="sd-metric sd-metric-revenue"><div class="sd-metric-top"><span>Doanh thu xác nhận</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18m-13 5h3"/></svg></div><strong>{{ revenue|vnd }}<small>₫</small></strong><div class="sd-metric-bottom"><span>{{ paid_count }} giao dịch thành công</span><a href="{% url 'admin:cinema_order_changelist' %}" aria-label="Xem giao dịch">↗</a></div></article>{% endif %}
+    {% if can_view_orders %}<article class="sd-metric sd-metric-revenue"><div class="sd-metric-top"><span>Doanh thu toàn thời gian</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18m-13 5h3"/></svg></div><strong>{{ revenue|vnd }}<small>₫</small></strong><div class="sd-metric-bottom"><span>{{ paid_count }} giao dịch thành công</span><a href="{% url 'admin:cinema_order_changelist' %}" aria-label="Xem giao dịch">↗</a></div></article>{% endif %}
   </div>
   {% endif %}
   <div class="sd-overview-grid">

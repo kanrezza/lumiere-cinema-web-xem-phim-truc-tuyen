@@ -1,0 +1,44 @@
+[data-vue-search] { display:flex; align-items:center; min-width:0; }
+.quick-search { position:relative; width:205px; color:var(--text); }
+.search-suggestion-form { display:flex; align-items:center; gap:9px; min-width:0; margin:0; }
+.search-suggestion-form > .icon { width:17px; height:17px; flex-shrink:0; color:var(--muted); }
+.search-suggestion-form input { appearance:none; width:100%; min-width:0; border:0; padding:9px 0; background:transparent; color:var(--text); font:inherit; font-size:12px; border-radius:0; outline:none; }
+.search-suggestion-form input::-webkit-search-cancel-button { display:none; }
+.search-suggestion-form input::placeholder { color:var(--muted); }
+.search-suggestion-form:focus-within { box-shadow:0 1px var(--accent); }
+.quick-search-clear,.quick-search-close,.quick-search-mobile { border:0; padding:3px; background:transparent; color:var(--muted); cursor:pointer; }
+.quick-search-clear { font-size:21px; line-height:1; }
+.quick-search-close { font:inherit; font-size:11px; }
+.quick-search button:focus-visible,.search-suggestion-panel a:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.quick-search-mobile { display:none; align-items:center; justify-content:center; width:34px; height:34px; }
+.search-suggestion-panel { position:absolute; top:calc(100% + 18px); right:-12px; width:min(390px,calc(100vw - 28px)); max-height:min(580px,calc(100dvh - 110px)); overflow:auto; padding:0; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--text); box-shadow:0 16px 45px #0002; z-index:105; overscroll-behavior:contain; }
+.search-suggestion-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:17px 18px 14px; border-bottom:1px solid var(--line); }
+.search-suggestion-heading strong { font-size:12px; font-weight:550; }
+.search-suggestion-heading > span { color:var(--muted); font-size:10px; white-space:nowrap; }
+.search-suggestion-status { padding:20px 18px; margin:0; color:var(--muted); font-size:12px; line-height:1.7; }
+.search-suggestion-panel ul { list-style:none; padding:7px 0; margin:0; }
+.search-suggestion-panel ul:empty { display:none; }
+.search-suggestion-panel li { margin:0; padding:0; }
+.search-suggestion-panel [role="option"] { display:flex; align-items:center; gap:12px; padding:9px 18px; color:var(--text); text-decoration:none; }
+.search-suggestion-panel [role="option"]:hover,.search-suggestion-panel [role="option"][aria-selected="true"] { background:var(--accent-soft); }
+.search-suggestion-art { position:relative; width:32px; height:44px; flex-shrink:0; overflow:hidden; border-radius:3px; background:var(--surface-raised); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:14px; }
+.search-suggestion-art.is-actor { height:32px; border-radius:50%; }
+.search-suggestion-art img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.search-suggestion-copy { display:flex; flex-direction:column; min-width:0; gap:5px; }
+.search-suggestion-copy strong { font-size:12px; font-weight:550; line-height:1.45; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.search-suggestion-copy small { color:var(--muted); font-size:10px; line-height:1.5; }
+.search-suggestion-vip { margin-left:auto; color:var(--accent); font-size:9px; letter-spacing:.07em; }
+.search-suggestion-all { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px 18px; border-top:1px solid var(--line); color:var(--accent); text-decoration:none; font-size:11px; }
+@media(max-width:1100px) { .quick-search { width:165px; } }
+@media(max-width:800px) {
+  .quick-search { width:34px; }
+  .quick-search-mobile { display:flex; }
+  .search-suggestion-form { display:none; }
+  .quick-search.is-mobile-open .search-suggestion-form { display:flex; position:fixed; left:14px; right:14px; top:12px; z-index:107; padding:8px 12px; border:1px solid var(--line); border-radius:7px; background:var(--panel); }
+  .search-suggestion-panel { display:none; }
+  .quick-search.is-mobile-open .search-suggestion-panel { display:block; position:fixed; top:73px; right:14px; left:14px; width:auto; max-height:calc(100dvh - 90px); z-index:106; }
+}
+[data-vue-search] > [hidden] { display:none!important; }
+.search-suggestion-status.sr-only { padding:0; }
+/* Shared discovery captions stay quiet beside the artwork. */
+.movie-card > .card-recommendation-reason { color:var(--muted); font-size:10px; line-height:1.7; margin:5px 0 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }

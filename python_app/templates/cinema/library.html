@@ -3,27 +3,43 @@
 {% block head %}{% frontend_assets 'public' %}
 <link rel="stylesheet" href="{% static 'account.css' %}?v=lumiere-unified-1">
 <link rel="stylesheet" href="{% static 'continue-watching.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'library-tools.css' %}?v=library-tools-1">
 {% endblock %}
 {% block content %}
 <section class="content-section library-page">
   <header class="library-heading">
-    <h1>Tủ phim của bạn</h1>
+    <div><span class="library-kicker">BỘ SƯU TẬP CỦA BẠN</span><h1>Tủ phim của bạn</h1><p>{{ saved_count }} phim đã lưu · Tiếp tục đúng câu chuyện bạn đang xem.</p></div>
     <a class="btn secondary small" href="{% url 'rooms' %}"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg>Phòng xem chung</a>
   </header>
   {% include 'cinema/continue_shelf.html' with source='library' shelf_vue=True %}
-  <section class="film-shelf">
-    <div class="shelf-heading"><h2>Phim đã lưu</h2></div>
-    <div class="movie-grid">
+  <section class="film-shelf library-saved" id="saved-films" aria-labelledby="saved-heading">
+    <div class="shelf-heading"><h2 id="saved-heading">Phim đã lưu</h2><span class="library-result-count">{{ library_page.paginator.count }} phim{% if library_filtered %} phù hợp{% endif %}</span></div>
+    <form class="library-filters" method="get" action="{% url 'library' %}#saved-films" role="search" aria-label="Tìm trong tủ phim">
+      <input type="hidden" name="status" value="{{ library_filters.status }}">
+      <label class="library-search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-only">Tên phim hoặc diễn viên trong tủ</span><input name="q" maxlength="150" value="{{ library_filters.q }}" placeholder="Tìm trong tủ phim của bạn…" type="search"></label>
+      <label class="library-sort"><span class="sr-only">Sắp xếp phim đã lưu</span><select name="sort">{% for value,label in library_sorts %}<option value="{{ value }}" {% if library_filters.sort == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <button class="btn secondary small" type="submit">Áp dụng</button>
+    </form>
+    <nav class="library-tabs" aria-label="Trạng thái phim đã lưu">{% for tab in library_tabs %}<a href="{{ tab.url }}" {% if tab.active %}aria-current="page"{% endif %}>{{ tab.label }}<span>{{ tab.count }}</span></a>{% endfor %}</nav>
+    <form method="post" action="{% url 'library_remove' %}" class="library-selection" data-library-selection>
+      {% csrf_token %}<input type="hidden" name="q" value="{{ library_filters.q }}"><input type="hidden" name="status" value="{{ library_filters.status }}"><input type="hidden" name="sort" value="{{ library_filters.sort }}"><input type="hidden" name="page" value="{{ library_page.number }}">
+      {% if movies %}<div class="library-bulk-tools" data-vue-library-tools><span class="library-selection-hint">Chọn phim để bỏ khỏi tủ</span><button class="btn secondary small library-remove" type="submit">Xóa phim đã chọn</button></div>{% endif %}
+      <div class="movie-grid library-grid">
       {% for movie in movies %}
-        {% include 'cinema/card.html' %}
+        <div class="library-film">
+          {% include 'cinema/card.html' %}
+          <div class="library-film-meta"><label class="library-pick"><input type="checkbox" name="movies" value="{{ movie.pk }}" aria-label="Chọn {{ movie.title }}"><span>Chọn</span></label><span class="library-film-state">{{ movie.library_state_label }}{% if movie.library_ready_count > 1 %}<small>{{ movie.library_completed_count }}/{{ movie.library_ready_count }} tập hiện có đã xem</small>{% endif %}</span></div>
+        </div>
       {% empty %}
         <div class="library-empty">
           <svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg>
-          <div><h3>Chưa có phim đã lưu</h3><p>Nhấn “Lưu phim” ở trang chi tiết để thêm vào tủ phim.</p></div>
-          <a href="{% url 'catalog' %}" class="btn secondary small">Khám phá phim</a>
+          {% if saved_count and library_filtered %}<div><h3>Chưa có phim phù hợp</h3><p>Thử đổi từ khóa hoặc trạng thái để tìm lại phim trong tủ.</p></div><a href="{% url 'library' %}#saved-films" class="btn secondary small">Xem tất cả phim đã lưu</a>
+          {% else %}<div><h3>Chưa có phim đã lưu</h3><p>Nhấn “Lưu phim” ở trang chi tiết để thêm vào tủ phim.</p></div><a href="{% url 'catalog' %}" class="btn secondary small">Khám phá phim</a>{% endif %}
         </div>
       {% endfor %}
-    </div>
+      </div>
+    </form>
+    {% if library_page.paginator.num_pages > 1 %}<nav class="library-pagination" aria-label="Phân trang tủ phim">{% if library_previous %}<a class="btn secondary small" href="{{ library_previous }}">← Trang trước</a>{% endif %}<span>Trang {{ library_page.number }} / {{ library_page.paginator.num_pages }}</span>{% if library_next %}<a class="btn secondary small" href="{{ library_next }}">Trang sau →</a>{% endif %}</nav>{% endif %}
   </section>
   {% if history %}
   <details class="library-history">
@@ -36,6 +52,7 @@
       </li>
     {% endfor %}
     </ul>
+    <form method="post" action="{% url 'clear_history' %}" class="library-history-clear">{% csrf_token %}<p>Xóa lịch sử không xóa phim đã lưu trong tủ.</p><button type="submit" class="btn secondary small">Xóa toàn bộ lịch sử xem</button></form>
   </details>
   {% endif %}
 </section>

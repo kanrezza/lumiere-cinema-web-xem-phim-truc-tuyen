@@ -17,6 +17,7 @@
     <div class="card-title"><h3>{{ movie.title }}</h3><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></div>
     <p>{{ movie.year }}<span>·</span>{{ movie.get_kind_display }}{% if movie.duration_minutes %}<span>·</span>{{ movie.duration_minutes }} phút{% endif %}</p>
   </a>
+  {% if movie.recommendation_reason %}<p class="card-recommendation-reason">{{ movie.recommendation_reason }}</p>{% endif %}
   {% if movie.is_cinema_release or movie.has_trailer or movie.has_imdb_rating %}<div class="card-content-tags">
     {% if movie.is_cinema_release %}<span class="cinema-tag">Chiếu rạp</span>{% endif %}
     {% if movie.has_trailer %}<a class="card-trailer-link" href="{% url 'trailer' movie.slug %}" aria-label="Xem trailer {{ movie.title }}"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Xem trailer</a>{% endif %}
