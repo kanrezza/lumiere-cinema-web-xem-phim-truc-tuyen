@@ -4,6 +4,7 @@ import { AvatarController } from './avatar'
 import CharacterCount from './CharacterCount.vue'
 import { bindCheckoutSubmission } from './checkout'
 import Directory from './Directory.vue'
+import LibraryTools from './LibraryTools.vue'
 import type { DirectoryData } from './directory'
 import MembershipPlans from './MembershipPlans.vue'
 import MovieRating from './MovieRating.vue'
@@ -51,6 +52,20 @@ function mountMembership() {
     return
   }
   form.dataset.vueMembership = 'true'
+}
+
+function mountLibraryTools() {
+  const form = document.querySelector<HTMLFormElement>('[data-library-selection]')
+  const root = form?.querySelector<HTMLElement>('[data-vue-library-tools]')
+  if (!form || !root || !form.querySelector('input[name="movies"]')) return
+  const fallback = [...root.childNodes]
+  const app = createApp(LibraryTools, { form })
+  app.mount(root)
+  if (root.querySelector('button[type="submit"]')) form.dataset.vueLibrary = 'mounted'
+  else {
+    app.unmount()
+    root.replaceChildren(...fallback)
+  }
 }
 
 function mountAvatar() {
@@ -106,7 +121,7 @@ function mountFieldControls() {
   }
 }
 
-for (const enhance of [mountDirectory, mountMembership, mountAvatar, mountMovieRating, mountFieldControls]) {
+for (const enhance of [mountDirectory, mountMembership, mountLibraryTools, mountAvatar, mountMovieRating, mountFieldControls]) {
   try {
     enhance()
   } catch (error) {
