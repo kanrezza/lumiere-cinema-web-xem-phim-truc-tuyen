@@ -116,7 +116,19 @@ def play_fixture(host, decode):
     manifest = host.request(ticket.json()['url'])
     expect(manifest.status == 200 and manifest.body.startswith(b'#EXTM3U'), 'Invalid HLS playlist')
     expect('no-store' in manifest.headers.get('Cache-Control', ''), 'Private HLS must not be cached')
-    segment_url = next(line for line in manifest.text().splitlines() if line and not line.startswith('#'))
+    lines = manifest.text().splitlines()
+    if any(line.startswith('#EXT-X-STREAM-INF:') for line in lines):
+        rendition_url = next((line for line in lines if line and not line.startswith('#')), '')
+        expect(rendition_url, 'HLS master playlist has no rendition')
+        manifest = host.request(rendition_url)
+        expect(manifest.status == 200 and manifest.body.startswith(b'#EXTM3U'),
+               'HLS rendition playlist could not be fetched')
+        expect('no-store' in manifest.headers.get('Cache-Control', ''), 'Private HLS must not be cached')
+        lines = manifest.text().splitlines()
+    expect(not any(line.startswith('#EXT-X-STREAM-INF:') for line in lines)
+           and any(line.startswith('#EXTINF:') for line in lines), 'Invalid HLS media playlist')
+    segment_url = next((line for line in lines if line and not line.startswith('#')), '')
+    expect(segment_url, 'HLS media playlist has no segment')
     segment = host.request(segment_url)
     expect(segment.status == 200 and segment.body[:1] == b'\x47' and len(segment.body) >= 188,
            'HLS media segment could not be fetched')
