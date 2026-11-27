@@ -112,7 +112,7 @@ def build_navigation(user, path=''):
     return sections
 
 
-def build_dashboard_context(user):
+def build_dashboard_context(user, period='30'):
     """Summarize only domains the staff account may view in Django admin."""
     context = {
         'has_permission': is_studio_user(user),
@@ -197,4 +197,6 @@ def build_dashboard_context(user):
             unresolved_reports_count=unresolved.count(),
             reports=unresolved.select_related('episode__movie').order_by('-created_at')[:5],
         )
+    from .dashboard_insights import dashboard_insights
+    context['insights'] = dashboard_insights(user, period, orders=context['can_view_orders'], users=context['can_manage_users'])
     return context

@@ -5,6 +5,7 @@ from django.urls import include, path
 
 from . import privacy_views, room_voice, views as v
 from .forms import LoginForm
+from .views.search import search_suggestions
 from .privacy_auth import LockedPasswordChangeForm, LockedSetPasswordForm
 from .subtitle_views import subtitle
 from .transcription_views import generate as caption_generate, status as caption_generation_status
@@ -12,12 +13,14 @@ from .translation_views import subtitle_translate, subtitle_translation_status, 
 
 urlpatterns = [
     path('', v.landing, name='landing'), path('browse/', v.catalog, name='catalog'), path('movies/<slug:slug>/', v.movie_detail, name='movie'),
+    path('search/suggestions/', search_suggestions, name='search_suggestions'),
     path('movies/<slug:slug>/trailer/', v.movie_trailer, name='trailer'),
     path('accounts/register/', v.register, name='register'), path('accounts/login/', auth.LoginView.as_view(redirect_authenticated_user=True, authentication_form=LoginForm, extra_context={'title':'Chào mừng trở lại', 'subtitle':'Tiếp tục câu chuyện của bạn.', 'button':'Đăng nhập'}), name='login'),
     path('accounts/password_change/', auth.PasswordChangeView.as_view(form_class=LockedPasswordChangeForm), name='password_change'),
     path('accounts/reset/<uidb64>/<token>/', auth.PasswordResetConfirmView.as_view(form_class=LockedSetPasswordForm), name='password_reset_confirm'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('library/', v.library, name='library'), path('profile/', v.profile, name='profile'), path('profile/avatar/', v.profile_avatar, name='profile_avatar'),
+    path('library/remove/', v.remove_saved, name='library_remove'),
     path('privacy/', privacy_views.policy, name='privacy_policy'),
     path('profile/privacy/', privacy_views.account_privacy, name='account_privacy'),
     path('movies/<int:pk>/save/', v.watchlist_toggle, name='save'), path('movies/<int:pk>/comment/', v.comment, name='comment'), path('movies/<int:pk>/rate/', v.rate, name='rate'),

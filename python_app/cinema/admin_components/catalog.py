@@ -2,6 +2,7 @@
 from django.contrib import admin
 
 from .common import LocalizedAdminMixin, MovieCountAdminMixin, UploadValidationAdminMixin, preview_text
+from .readiness import ContentHealthFilter
 
 
 class MovieAdmin(UploadValidationAdminMixin, LocalizedAdminMixin, admin.ModelAdmin):
@@ -9,7 +10,7 @@ class MovieAdmin(UploadValidationAdminMixin, LocalizedAdminMixin, admin.ModelAdm
     model_label = 'Phim'
     model_label_plural = 'Phim'
     list_display = ('movie_title', 'release_year', 'movie_kind', 'imdb_score', 'cinema_release', 'vip_only', 'is_published')
-    list_filter = ('is_vip', 'is_cinema_release', 'published', 'kind', 'country', 'year')
+    list_filter = (ContentHealthFilter, 'is_vip', 'is_cinema_release', 'published', 'kind', 'country', 'year')
     search_fields = ('title', 'imdb_id')
     search_help_text = 'Tìm theo tên phim hoặc mã IMDb.'
     prepopulated_fields = {'slug': ('title',)}

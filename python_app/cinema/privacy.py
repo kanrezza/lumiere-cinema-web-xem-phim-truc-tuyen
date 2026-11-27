@@ -16,7 +16,7 @@ from .models import (
     User, Watchlist,
 )
 
-NOTICE_VERSION = '2026-11-17'
+NOTICE_VERSION = '2026-11-27'
 
 
 def _lock_viewer(user_id):

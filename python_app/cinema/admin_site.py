@@ -120,7 +120,7 @@ class LumiereAdminSite(AdminSite):
 
     def index(self, request, extra_context=None):
         from .studio import build_dashboard_context
-        context = build_dashboard_context(request.user)
+        context = build_dashboard_context(request.user, request.GET.get('period', '30'))
         context.update(extra_context or {})
         return super().index(request, extra_context=context)
 

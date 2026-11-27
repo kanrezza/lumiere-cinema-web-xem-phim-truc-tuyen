@@ -13,6 +13,7 @@ from django.views.decorators.vary import vary_on_headers
 from ..models import Actor, Category, Movie, Plan
 from ..queries import catalog_movies, continue_cards, public_categories, public_country_groups
 from ..search import filter_movie_search
+from ..recommendations import recommendation_shelf
 
 
 def catalog_content_links(request):
@@ -166,6 +167,9 @@ def catalog(request):
     featured_movies = []
     if not is_browsing:
         featured_movies = list(movies.filter(ready_episode_id__isnull=False)[:3])
+        personal = recommendation_shelf(request.user)
+        if personal:
+            shelves.append(personal)
         shelves.append({'title': 'Mới trên Lumière', 'subtitle': 'Những câu chuyện mới trong thư viện.', 'movies': list(movies[:12]), 'href': reverse('catalog') + '?sort=newest'})
         vip_movies = list(movies.filter(is_vip=True)[:12])
         if vip_movies:
