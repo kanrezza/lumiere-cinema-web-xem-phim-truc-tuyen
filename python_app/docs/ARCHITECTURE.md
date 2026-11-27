@@ -14,6 +14,7 @@ Lumière keeps HTTP handling, shared business rules and browser interaction in s
 | `cinema/rooms/access.py` | Room lifetime, membership, presence, capacity and admission settings. |
 | `cinema/rooms/media.py` | Media version changes, source reset and player snapshots/context. |
 | `cinema/rooms/playlist.py` | Playlist serialization, limits, append and ordering operations. |
+| `cinema/rooms/identity.py`, `cinema/rooms/chat.py` | Public room profiles reused by seats and chronological chat payloads. |
 | `cinema/validation.py` | Shared positive database-identifier parsing. |
 | `cinema/admin.py` | Single model-admin registration entry point and compatibility exports. |
 | `cinema/admin_components/` | Catalog, community, membership, subtitle and report admin classes; shared filters and mixins. |
@@ -58,3 +59,8 @@ python manage.py test cinema cinema.audit_experience_cases
 npm --prefix frontend run build
 node --test tests/*.test.cjs
 ```
+
+
+## Quality tiers and editorial premieres
+
+`cinema/video_quality.py` owns rendition metadata, source sizing and per-viewer quality authorization. `process_videos` writes flat private HLS files; playback endpoints check session, current plan and optional premiere scope on each request. `cinema/premieres.py` owns the server clock and audience policy; `views/premieres.py` owns discovery, bounded chat and versioned editorial commands. `admin_components/premieres.py` requires the explicit `manage_premieres` permission. Premiere state and player lifecycle live in `frontend/src/viewing/premiere-state.ts` and `PremiereExperience.vue`, reusing the shared player, captions and quality controls. Private rooms retain their independent 3/10-person policies and social features.

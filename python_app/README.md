@@ -11,10 +11,10 @@ Lumière dùng Python và Django cho máy chủ, Django Templates để dựng n
 - Phụ đề SRT/WebVTT theo từng tập; CC luôn có lối vào, nhận dạng lời thoại và dịch Anh ↔ Việt bằng dịch vụ local tùy chọn; metadata IMDb có liên kết nguồn và ngày đối chiếu.
 - Đăng ký, đăng nhập, đăng xuất bằng POST, đổi/quên mật khẩu, hồ sơ và kiểm soát quyền quản trị.
 - Đánh giá 1–5, bình luận, báo lỗi video và quản trị Django cho phim/tập phim/người dùng/gói/giao dịch; bảng thống kê tại `/studio/` dành cho staff.
-- Upload MP4/MKV/MOV/WebM vào kho riêng; worker FFmpeg kiểm tra nội dung và chuyển thành HLS H.264/AAC tối đa 720p.
+- Upload MP4/MKV/MOV/WebM vào kho riêng; worker FFmpeg kiểm tra nội dung và tạo HLS H.264/AAC nhiều mức chất lượng, tối đa 1440p theo nguồn gốc.
 - Nguồn phát yêu cầu đăng nhập, quyền phim/VIP và token gắn với phiên có thời hạn 10 phút. Bộ phát làm mới nguồn sau 8 phút.
 - VIP tháng/năm, VNPay 2.1.0, đơn hàng lưu snapshot giá/thời hạn, IPN có xác minh HMAC-SHA512, số tiền và merchant; xử lý lặp không cấp VIP thêm.
-- Xem chung: tài khoản đăng nhập, VIP tạo tối đa 3 phòng hoạt động, tối đa 10 thành viên hoạt động/phòng, timeout hiện diện 30 giây, có nút rời phòng, phòng tồn tại 6 giờ, chủ phòng điều khiển phim, chat, loại thành viên, kết thúc phòng. Đồng bộ bằng polling 2 giây.
+- Xem chung: tài khoản đăng nhập tạo tối đa 3 phòng hoạt động; chủ phòng miễn phí có tối đa 3 người/phòng, VIP/staff tối đa 10 người/phòng, tính cả chủ phòng; timeout hiện diện 30 giây, có nút rời phòng, phòng tồn tại 6 giờ, chủ phòng điều khiển phim, chat, loại thành viên, kết thúc phòng. Đồng bộ bằng polling 2 giây.
 - Lệnh nhập Laravel chỉ đọc source, mặc định dry-run, giữ mapping để chạy lại không nhân bản dữ liệu.
 
 Đây là nền tảng chạy được để tiếp tục phát triển. Chưa có DRM thương mại, chuyển mã nhiều chất lượng, thông báo tập mới, CDN/object storage, hoàn tiền tự động hoặc đăng ký VIP tự gia hạn. Các phim, artwork và giá gói tạo bởi `seed_demo` là minh họa; không đi kèm video thương mại.
@@ -96,6 +96,27 @@ Lệnh thêm đoạn trích **16 giây** từ Big Buck Bunny, ghi công Blender 
 
 Bản khảo sát giao diện Chợ Phim, phạm vi kiểm chứng và thứ tự cải thiện nằm tại [docs/CHOPHIM_REVIEW.md](docs/CHOPHIM_REVIEW.md).
 
+## Gói thành viên, chất lượng video và công chiếu
+
+| Quyền lợi | Thường | VIP |
+| --- | --- | --- |
+| Chất lượng tối đa | 720p | 1080p / 1440p khi nguồn hỗ trợ |
+| Tạo phòng xem chung | 3 người gồm chủ phòng | 10 người gồm chủ phòng |
+| Chat, mic, playlist, mật khẩu, duyệt khách | Có | Có |
+| Phim VIP / suất công chiếu VIP | Không | Có |
+
+Worker tạo HLS nhiều mức chất lượng thực, giữ đúng tỉ lệ và không nâng độ phân giải giả. Master playlist chỉ liệt kê các mức mà người xem được phép dùng; backend kiểm tra lại gói trên từng rendition và segment, kể cả khi VIP hết hạn giữa buổi xem. Nút **Cài đặt chất lượng và phụ đề** gom phụ đề/dịch và chất lượng vào một menu gọn. Menu có Tự động, các mức hiện có và ghi riêng chất lượng tối đa của phim với mức gói hỗ trợ. Trong phòng xem chung, chất lượng theo từng người, sức chứa theo chủ phòng. Video cũ chỉ có một rendition vẫn được kiểm tra độ phân giải thật; cần mã hóa lại để có thêm mức:
+
+```bash
+python manage.py process_videos --episode <id> --reencode
+```
+
+Chạy `python manage.py migrate` để tạo bảng công chiếu. Mở **Studio → Công chiếu** để chọn tập đã công khai/xử lý xong (tối thiểu 13 giây để tạo bộ đệm HLS), giờ bắt đầu và đối tượng Thường/VIP. Chỉ nhân viên đang hoạt động có quyền **Tổ chức và điều khiển công chiếu** (`cinema.manage_premieres`) mới được tạo, đổi lịch, chiếu ngay, kết thúc hoặc hủy; tài khoản VIP không có quyền phát sóng. Superuser có quyền này mặc định.
+
+Trang `/premieres/` hiển thị lịch. Mỗi suất có đếm ngược, phát đồng bộ theo đồng hồ server và chat có kiểm duyệt/giới hạn tốc độ; không dùng mic hay giới hạn 3/10 ghế của phòng riêng. Nguồn phim công chiếu chỉ cấp ticket khi đang diễn ra và người xem đủ quyền. Manifest/segment được giới hạn theo phần đã chiếu; trình phát có độ trễ đệm khoảng 12 giây. Khi kết thúc tự nhiên, nguồn đang phát có thể nhận các đoạn cuối; hủy hoặc kết thúc thủ công dừng giao diện. Thao tác quản lý có phiên bản chống ghi đè và được ghi nhật ký admin.
+
+Đây là **công chiếu video có sẵn**, chưa nhận luồng OBS/RTMP. Tập phim vẫn có quyền VOD độc lập: lên lịch công chiếu không tự khóa đường xem thông thường trước giờ chiếu và không phải cơ chế phát hành sớm độc quyền.
+
 ## Phụ đề và điều khiển trình phát
 
 Chạy `python manage.py migrate` để áp dụng `0008_subtitle`. Trong admin → **Phụ đề** → Thêm, chọn tập phim, mã ngôn ngữ (`vi`, `en`, `en-US`…), tên hiển thị và file `.srt` hoặc `.vtt` mã hóa UTF-8. Hỗ trợ nhiều ngôn ngữ, mỗi ngôn ngữ một track trên mỗi tập. Khi sửa thông tin, bỏ trống file để giữ phụ đề hiện tại; upload file mới để thay nội dung. Quyền quản lý phụ đề được cấp riêng trong Django admin.
@@ -106,15 +127,17 @@ Nút **CC / Phụ đề** luôn xuất hiện trên thanh điều khiển, kể 
 
 Nút ±10 giây và phím ←/→ khi focus trong trình phát cập nhật vị trí ngay, giới hạn trong thời lượng/vùng có thể tua. Thao tác liên tiếp cộng dồn; lần làm mới nguồn HLS giữ vị trí vừa chọn. Phím mũi tên không can thiệp ô nhập/chọn ngôn ngữ. Trong phòng xem chung, chỉ chủ phòng được tua và điều khiển vị trí chung; khách vẫn chọn phụ đề/âm lượng riêng.
 
-Mở **Xem chung** tại `/rooms/` để tạo phòng trước khi chọn phim. Không gian rạp hỗ trợ giao diện sáng/tối, màn chiếu lớn và lịch chiếu có thứ tự; màn chiếu luôn giữ nền tối. Chủ phòng dùng **Thêm phim** để chuẩn bị danh sách tối đa 50 tập, kéo thả hoặc dùng nút di chuyển để sắp xếp, rồi bấm **Phát** hoặc **Phát tiếp theo**. Nguồn mới bắt đầu từ đầu và chờ chủ phòng bấm phát trong trình chiếu. Đổi phim giữ nguyên liên kết mời, thành viên, tin nhắn và kết nối thoại. Có thể tạo nhanh phòng đã chọn sẵn từ trang xem phim.
+Mở **Xem chung** tại `/rooms/` để tạo phòng trước khi chọn phim. Tài khoản miễn phí mở phòng tối đa 3 người, VIP/staff mở phòng tối đa 10 người, tính cả chủ phòng. Giới hạn dựa trên gói của chủ phòng; VIP của người tham gia không tăng sức chứa phòng miễn phí. Khi VIP của chủ phòng hết hạn, phòng vẫn mở với 3 chỗ: chủ phòng và hai khách đang hiện diện tham gia sớm nhất giữ chỗ; những người còn lại rời phòng và có thể vào lại khi có chỗ trống. Không gian rạp hỗ trợ giao diện sáng/tối, màn chiếu lớn và lịch chiếu có thứ tự; màn chiếu luôn giữ nền tối. Chủ phòng dùng **Thêm phim** để chuẩn bị danh sách tối đa 50 tập, kéo thả hoặc dùng nút di chuyển để sắp xếp, rồi bấm **Phát** hoặc **Phát tiếp theo**. Nguồn mới bắt đầu từ đầu và chờ chủ phòng bấm phát trong trình chiếu. Đổi phim giữ nguyên liên kết mời, thành viên, tin nhắn và kết nối thoại. Có thể tạo nhanh phòng đã chọn sẵn từ trang xem phim.
 
 Thành viên dùng **Gợi ý phim** và chỉ chủ phòng được duyệt thêm hoặc từ chối. Mỗi người có tối đa 5 đề xuất đang chờ, cả phòng tối đa 20. Thành viên không được sửa lịch chiếu hay điều khiển phim chung. Mọi thao tác quản lý kiểm tra phiên bản danh sách để tránh ghi đè thay đổi ở phiên khác. Mỗi người vẫn cần quyền xem riêng với phim VIP.
 
-Khi tạo phòng, chủ phòng có thể đặt mật khẩu và bật **Duyệt người vào phòng**. Nút **Duyệt** bên phải hiển thị số người chờ và mở danh sách duyệt cùng cài đặt quyền vào phòng. Nếu bật cả hai, khách nhập đúng mật khẩu trước khi gửi yêu cầu, rồi bấm tham gia sau khi được duyệt. Đổi mật khẩu yêu cầu khách đang chờ hoặc đã được duyệt nhưng chưa vào phòng xác minh lại. Thành viên thiếu quyền xem phim VIP vẫn có thể trò chuyện trong phòng. Trình phát kiểm tra riêng quyền phim của từng người.
+Khi tạo phòng, chủ phòng có thể đặt mật khẩu và bật **Duyệt người vào phòng**. **Cửa vào rạp** bên phải hàng ghế hiển thị số người chờ; chủ phòng bấm cửa để mở danh sách duyệt và cài đặt quyền vào phòng. Nếu bật cả hai, khách nhập đúng mật khẩu trước khi gửi yêu cầu, rồi bấm tham gia sau khi được duyệt. Đổi mật khẩu yêu cầu khách đang chờ hoặc đã được duyệt nhưng chưa vào phòng xác minh lại. Thành viên thiếu quyền xem phim VIP vẫn có thể trò chuyện trong phòng. Trình phát kiểm tra riêng quyền phim của từng người.
 
-**Tham gia thoại** cho phép nghe phòng. Chỉ khi bấm **Bật mic** trình duyệt mới xin quyền dùng microphone. Chủ phòng có thể khóa mic từng thành viên. Khi được mở quyền nói, thành viên tự bật lại mic. WebRTC truyền âm thanh giữa các trình duyệt. Trên máy chủ cần HTTPS và có thể cấu hình `ROOM_VOICE_ICE_SERVERS` theo mẫu trong `.env.example` để hỗ trợ các mạng cần STUN/TURN. Localhost có thể thử kết nối trực tiếp.
+Vào phòng sẽ tự kết nối để nghe, microphone luôn tắt ban đầu. Bấm avatar của chính mình trên hàng ghế để bật hoặc tắt mic; chỉ thao tác này mới yêu cầu quyền microphone. Nếu trình duyệt chặn phát âm thanh, dùng **Bật âm thanh phòng** dưới hàng ghế. Chủ phòng có thể khóa mic từng thành viên từ avatar của họ. Khi được mở quyền nói, thành viên tự bấm avatar để bật lại mic. WebRTC truyền âm thanh giữa các trình duyệt. Trên máy chủ cần HTTPS và có thể cấu hình `ROOM_VOICE_ICE_SERVERS` theo mẫu trong `.env.example` để hỗ trợ các mạng cần STUN/TURN. Localhost có thể thử kết nối trực tiếp.
 
-Thành viên trong phòng hiển thị trên 10 ghế với tên hoặc avatar và giữ vị trí khi cập nhật hiện diện. Chủ phòng bấm avatar để khóa/cho phép bật mic, hoặc dùng nút **×** để loại thành viên. Viền sáng dùng mức âm thanh Web Audio của track thoại đang kết nối, tách biệt với trạng thái chỉ bật mic. Tắt mic hoặc bị khóa sẽ hiện biểu tượng mic gạch chéo. Không có Web Audio thì phòng vẫn hỗ trợ thoại và trạng thái mic, không mô phỏng hiệu ứng đang nói. **Phóng to rạp** mở toàn bộ không gian ở fullscreen; nút toàn màn hình trong video chỉ phóng trình phát.
+Thành viên trong phòng hiển thị trên 3 ghế miễn phí hoặc 10 ghế VIP, theo gói của chủ phòng, với tên hoặc avatar và giữ vị trí khi cập nhật hiện diện. Chủ phòng bấm avatar để khóa/cho phép bật mic, hoặc dùng nút **×** để loại thành viên. Viền sáng dùng mức âm thanh Web Audio của track thoại đang kết nối, tách biệt với trạng thái chỉ bật mic. Tắt mic hoặc bị khóa sẽ hiện biểu tượng mic gạch chéo. Không có Web Audio thì phòng vẫn hỗ trợ thoại và trạng thái mic, không mô phỏng hiệu ứng đang nói. **Phóng to rạp** mở toàn bộ không gian ở fullscreen; nút toàn màn hình trong video chỉ phóng trình phát.
+
+Trò chuyện trực tiếp dùng avatar và tên công khai của người gửi, có dấu nhận biết chủ phòng, ô nhập cố định cùng bộ chọn emoji. Có thể thu gọn mà vẫn giữ bản nháp. Khi đang đọc tin cũ, tin mới hiện nút thông báo thay vì tự kéo xuống; bấm nút để trở về cuối cuộc trò chuyện. Tin nhắn là văn bản thuần, tối đa 500 ký tự, chỉ thành viên được vào phòng mới được đọc hoặc gửi.
 
 ## Phụ đề tự động và dịch local
 
@@ -202,7 +225,7 @@ Kiểm thử importer dùng snapshot giả lập, chưa chạy với MySQL thậ
 
 HLS là định dạng phát phân đoạn, **không phải DRM và không ngăn tuyệt đối người có quyền xem lưu lại nội dung**. Token/phiên/kiểm tra VIP giúp chặn truy cập trái phép, link hết hạn và chia sẻ link không kèm phiên; người dùng đã được cấp quyền vẫn có thể trích xuất dữ liệu trong lúc xem hoặc quay màn hình. Watermark HTML và `controlslist=nodownload` là răn đe/giao diện, không phải biện pháp chống sao chép mạnh.
 
-Mỗi tài khoản chỉ có một browser session được cấp ticket hiện hành; nhiều tab dùng cùng session vẫn có thể hoạt động. Phòng xem chung yêu cầu mỗi người có quyền với phim đó. Muốn bảo vệ nội dung thương mại mạnh hơn cần DRM (Widevine/FairPlay/PlayReady), dịch vụ cấp license và quy trình xử lý nội dung phù hợp — chưa nằm trong bản này.
+Mỗi tài khoản chỉ có một browser session được cấp ticket hiện hành; nhiều tab dùng cùng session vẫn có thể hoạt động. Phát phim trong phòng xem chung yêu cầu mỗi người có quyền với phim đó. Muốn bảo vệ nội dung thương mại mạnh hơn cần DRM (Widevine/FairPlay/PlayReady), dịch vụ cấp license và quy trình xử lý nội dung phù hợp — chưa nằm trong bản này.
 
 ## Triển khai thực tế
 
@@ -255,6 +278,10 @@ Danh mục có bộ lọc năm, kết hợp với các bộ lọc khác và gi�
 Nút mặt trời/mặt trăng trên header chuyển giữa giao diện sáng và tối. Lựa chọn được lưu trong localStorage của trình duyệt (`lumiere-theme`), áp dụng trước khi tải stylesheet và giữ khi đổi trang/tải lại. Mặc định giữ giao diện tối; nếu trình duyệt chặn lưu trữ, nút vẫn đổi giao diện cho trang hiện tại. Hero/ảnh phim và trình phát giữ bảng màu tối để bảo đảm tương phản; không dùng bộ lọc đảo màu lên nội dung phim.
 
 Thành viên còn hạn VIP mở `/vip/` sẽ thấy quyền lợi/hạn dùng và các lối vào phim VIP, xem chung, tủ phim. Bảng giá chỉ xuất hiện khi chủ động mở liên kết Gia hạn (`/vip/?renew=1`). Khách, tài khoản thường và gói hết hạn vẫn có luồng mua. Tham số `renew` không cấp VIP; quyền vẫn chỉ được thay đổi bởi xác nhận thanh toán hợp lệ hoặc quản trị.
+
+Có thể mua VIP Năm khi đang dùng VIP Tháng. Sau IPN thành công, backend khóa đơn và tài khoản, lưu kỳ sử dụng mới từ thời điểm muộn hơn giữa lúc xác nhận và hạn VIP hiện có, rồi cộng đủ số ngày đã mua. Gói mới hiển thị **Chờ kích hoạt · Đã thanh toán** và tự chuyển thành **Đang sử dụng** khi kỳ trước kết thúc; không cần cron, thanh toán lại hoặc thao tác kích hoạt. Nếu mua nhiều gói trước, chúng tiếp nối theo thứ tự xác nhận thanh toán. Các gói tháng/năm có cùng quyền lợi, khác thời hạn.
+
+Migration `0024_order_vip_periods` bổ sung ngày bắt đầu/kết thúc và tên gói khi mua. Giá, số ngày và tên gói được lưu theo đơn; sửa danh mục gói không đổi kỳ đã mua. Trang gia hạn hiển thị ngày dự kiến theo lựa chọn; ngày chính xác chỉ chốt khi IPN hợp lệ. Callback lặp, sai chữ ký/số tiền hoặc thanh toán thất bại không cấp thêm kỳ. Hồ sơ và quản trị hiển thị kỳ sử dụng để đối soát. Đơn cũ chưa lưu ngày kỳ vẫn giữ nguyên và không suy đoán lịch sử từ hạn VIP hiện tại. Kiểm thử logic: `python manage.py test cinema.test_vip_renewal_queue`.
 
 ## Ảnh đại diện
 
