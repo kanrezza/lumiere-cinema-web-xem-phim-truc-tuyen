@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="{% static 'streaming.css' %}?v=vue-home-1">
   <link rel="stylesheet" href="{% static 'quickview.css' %}?v=trailers-2">
   <link rel="stylesheet" href="{% static 'imdb.css' %}?v=imdb-1">
-  <link rel="stylesheet" href="{% static 'player-captions.css' %}?v=watch-next-1">
+  <link rel="stylesheet" href="{% static 'player-captions.css' %}?v=flat-settings-3">
   <link rel="stylesheet" href="{% static 'trailers.css' %}?v=trailers-2">
   <link rel="stylesheet" href="{% static 'discovery.css' %}?v=genre-dropdown-1">
   <link rel="stylesheet" href="{% static 'avatar.css' %}?v=profile-avatar-2">
@@ -38,6 +38,7 @@
     {% block brand %}<a class="brand" href="{% if user.is_authenticated %}{% url 'catalog' %}{% else %}{% url 'landing' %}{% endif %}" aria-label="Lumière — Trang chủ"><span class="brand-mark" aria-hidden="true">l<span>›</span></span>lumière<span class="brand-period">.</span></a>{% endblock %}
     {% block navigation %}<nav class="main-nav" aria-label="Điều hướng chính">
       <a href="{% url 'catalog' %}" {% if request.path == '/browse/' and not request.GET.kind and not request.GET.category and not request.GET.country and not request.GET.actor %}aria-current="page"{% endif %}>Khám phá</a>
+      <a href="{% url 'premieres' %}" {% if request.resolver_match.url_name == 'premieres' or request.resolver_match.url_name == 'premiere' %}aria-current="page"{% endif %}>Công chiếu</a>
       <a href="/browse/?kind=movie" {% if request.GET.kind == 'movie' and not request.GET.category and not request.GET.country and not request.GET.actor %}aria-current="page"{% endif %}>Phim lẻ</a>
       <a href="/browse/?kind=series" {% if request.GET.kind == 'series' and not request.GET.category and not request.GET.country and not request.GET.actor %}aria-current="page"{% endif %}>Phim bộ</a>
       {% include 'cinema/genre_trigger.html' %}
@@ -51,7 +52,7 @@
       <a class="mobile-search" href="/browse/?sort=newest#browse-search" aria-label="Tìm phim"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></a>
       <a class="header-vip" href="{% url 'plans' %}"{% if user.is_vip %} aria-label="VIP của bạn"{% endif %}>{% if user.is_vip %}<b>VIP</b><span> của bạn</span>{% else %}Lumière <b>VIP</b>{% endif %}</a>{% endblock %}
       {% if user.is_authenticated %}
-      <details class="account-menu"><summary aria-label="Menu tài khoản {{ user.username }}"><span class="avatar user-avatar" aria-hidden="true"><span class="avatar-initial">{{ user.username|slice:':1'|upper }}</span>{% if user.avatar %}<img class="avatar-image" data-saved-avatar src="{{ user.avatar.url }}" alt="" width="66" height="66">{% endif %}</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></summary><div class="account-dropdown"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{% if user.is_staff %}Quản trị viên{% elif user.is_vip %}Thành viên VIP{% else %}Thành viên{% endif %}</small><a href="{% url 'profile' %}">Quản lý tài khoản</a><a href="{% url 'library' %}">Tủ phim của tôi</a><a href="{% url 'rooms' %}">Phòng xem chung</a>{% if user.is_staff %}<a href="{% url 'studio' %}">Studio quản trị</a>{% endif %}<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button>Đăng xuất</button></form></div></details>
+      <details class="account-menu"><summary aria-label="Menu tài khoản {{ user.username }}"><span class="avatar user-avatar" aria-hidden="true"><span class="avatar-initial">{{ user.username|slice:':1'|upper }}</span>{% if user.avatar %}<img class="avatar-image" data-saved-avatar src="{{ user.avatar.url }}" alt="" width="66" height="66">{% endif %}</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></summary><div class="account-dropdown"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{% if user.is_staff %}Quản trị viên{% elif user.is_vip %}Thành viên VIP{% else %}Thành viên{% endif %}</small><a href="{% url 'profile' %}">Quản lý tài khoản</a><a href="{% url 'library' %}">Tủ phim của tôi</a><a href="{% url 'rooms' %}">Phòng xem chung</a><a href="{% url 'premieres' %}">Lịch công chiếu</a>{% if user.is_staff %}<a href="{% url 'studio' %}">Studio quản trị</a>{% endif %}<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button>Đăng xuất</button></form></div></details>
       {% else %}<a class="header-login" href="{% url 'login' %}">Đăng nhập</a>{% endif %}
     {% endblock %}</div>
   </div>
@@ -62,7 +63,7 @@
   {% if messages %}<div class="messages" role="status">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
   {% block content %}{% endblock %}
 </main>
-{% block footer %}<footer class="site-footer"><div class="footer-inner"><div><a class="brand" href="/">lumière<span class="brand-period">.</span></a><p>Một bộ phim hay, một buổi tối đáng nhớ.</p></div><div class="footer-links"><a href="/browse/">Khám phá</a><a href="{% url 'rooms' %}">Xem chung</a><a href="{% url 'actors' %}">Diễn viên</a><a href="{% url 'plans' %}">Thành viên VIP</a><a href="{% url 'privacy_policy' %}">Quyền riêng tư</a><button type="button" class="motion-toggle" data-motion-toggle aria-pressed="false"><span data-motion-label>Tắt hiệu ứng</span></button></div><small>© 2026 Lumière</small></div></footer>{% endblock %}
+{% block footer %}<footer class="site-footer"><div class="footer-inner"><div><a class="brand" href="/">lumière<span class="brand-period">.</span></a><p>Một bộ phim hay, một buổi tối đáng nhớ.</p></div><div class="footer-links"><a href="/browse/">Khám phá</a><a href="{% url 'rooms' %}">Xem chung</a><a href="{% url 'premieres' %}">Công chiếu</a><a href="{% url 'actors' %}">Diễn viên</a><a href="{% url 'plans' %}">Thành viên VIP</a><a href="{% url 'privacy_policy' %}">Quyền riêng tư</a><button type="button" class="motion-toggle" data-motion-toggle aria-pressed="false"><span data-motion-label>Tắt hiệu ứng</span></button></div><small>© 2026 Lumière</small></div></footer>{% endblock %}
 {% include 'cinema/quickview.html' %}
 <div data-vue-shell-root hidden></div>
 <div data-vue-quickview-root></div>

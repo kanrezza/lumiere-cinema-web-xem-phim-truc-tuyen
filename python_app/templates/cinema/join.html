@@ -8,6 +8,7 @@
     <span class="room-lobby-icon"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg></span>
     <h1>{{ room.name }}</h1>
     <p>Chủ phòng {{ room.host.username }}{% if room.episode and room.episode.movie.published %} · {{ room.episode.movie.title }}{% endif %}</p>
+    <p class="muted">Tối đa {{ room_capacity }} người, tính cả chủ phòng. Giới hạn theo gói của chủ phòng.</p>
     {% if join_error %}<p class="room-lobby-error" role="alert">{{ join_error }}</p>{% endif %}
     <div data-room-lobby="{% url 'room_admission' room.pk %}" data-lobby-status="{{ join_status|default:'' }}" data-requires-approval="{{ room.requires_approval|yesno:'true,false' }}">
       <div data-vue-lobby></div>

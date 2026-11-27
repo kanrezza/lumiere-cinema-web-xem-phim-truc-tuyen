@@ -3,10 +3,33 @@
 .player-caption-display { position: absolute; left: 5%; right: 5%; bottom: 96px; z-index: 3; max-height: 45%; overflow: hidden; pointer-events: none; text-align: center; color: #fff; font-family: Arial, sans-serif; font-size: clamp(16px, 1.8vw, 20px); line-height: 1.45; text-shadow: 0 1px 3px #000, 0 0 2px #000; }
 .player-caption-display[hidden] { display: none!important; }
 .player-caption-display > span { padding: 3px 7px; border-radius: 3px; background: #000c; white-space: pre-line; overflow-wrap: anywhere; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-.player-caption-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; border: 1px solid #ffffff55; border-radius: 6px; padding: 5px 9px; background: #14181dd9; color: #fff; font-size: 11px; white-space: nowrap; }
-.player-caption-toggle > span:first-child { border: 1px solid currentColor; border-radius: 3px; padding: 0 3px; font-size: 10px; font-weight: 700; }
-.player-caption-toggle:hover, .player-caption-toggle[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
-.player-caption-toggle:focus-visible, .caption-panel :is(button, select):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* One quiet settings control replaces the separate boxed caption/quality inputs. */
+.player-settings-trigger { display:inline-flex; align-items:center; gap:9px; min-height:34px; padding:3px 4px; border:0; border-radius:0; background:transparent; color:#fff; font:inherit; cursor:pointer; }
+.player-settings-trigger .icon { width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.45; stroke-linecap:round; stroke-linejoin:round; }
+.player-settings-resolution { color:#ffffffc4; font-size:10px; font-weight:500; font-variant-numeric:tabular-nums; }
+.player-settings-trigger:hover, .player-settings-trigger[aria-expanded="true"] { color:var(--accent); }
+.player-settings-trigger:focus-visible, .player-settings-panel button:focus-visible, .caption-panel :is(button,select):focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
+.player-settings-panel { position:absolute; right:18px; bottom:82px; z-index:9; width:min(292px,calc(100% - 30px)); max-height:calc(100% - 100px); overflow:auto; overscroll-behavior:contain; padding:5px 0 0; border:0; border-radius:9px; background:#17191df5; color:#f5f2eb; box-shadow:0 12px 36px #0005; color-scheme:dark; scrollbar-width:thin; }
+.player-settings-panel[style*="display: none"] { display:none!important; }
+.player-wrap:has(.player-settings-panel:not([style*="display: none"])) .player-controls { opacity:1; }
+.player-settings-panel > header { display:flex; justify-content:space-between; align-items:center; padding:10px 17px 7px; }
+.player-settings-panel h2 { margin:0; font-size:12px; font-weight:550; letter-spacing:.01em; color:#f5f2eb; }
+.player-settings-close { display:grid; place-items:center; width:25px; height:25px; padding:0; border:0; background:transparent; color:#bfc2c7; font:22px/1 Arial,sans-serif; cursor:pointer; }
+.player-settings-caption { display:flex; align-items:center; gap:10px; width:100%; min-height:44px; padding:9px 18px; border:0; border-radius:0; background:transparent; color:#f5f2eb; font:inherit; font-size:12px; text-align:left; cursor:pointer; }
+.player-settings-caption:hover, .player-settings-panel .player-quality-option:hover { background:#ffffff08; }
+.player-settings-caption > span:last-child { margin-left:auto; color:#a6a7ad; font-size:19px; }
+.player-settings-cc { font-size:10px; font-weight:650; letter-spacing:.03em; color:#bfc2c7; }
+.player-settings-quality { min-width:0; margin:6px 0 0; padding:0 0 5px; border:0; border-top:1px solid #ffffff10; }
+.player-settings-quality > legend { float:left; display:flex; justify-content:space-between; width:100%; padding:13px 18px 8px; color:#a6a7ad; font-size:10px; }
+.player-settings-quality > legend + label { clear:both; }
+.player-settings-quality > legend > span { color:#bfc2c7; }
+.player-settings-panel .player-quality-option { position:relative; display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:36px; margin:0; padding:8px 18px 8px 27px; color:#f5f2eb; font-size:12px; cursor:pointer; }
+.player-quality-option > input { position:absolute; opacity:0; width:1px; height:1px; margin:0; padding:0; }
+.player-quality-option:has(input:focus-visible) { outline:2px solid var(--accent); outline-offset:-3px; }
+.player-quality-option small { margin-left:8px; color:#a6a7ad; font-size:10px; }
+.player-quality-option > svg { width:15px; height:15px; fill:none; stroke:var(--accent); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.player-source-note { margin:0; padding:12px 18px 16px; border-top:1px solid #ffffff10; color:#a6a7ad; font-size:10px; line-height:1.75; }
+.player-source-note strong { color:#d5d7db; font-weight:500; }
 .caption-panel { position: absolute; inset: auto 12px 74px auto; z-index: 8; width: min(340px, calc(100% - 24px)); max-height: calc(100% - 90px); overflow: auto; overscroll-behavior: contain; padding: 20px; border: 1px solid #ffffff38; border-radius: 10px; background: #14181df7; color: #f5f2eb; box-shadow: 0 12px 40px #0008; color-scheme: dark; }
 .caption-panel[hidden] { display: none!important; }
 .player-wrap:has(.caption-panel:not([hidden])) .player-controls { opacity: 1; }
@@ -46,8 +69,11 @@
   .player-wrap.is-playing:not(:hover):not(:focus-within) .player-controls { opacity: 1; }
   .player-center { grid-area: 1 / 1; position: relative; top: auto; left: auto; transform: none; align-self: center; justify-self: center; }
   .player-controls-row { flex-wrap: wrap; gap: 9px; }
-  .player-end-controls { gap: 9px; flex-basis: 100%; justify-content: flex-end; }
-  .player-caption-toggle { margin-right: auto; }
+  .player-controls-row { flex-wrap:nowrap; gap:10px; }
+  .player-end-controls { gap:10px; margin-left:auto; justify-content:flex-end; }
+  .player-settings-trigger { gap:5px; padding:2px; }
+  .player-settings-resolution { display:none; }
+  .player-settings-panel { right:10px; bottom:75px; max-height:calc(100% - 85px); }
   .player-next { grid-area: 3 / 1; position: relative; inset: auto; width: auto; margin: 0 12px 12px; box-shadow: none; }
   .caption-panel { inset: 10px 10px auto; width: auto; max-height: calc(100% - 20px); padding: 15px; }
   .caption-panel-heading { top: -15px; margin: -15px -15px 12px; padding: 10px 15px; }

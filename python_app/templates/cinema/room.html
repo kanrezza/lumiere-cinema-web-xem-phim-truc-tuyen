@@ -4,10 +4,10 @@
 {% block navigation %}<span class="cinema-header-label">Phòng chiếu riêng</span>{% endblock %}
 {% block header_search %}<a class="cinema-return" href="{% url 'rooms' %}">Các phòng của bạn</a>{% endblock %}
 {% block footer %}{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=cinema-playlist-3"><link rel="stylesheet" href="{% static 'cinema-room.css' %}?v=live-seats-2"><link rel="stylesheet" href="{% static 'cinema-controls.css' %}?v=full-cinema-1"><link rel="stylesheet" href="{% static 'cinema-room-light.css' %}?v=room-theme-1">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=cinema-playlist-3"><link rel="stylesheet" href="{% static 'cinema-room.css' %}?v=site-palette-3"><link rel="stylesheet" href="{% static 'cinema-controls.css' %}?v=admission-layout-2"><link rel="stylesheet" href="{% static 'cinema-room-light.css' %}?v=site-theme-2"><link rel="stylesheet" href="{% static 'cinema-chat.css' %}?v=site-chat-2"><link rel="stylesheet" href="{% static 'cinema-seats-controls.css' %}?v=theme-arch-3"><link rel="stylesheet" href="{% static 'cinema-admission.css' %}?v=concierge-1">{% endblock %}
 {% block content %}
 <section class="content-section room-page watch-room" id="room"
-  data-state="{% url 'room_state' room.pk %}" data-host="{{ is_host|yesno:'true,false' }}"
+  data-state="{% url 'room_state' room.pk %}" data-host="{{ is_host|yesno:'true,false' }}" data-capacity="{{ room_capacity|unlocalize }}"
   data-media-version="{{ media_version|unlocalize }}" data-can-watch="{{ can_watch_room|yesno:'true,false' }}"
   data-episode-id="{{ room.episode_id|unlocalize|default_if_none:'' }}"
   data-selection="{% url 'room_selection' room.pk %}"
@@ -41,7 +41,33 @@
       </div>
       <div class="cinema-now-playing"><div><span class="cinema-section-label">TRÊN MÀN CHIẾU</span><h2 data-room-film-title>{% if episode and episode.movie.published %}{{ episode.movie.title }}{% if episode.movie.kind == 'series' %} · Tập {{ episode.number }}{% endif %}{% else %}Chờ bộ phim đầu tiên{% endif %}</h2></div><div class="room-sync"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg><span>{% if is_host %}Bạn điều khiển buổi chiếu{% else %}Đồng bộ với chủ phòng{% endif %}</span></div></div>
       <p id="room-status" role="status"></p>
-      <div data-cinema-seats><p class="cinema-loading" role="status">Đang sắp chỗ ngồi cho mọi người…</p></div>
+      <div class="cinema-audience-area">
+        <div data-cinema-seats><p class="cinema-loading" role="status">Đang sắp chỗ ngồi cho mọi người…</p></div>
+        <aside class="cinema-entry" aria-label="Lối vào rạp">
+          {% if is_host %}
+          <button class="cinema-entry-door" type="button" data-room-approval-toggle aria-haspopup="dialog" aria-expanded="false" aria-controls="room-approval-dialog" aria-label="Mở cửa duyệt người vào rạp" aria-describedby="cinema-entry-waiting">
+            <span class="cinema-entry-sign" aria-hidden="true">LỐI VÀO</span>
+            {% include 'cinema/room_entrance_art.html' %}
+            <span class="cinema-entry-title">Cửa vào rạp</span>
+            <span class="cinema-entry-waiting" id="cinema-entry-waiting"><span data-room-pending-count data-room-approval-count>0</span> đang chờ</span>
+            <span class="cinema-entry-hint">Bấm để duyệt</span>
+          </button>
+          {% else %}
+          <div class="cinema-entry-door cinema-entry-door-guest">
+            <span class="cinema-entry-sign" aria-hidden="true">LỐI VÀO</span>
+            {% include 'cinema/room_entrance_art.html' %}
+            <span class="cinema-entry-title">Bạn đã vào rạp</span>
+            <span class="cinema-entry-hint">Chúc bạn xem vui</span>
+          </div>
+          {% endif %}
+        </aside>
+      </div>
+      <div class="cinema-voice-backstage" hidden>
+        <div id="members" aria-hidden="true"></div><span data-room-member-count>1</span>
+        <div class="room-voice-actions"><button type="button" data-voice-join aria-pressed="false">Tham gia thoại</button><button type="button" data-voice-mic aria-pressed="false" disabled>Bật mic</button><button type="button" data-voice-play hidden>Nghe tiếng phòng</button></div>
+        <p data-voice-status role="status">Mic đang tắt. Bấm avatar trên ghế của bạn để bật.</p>
+        <div data-vue-voice-controls></div><div data-voice-audio hidden></div>
+      </div>
       <div class="cinema-program-toolbar"><div><span class="cinema-section-label">BUỔI TỐI CỦA CHÚNG TA</span><h2>Lịch chiếu trong phòng</h2></div><a class="btn small" href="{% url 'room_selection' room.pk %}" data-room-picker-open><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>{% if is_host %}Thêm phim{% else %}Gợi ý phim{% endif %}</a></div>
       <div data-room-playlist><p class="cinema-loading" role="status">Đang tải lịch chiếu…</p></div>
       <section class="room-panel room-picker" data-room-picker hidden role="dialog" aria-modal="true" tabindex="-1" aria-labelledby="room-picker-title">
@@ -50,55 +76,55 @@
       </section>
     </div>
 
-    <aside class="room-sidebar" aria-label="Thành viên và trò chuyện">
-      <section class="room-panel room-people" aria-labelledby="room-people-title">
-        <header><h2 id="room-people-title"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg> Trong rạp <span class="room-count" data-room-member-count>1</span></h2>{% if is_host %}<button type="button" class="cinema-approval-trigger" data-room-approval-toggle aria-haspopup="dialog" aria-expanded="false" aria-controls="room-approval-dialog">Duyệt <span class="room-count" data-room-pending-count data-room-approval-count aria-label="Yêu cầu đang chờ">0</span></button>{% endif %}</header>
-        <div id="members" aria-label="Thành viên đang ở trong phòng"></div>
-        <div class="room-voice-bar">
-          <div class="room-voice-actions">
-            <button class="btn small" type="button" data-voice-join aria-pressed="false"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 14v-2a9 9 0 0 1 18 0v2M3 15a3 3 0 0 1 3-3h1v8H6a3 3 0 0 1-3-3Zm18 0a3 3 0 0 0-3-3h-1v8h1a3 3 0 0 0 3-3Z"/></svg><span data-voice-label>Tham gia thoại</span></button>
-            <button class="btn secondary small" type="button" data-voice-mic aria-pressed="false" disabled><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0 0 14 0m-7 7v4m-3 0h6"/></svg><span data-voice-label>Bật mic</span></button>
-            <button class="btn secondary small" type="button" data-voice-play hidden>Nghe tiếng phòng</button>
-          </div>
-          <p data-voice-status role="status">Bạn có thể nghe trước rồi bật mic khi muốn nói.</p>
-          <div data-vue-voice-controls></div>
-          <div data-voice-audio hidden></div>
-        </div>
-      </section>
+    <aside class="room-sidebar" aria-label="Trò chuyện trong phòng">
       <section class="room-panel room-chat" aria-labelledby="room-chat-title">
-        <header><h2 id="room-chat-title"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-8 8H4l2-4a8 8 0 1 1 14-4ZM9 10h6m-6 4h4"/></svg> Trò chuyện</h2></header>
-        <div class="room-chat-content">
-          <p data-room-chat-empty>Gửi tin nhắn đầu tiên cho cả phòng.</p>
-          <div id="chat-messages" role="log" aria-label="Tin nhắn trong phòng"></div>
+        <header><h2 id="room-chat-title">Trò chuyện trực tiếp</h2><button class="room-chat-toggle" type="button" data-chat-toggle aria-label="Thu gọn trò chuyện" title="Thu gọn trò chuyện" aria-expanded="true" aria-controls="room-chat-body"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></header>
+        <div class="room-chat-body-wrap" id="room-chat-body" data-chat-body>
+          <div class="room-chat-content">
+            <p data-room-chat-empty>Cùng xem, cùng trò chuyện.<br>Gửi lời chào đầu tiên cho cả phòng.</p>
+            <div id="chat-messages" role="log" aria-label="Tin nhắn trong phòng" aria-live="polite" aria-relevant="additions"></div>
+            <div class="room-chat-unread-anchor" data-chat-unread></div>
+          </div>
+          <div class="room-chat-compose">
+            <p class="room-chat-identity"><span class="room-chat-avatar" aria-hidden="true">{% if user.avatar %}<img src="{{ user.avatar.url }}" alt="" width="20" height="20">{% else %}{{ user.get_full_name|default:user.username|first|upper }}{% endif %}</span><span>{{ user.get_full_name|default:user.username }}</span></p>
+            <form id="chat-form">
+              {% csrf_token %}
+              <input id="chat-input" name="content" required maxlength="500" placeholder="Nhắn với cả phòng…" aria-label="Tin nhắn" autocomplete="off">
+              <button class="room-chat-emoji-toggle" type="button" data-chat-emoji-toggle aria-label="Thêm biểu tượng cảm xúc" aria-expanded="false" aria-controls="room-chat-emojis">☺</button>
+              <button class="room-chat-send" type="submit" aria-label="Gửi tin nhắn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 4 18 8-18 8 4-8Zm4 8h14"/></svg></button>
+              <div class="room-chat-emojis" id="room-chat-emojis" data-chat-emojis role="group" aria-label="Biểu tượng cảm xúc" hidden>
+                <button type="button" data-chat-emoji="🍿" aria-label="Thêm bỏng ngô">🍿</button><button type="button" data-chat-emoji="😂" aria-label="Thêm mặt cười">😂</button><button type="button" data-chat-emoji="❤️" aria-label="Thêm trái tim">❤️</button><button type="button" data-chat-emoji="👏" aria-label="Thêm vỗ tay">👏</button><button type="button" data-chat-emoji="😮" aria-label="Thêm ngạc nhiên">😮</button><button type="button" data-chat-emoji="🔥" aria-label="Thêm ngọn lửa">🔥</button>
+              </div>
+            </form>
+          </div>
         </div>
-        <form id="chat-form">
-          {% csrf_token %}
-          <input name="content" required maxlength="500" placeholder="Nhắn với cả phòng…" aria-label="Tin nhắn">
-          <button type="submit" aria-label="Gửi tin nhắn">↑</button>
-        </form>
       </section>
     </aside>
   </div>
   {% if is_host %}
   <dialog id="room-approval-dialog" data-room-approval-dialog aria-labelledby="approval-dialog-title">
-    <header class="cinema-approval-header"><div><span class="cinema-section-label">QUẢN LÝ PHÒNG CHIẾU</span><h2 id="approval-dialog-title">Duyệt vào rạp</h2></div><button type="button" data-room-approval-close aria-label="Đóng duyệt thành viên">×</button></header>
+    <header class="cinema-approval-header">
+      <div class="admission-heading"><span class="admission-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 21h16M7 21V4l10-2v19M7 4h10M13 12h.01"/></svg></span><div><span class="cinema-section-label">LUMIÈRE · LỐI VÀO RẠP</span><h2 id="approval-dialog-title">Đón bạn vào rạp</h2></div></div>
+      <button type="button" data-room-approval-close aria-label="Đóng duyệt thành viên"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </header>
     <div class="cinema-approval-content">
-      <section class="room-access-section" aria-labelledby="room-queue-heading">
-        <h3 id="room-queue-heading">Người đang chờ</h3>
-        <p data-room-queue-empty>Chưa có yêu cầu vào phòng.</p>
-        <ul data-room-queue class="room-queue"></ul>
+      <section class="admission-waiting" aria-labelledby="room-queue-heading">
+        <div class="admission-section-heading"><h3 id="room-queue-heading">Sảnh chờ <span data-room-pending-total>0</span></h3><span>Chỉ bạn được duyệt</span></div>
+        <div class="admission-empty" data-room-queue-empty><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 3a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg></span><div><strong>Chưa có ai đang chờ</strong><p>Khi bạn bè gửi yêu cầu, họ sẽ xuất hiện tại đây.</p></div></div>
+        <ul data-room-queue class="room-queue admission-queue"></ul>
       </section>
-      <details class="cinema-access-settings"><summary>Mật khẩu và quyền vào phòng</summary>
-        <form data-room-access-form class="room-access-form room-access-section">
-          {% csrf_token %}<input type="hidden" name="action" value="settings"><input type="hidden" name="settings_version" value="{{ room_access_version }}">
-          <p data-room-password-status>{% if room.password_hash %}Phòng đang có mật khẩu.{% else %}Phòng chưa đặt mật khẩu.{% endif %}</p>
-          <label>Mật khẩu mới<input name="password" type="password" minlength="4" maxlength="128" autocomplete="new-password" placeholder="Giữ nguyên nếu để trống"></label>
-          <label class="room-check"><input type="checkbox" name="remove_password" {% if not room.password_hash %}disabled{% endif %}> Bỏ mật khẩu</label>
-          <label class="room-check"><input type="checkbox" name="requires_approval" {% if room.requires_approval %}checked{% endif %}> Duyệt người vào phòng</label>
-          <button class="btn secondary small">Lưu cài đặt</button>
-        </form>
-      </details>
-      <p data-room-access-status role="status"></p>
+      <form data-room-access-form class="room-access-form admission-settings">
+        {% csrf_token %}<input type="hidden" name="action" value="settings"><input type="hidden" name="settings_version" value="{{ room_access_version }}">
+        <div class="admission-section-heading"><h3>Quyền vào phòng</h3><span class="admission-private">Phòng riêng của bạn</span></div>
+        <label class="admission-switch-row"><span><strong>Duyệt khách trước khi vào</strong><small>Bạn quyết định ai được ngồi cùng.</small></span><input class="admission-switch" type="checkbox" name="requires_approval" role="switch" {% if room.requires_approval %}checked{% endif %}></label>
+        <div class="admission-password">
+          <div class="admission-password-heading"><label for="room-new-password">Mật khẩu phòng</label><span data-room-password-status>{% if room.password_hash %}Đang được bảo vệ{% else %}Chưa đặt mật khẩu{% endif %}</span></div>
+          <div class="admission-password-input"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/></svg><input id="room-new-password" name="password" type="password" minlength="4" maxlength="128" autocomplete="new-password" placeholder="Nhập mật khẩu mới" aria-describedby="room-password-help"></div>
+          <p id="room-password-help">Tối thiểu 4 ký tự. Để trống để giữ mật khẩu hiện tại.</p>
+          <label class="admission-remove-password"><input type="checkbox" name="remove_password" {% if not room.password_hash %}disabled{% endif %}><span>Gỡ mật khẩu hiện tại</span></label>
+        </div>
+        <footer class="admission-footer"><p data-room-access-status role="status" aria-live="polite"></p><button class="btn" type="submit">Lưu thay đổi <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button></footer>
+      </form>
     </div>
   </dialog>
   {% endif %}

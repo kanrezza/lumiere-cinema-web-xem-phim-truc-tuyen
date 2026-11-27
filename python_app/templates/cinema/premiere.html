@@ -1,0 +1,15 @@
+{% extends 'base.html' %}{% load static frontend_assets %}
+{% block title %}{{ premiere.title }} · Công chiếu Lumière{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'watch-room.css' %}?v=vue-viewing-1"><link rel="stylesheet" href="{% static 'premieres.css' %}?v=premiere-1">{% endblock %}
+{% block content %}
+<section class="content-section premiere-page">
+  <a class="premiere-back" href="{% url 'premieres' %}">← Lịch công chiếu</a>
+  <header class="premiere-detail-heading"><div><span class="premiere-eyebrow">LUMIÈRE PREMIERE</span><h1>{{ premiere.title }}</h1><p>{{ episode.movie.title }} · {% if episode.movie.kind == 'series' %}Tập {{ episode.number }} · {% endif %}{{ episode.title }}</p></div><div class="premiere-scheduled-time"><span>HẸN BẠN LÚC</span><time datetime="{{ premiere.scheduled_at|date:'c' }}">{{ premiere.scheduled_at|date:'H:i' }}<small>{{ premiere.scheduled_at|date:'d/m/Y' }} · Giờ Việt Nam</small></time></div></header>
+  {{ premiere_state|json_script:'premiere-initial-state' }}
+  <div data-premiere-root data-state="{% url 'premiere_state' premiere.pk %}" data-control="{% url 'premiere_control' premiere.pk %}" data-manage="{{ can_manage_premiere|yesno:'true,false' }}" data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"><div class="premiere-server-fallback"><span class="premiere-eyebrow">LUMIÈRE PREMIERE</span><h2>{% if premiere_state.status == 'live' %}Buổi công chiếu đang diễn ra.{% elif premiere_state.status == 'ended' %}Buổi chiếu đã kết thúc.{% elif premiere_state.status == 'cancelled' %}Buổi chiếu đã hủy.{% else %}Cùng đón giờ chiếu.{% endif %}</h2><p>{{ premiere.scheduled_at|date:'H:i · d/m/Y' }} · Giờ Việt Nam</p><noscript><p>Bật JavaScript để xem phim đồng bộ và trò chuyện trực tiếp.</p></noscript></div></div>
+  <template id="premiere-player-template">{% include 'cinema/player.html' %}</template>
+  <div hidden>{% csrf_token %}</div>
+  <div class="premiere-detail-about"><div><span class="premiere-eyebrow">VỀ BỘ PHIM</span><h2>{{ episode.movie.title }}</h2><p>{{ episode.movie.description|linebreaksbr }}</p></div><div><span class="premiere-eyebrow">CÙNG XEM THEO GIỜ CHIẾU</span><p>Vào muộn vẫn có thể tham gia tại mốc đang chiếu. Mỗi người tự điều chỉnh âm lượng, phụ đề và chất lượng theo gói của mình.</p><a class="inline-link" href="{% url 'movie' episode.movie.slug %}">Thông tin phim ↗</a></div></div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'vendor/hls.min.js' %}" defer></script>{% frontend_assets 'viewing' %}{% endblock %}

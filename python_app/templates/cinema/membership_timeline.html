@@ -1,0 +1,11 @@
+{% if membership.current or membership.queued %}
+<section class="membership-timeline" aria-label="Lịch sử dụng các gói VIP">
+  <header><h2>Các gói VIP của bạn</h2><p>Gói đã mua tự tiếp nối sau khi kỳ hiện tại kết thúc.</p></header>
+  <ol>
+    {% if membership.current %}<li class="membership-period is-current"><span class="membership-period-dot" aria-hidden="true"></span><div><span class="membership-period-status">Đang sử dụng</span><h3>{{ membership.current.membership_name }}</h3><p><time datetime="{{ membership.current.period_start|date:'c' }}">{{ membership.current.period_start|date:'H:i · d/m/Y' }}</time> → <time datetime="{{ membership.current.period_end|date:'c' }}">{{ membership.current.period_end|date:'H:i · d/m/Y' }}</time></p></div><span class="membership-period-days">{{ membership.current.days }} ngày</span></li>
+    {% elif user.is_vip and membership.queued %}<li class="membership-period is-current"><span class="membership-period-dot" aria-hidden="true"></span><div><span class="membership-period-status">Đang sử dụng</span><h3>Lumière VIP hiện tại</h3><p>Đến <time datetime="{{ membership.current_until|date:'c' }}">{{ membership.current_until|date:'H:i · d/m/Y' }}</time></p></div></li>{% endif %}
+    {% for period in membership.queued %}<li class="membership-period"><span class="membership-period-dot" aria-hidden="true"></span><div><span class="membership-period-status">Chờ kích hoạt · Đã thanh toán</span><h3>{{ period.membership_name }}</h3><p><time datetime="{{ period.period_start|date:'c' }}">{{ period.period_start|date:'H:i · d/m/Y' }}</time> → <time datetime="{{ period.period_end|date:'c' }}">{{ period.period_end|date:'H:i · d/m/Y' }}</time></p></div><span class="membership-period-days">{{ period.days }} ngày</span></li>{% endfor %}
+  </ol>
+  {% if membership.queued %}<p class="membership-queue-note">Bạn tiếp tục dùng gói hiện tại. Gói chờ sẽ tự bắt đầu đúng thời điểm ghi trên, không cần mua lại hay bấm kích hoạt.</p>{% endif %}
+</section>
+{% endif %}

@@ -1,23 +1,10 @@
-/* The auditorium keeps its own palette without changing the viewer's site theme. */
+/* Auditorium layout; interface colors inherit the main site's theme. */
 body.room-cinema-page {
-  color-scheme: dark;
-  --bg: #0b0b10;
-  --panel: #14141d;
-  --field: #1b1b27;
-  --line: #ffffff12;
-  --border-strong: #ffffff24;
-  --text: #f3f0eb;
-  --muted: #a3a1b2;
-  --accent: #f6ad83;
-  --accent-hover: #ffc8a8;
-  --accent-ink: #28160e;
-  --surface-raised: #20202b;
-  --accent-soft: #f6ad8312;
-  background: radial-gradient(ellipse at 35% 12%, #5f38501a, transparent 48%), #0b0b10;
+  background: var(--bg);
   color: var(--text);
   font-size: 16px;
 }
-.room-cinema-page .site-header.site-header { background: #0d0d13e8; border-bottom: 1px solid var(--line); box-shadow: none; }
+.room-cinema-page .site-header.site-header { border-bottom: 1px solid var(--line); box-shadow: none; }
 .room-cinema-page .header-inner { max-width: 1760px; height: 72px; gap: 28px; padding-inline: clamp(20px, 3.4vw, 64px); }
 .room-cinema-page .header-actions { gap: 22px; }
 .room-cinema-page .header-actions > .theme-toggle { display: none; }

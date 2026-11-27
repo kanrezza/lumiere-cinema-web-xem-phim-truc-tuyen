@@ -22,7 +22,7 @@
     {% endfor %}
   </div>
   <section class="room-panel room-create" id="create-room" aria-labelledby="room-create-title">
-    <div><h2 id="room-create-title">Tạo phòng riêng</h2><p>Phòng giữ nguyên khi bạn đổi phim hoặc chuyển tập. Tối đa 10 người, hoạt động trong 6 giờ.</p></div>
+    <div><h2 id="room-create-title">Tạo phòng riêng</h2><p>Phòng của bạn tối đa {{ room_capacity }} người, tính cả bạn. Miễn phí 3 người · VIP 10 người. Đổi phim vẫn giữ nguyên phòng, hoạt động trong 6 giờ.</p></div>
     {% if can_create_room %}
       <form method="post" action="{% url 'rooms' %}" class="room-create-form">
         {% csrf_token %}
@@ -33,9 +33,10 @@
         {{ form.password.errors }}
         <label class="room-check"><input type="checkbox" name="requires_approval"{% if form.requires_approval.value %} checked{% endif %}> Duyệt người vào phòng</label>
         <button class="btn small" type="submit">Tạo phòng và chọn phim</button>
+        {% if not user.is_vip and not user.is_staff %}<p class="muted">Muốn xem cùng nhóm đông hơn? <a href="{% url 'plans' %}">VIP mở phòng 10 người ↗</a></p>{% endif %}
       </form>
     {% else %}
-      <div><p>Thành viên VIP có thể tạo phòng. Bạn có thể tham gia phòng được bạn bè mời bằng liên kết.</p><a class="btn secondary small" href="{% url 'plans' %}">Khám phá VIP</a></div>
+      <div><p>Bạn cần tài khoản đang hoạt động để tạo phòng hoặc tham gia cùng bạn bè.</p><a class="btn secondary small" href="{% url 'login' %}">Đăng nhập</a></div>
     {% endif %}
   </section>
 </section>

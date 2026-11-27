@@ -1,0 +1,56 @@
+/* Seating owns voice controls; the entrance beside it owns admission. */
+.cinema-voice-backstage[hidden] { display: none !important; }
+.cinema-audience-area { display: grid; grid-template-columns: minmax(0, 1fr) 112px; align-items: center; gap: 26px; margin: 24px 0 30px; }
+.cinema-audience-area > [data-cinema-seats] { min-width: 0; }
+body.room-cinema-page .cinema-audience-area .cinema-audience-live { margin: 0; padding: 15px 0; }
+.cinema-audience-area .cinema-seats-heading { align-items: start; margin-bottom: 24px; }
+.cinema-audience-area .cinema-seats-heading p { max-width: 260px; }
+.cinema-seat-person-self { cursor: pointer; }
+.cinema-seat-person-self:focus-visible { outline: 2px solid var(--accent); outline-offset: 7px; }
+.cinema-seat-person-self:disabled { cursor: default; opacity: .7; }
+.cinema-seat-role { text-align: center; overflow-wrap: anywhere; }
+.cinema-seat-voice-status { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.cinema-seat-voice-status p { margin: 0; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.6; }
+.cinema-seat-voice-status button { padding: 6px 11px; border: 1px solid var(--line); border-radius: 20px; color: var(--text); background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
+.cinema-entry { display: flex; justify-content: center; padding-top: 32px; align-self: center; }
+/* A quiet architectural entrance, colored entirely by the current site theme. */
+.cinema-entry-door { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 112px; padding: 10px 2px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font: inherit; text-align: center; cursor: pointer; }
+.cinema-entry-door:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
+.cinema-entry-sign { color: var(--muted); font-size: 8px; font-weight: 600; letter-spacing: .22em; }
+.cinema-entry-art { display: block; width: 96px; height: 133px; margin-top: 2px; overflow: visible; }
+.cinema-entry-art path { vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.cinema-entry-recess { fill: color-mix(in srgb, var(--field) 72%, var(--bg)); }
+.cinema-entry-arch { stroke: var(--border-strong); stroke-width: 1; }
+.cinema-entry-panel { fill: color-mix(in srgb, var(--accent) 10%, var(--bg)); stroke: color-mix(in srgb, var(--accent) 28%, var(--line)); stroke-width: 1; }
+.cinema-entry-detail { stroke: color-mix(in srgb, var(--accent) 18%, var(--line)); stroke-width: .8; }
+.cinema-entry-pull { stroke: var(--accent); stroke-width: 2.5; }
+.cinema-entry-arrow { stroke: var(--muted); stroke-width: 1.5; transition: transform .2s ease, stroke .2s ease; }
+.cinema-entry-threshold { stroke: var(--line); stroke-width: 1; }
+.cinema-entry-door:is(:hover, [aria-expanded="true"]) .cinema-entry-arrow { stroke: var(--accent); transform: translateX(3px); }
+.cinema-entry-title { margin-top: 8px; font-size: 12px; font-weight: 600; letter-spacing: -.01em; }
+.cinema-entry-waiting { color: var(--muted); font-size: 11px; }
+.cinema-entry-waiting > span { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-right: 3px; padding: 0 3px; border-radius: 50%; background: var(--field); color: var(--muted); font-size: 10px; font-weight: 650; }
+.cinema-entry-door[data-pending="true"] .cinema-entry-sign { color: var(--accent); }
+.cinema-entry-door[data-pending="true"] .cinema-entry-waiting > span { color: var(--accent-ink); background: var(--accent); }
+.cinema-entry-hint { font-size: 10px; color: var(--muted); }
+.cinema-entry-door-guest { cursor: default; }
+.cinema-entry-door-guest:hover .cinema-entry-arrow { stroke: var(--muted); transform: none; }
+body.room-cinema-page .room-sidebar > .room-chat { border-top: 0; }
+body.room-cinema-page .watch-room .room-sidebar .room-chat #chat-messages { height: clamp(280px, 48vh, 520px); max-height: clamp(280px, 48vh, 520px); }
+@media (max-width: 850px) {
+  body.room-cinema-page .watch-room .room-sidebar .room-chat #chat-messages { height: 290px; max-height: 290px; }
+}
+@media (max-width: 600px) {
+  .cinema-audience-area { grid-template-columns: minmax(0, 1fr) 68px; gap: 10px; margin-top: 14px; }
+  .cinema-entry { padding-top: 24px; }
+  .cinema-entry-door { width: 68px; }
+  .cinema-entry-art { width: 64px; height: 94px; }
+  .cinema-entry-sign { font-size: 8px; letter-spacing: .12em; }
+  .cinema-entry-title { font-size: 10px; }
+  .cinema-entry-waiting, .cinema-entry-hint { font-size: 9px; }
+  .cinema-audience-area .cinema-seats-heading { display: block; margin-bottom: 17px; }
+  .cinema-audience-area .cinema-seats-heading p { margin-top: 6px; font-size: 11px; }
+  .cinema-audience-area .cinema-seats-legend { font-size: 10px; line-height: 1.6; }
+  .cinema-audience-area .cinema-seat-role { font-size: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .cinema-entry-arrow { transition: none; } }

@@ -1,0 +1,12 @@
+.membership-comparison { max-width:1100px; margin:55px auto 70px; padding:0 24px; }
+.membership-comparison h2 { margin:16px 0 28px; font-size:30px; font-weight:550; line-height:1.2; letter-spacing:-.04em; }
+.membership-comparison-scroll { overflow-x:auto; }
+.membership-comparison table { width:100%; border-collapse:collapse; text-align:left; font-size:13px; }
+.membership-comparison th, .membership-comparison td { padding:17px 12px; border-bottom:1px solid var(--line); line-height:1.6; }
+.membership-comparison thead th { color:var(--muted); font-size:11px; font-weight:550; }
+.membership-comparison thead th:last-child { color:var(--accent); }
+.membership-comparison tbody th { font-weight:450; width:46%; }
+.membership-comparison td { color:var(--muted); width:27%; }
+.membership-comparison td:last-child { color:var(--text); background:color-mix(in srgb,var(--accent-soft) 60%,transparent); }
+.membership-comparison > p { max-width:850px; margin:20px 12px 0; color:var(--muted); font-size:11px; line-height:1.9; }
+@media(max-width:600px) { .membership-comparison { padding:0 20px; } .membership-comparison h2 { font-size:25px; } .membership-comparison th,.membership-comparison td { font-size:11px; padding:13px 8px; } .membership-comparison tbody th { width:42%; } .membership-comparison td { width:29%; } }

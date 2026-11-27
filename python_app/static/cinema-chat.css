@@ -1,0 +1,70 @@
+/* Live chat remains one surface; messages flow like a shared conversation. */
+body.room-cinema-page .room-sidebar > .room-chat {
+  --chat-surface: var(--panel);
+  --chat-name: var(--muted);
+  --chat-hover: var(--field);
+  overflow: hidden;
+}
+
+body.room-cinema-page .room-chat > header { justify-content: space-between; gap: 12px; padding: 17px 16px 13px; }
+body.room-cinema-page .room-chat > header h2 { font-size: 14px; font-weight: 600; letter-spacing: -.015em; }
+body.room-cinema-page .room-chat-toggle,
+body.room-cinema-page .room-chat-emoji-toggle {
+  display: inline-grid; place-items: center; flex: 0 0 auto; width: 30px; height: 30px;
+  padding: 5px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer;
+}
+body.room-cinema-page .room-chat-toggle:hover,
+body.room-cinema-page .room-chat-emoji-toggle:hover { background: var(--chat-hover); color: var(--text); }
+body.room-cinema-page .room-chat-toggle svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+body.room-cinema-page .room-chat-toggle[aria-expanded="false"] svg { transform: rotate(180deg); }
+body.room-cinema-page .room-chat-toggle:focus-visible,
+body.room-cinema-page .room-chat-emoji-toggle:focus-visible,
+body.room-cinema-page .room-chat-new:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+body.room-cinema-page .room-chat-body-wrap[hidden] { display: none; }
+body.room-cinema-page .room-chat.is-collapsed > header { border-bottom: 0; padding-block: 13px; }
+body.room-cinema-page .room-chat .room-chat-content { position: relative; display: block; min-height: 0; }
+body.room-cinema-page .watch-room .room-chat #chat-messages {
+  flex: 0 0 auto; height: clamp(240px, 34vh, 390px); min-height: 240px; max-height: clamp(240px, 34vh, 390px); padding: 8px 16px 16px;
+  overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scroll-padding-bottom: 16px;
+}
+body.room-cinema-page .room-chat [data-room-chat-empty] {
+  position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+  margin: 0; padding: 26px; font-size: 13px; color: var(--muted); text-align: center;
+}
+body.room-cinema-page .room-chat [data-room-chat-empty][hidden] { display: none; }
+body.room-cinema-page .watch-room #chat-messages .room-chat-message {
+  display: flex; align-items: flex-start; gap: 9px; margin: 0; padding: 6px 0;
+  border: 0; border-radius: 0; background: transparent; font-size: 13px; line-height: 1.6;
+}
+body.room-cinema-page .room-chat-avatar {
+  display: inline-grid; place-items: center; flex: 0 0 26px; width: 26px; height: 26px; margin-top: 1px;
+  overflow: hidden; border-radius: 50%; background: var(--chat-hover); color: var(--chat-name); font-size: 11px; font-weight: 600;
+}
+body.room-cinema-page .room-chat-avatar img { width: 100%; height: 100%; object-fit: cover; }
+body.room-cinema-page .room-chat-copy { min-width: 0; padding-top: 2px; overflow-wrap: anywhere; }
+body.room-cinema-page .watch-room #chat-messages .room-chat-author { display: inline; margin: 0 6px 0 0; color: var(--chat-name); font-size: 12px; font-weight: 600; }
+body.room-cinema-page .watch-room #chat-messages .room-chat-author[data-host="true"] { color: var(--accent); }
+body.room-cinema-page .watch-room #chat-messages .room-chat-host { display: inline-block; width: 12px; height: 12px; margin: 0 6px 0 -3px; vertical-align: -1px; color: var(--accent); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
+body.room-cinema-page .room-chat .room-chat-body { display: inline; color: var(--text); white-space: pre-wrap; }
+body.room-cinema-page .room-chat-unread-anchor { position: absolute; bottom: 12px; inset-inline: 12px; display: flex; justify-content: center; pointer-events: none; }
+body.room-cinema-page .room-chat-new { display: inline-flex; align-items: center; gap: 10px; pointer-events: auto; padding: 7px 14px; border: 1px solid var(--line); border-radius: 20px; background: var(--chat-surface); color: var(--text); font: inherit; font-size: 12px; cursor: pointer; box-shadow: 0 3px 18px #00000017; }
+body.room-cinema-page .room-chat-compose { position: sticky; bottom: 0; padding: 12px 16px 15px; border-top: 1px solid var(--line); background: var(--chat-surface); }
+body.room-cinema-page .room-chat-identity { display: flex; align-items: center; gap: 7px; margin: 0 0 7px; color: var(--muted); font-size: 11px; }
+body.room-cinema-page .room-chat-identity .room-chat-avatar { flex-basis: 20px; width: 20px; height: 20px; font-size: 9px; }
+body.room-cinema-page .room-sidebar .room-chat #chat-form { position: relative; display: flex; align-items: center; gap: 7px; padding: 0; border: 0; }
+body.room-cinema-page .room-sidebar .room-chat #chat-form input {
+  flex: 1 1 auto; min-width: 0; min-height: 36px; padding: 7px 2px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0;
+  background: transparent; color: var(--text); font-size: 13px; box-shadow: none;
+}
+body.room-cinema-page .room-sidebar .room-chat #chat-form input:focus { border-color: var(--accent); outline: none; }
+body.room-cinema-page .room-sidebar .room-chat #chat-form .room-chat-emoji-toggle { background: transparent; color: var(--muted); font-size: 20px; }
+body.room-cinema-page .room-sidebar .room-chat #chat-form .room-chat-send { flex: 0 0 32px; width: 32px; height: 32px; padding: 7px; border: 0; border-radius: 50%; background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+body.room-cinema-page .room-chat-send svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+body.room-cinema-page .room-chat #chat-form button:disabled { opacity: .45; cursor: default; }
+body.room-cinema-page .room-chat-emojis { position: absolute; right: 0; bottom: calc(100% + 10px); display: flex; gap: 3px; padding: 7px; border: 1px solid var(--line); border-radius: 20px; background: var(--chat-surface); box-shadow: 0 3px 20px #00000017; }
+body.room-cinema-page .room-chat-emojis[hidden] { display: none; }
+body.room-cinema-page .room-sidebar .room-chat #chat-form .room-chat-emojis button { display: inline-grid; place-items: center; width: 30px; height: 30px; padding: 2px; border: 0; border-radius: 50%; background: transparent; color: var(--text); font-size: 20px; cursor: pointer; }
+body.room-cinema-page .room-sidebar .room-chat #chat-form .room-chat-emojis button:hover { background: var(--chat-hover); }
+@media (max-width: 700px) {
+  body.room-cinema-page .watch-room .room-chat #chat-messages { height: 290px; min-height: 220px; max-height: 290px; }
+}

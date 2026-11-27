@@ -27,7 +27,7 @@
     <div class="film-row">{% for movie in shelf.movies %}{% include 'cinema/card.html' with portrait=True %}{% endfor %}</div>
   </section>
   {% endfor %}
-  <section class="together-banner"><div class="together-icon"><svg aria-hidden="true"><use href="#i-users"/></svg></div><div><span class="eyebrow">CÙNG NHAU XEM PHIM</span><h2>Xa nhau vẫn chung một buổi chiếu.</h2><p>Đồng bộ phát phim và trò chuyện trong phòng riêng của bạn.</p></div>{% if user.is_vip %}<a class="btn secondary" href="{% if featured.ready_episode_id %}{% url 'watch' featured.ready_episode_id %}#watch-together{% else %}{% url 'catalog' %}{% endif %}">Bắt đầu xem chung <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>{% else %}<a class="btn secondary" href="{% url 'plans' %}">Khám phá Lumière VIP <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>{% endif %}</section>
+  <section class="together-banner"><div class="together-icon"><svg aria-hidden="true"><use href="#i-users"/></svg></div><div><span class="eyebrow">CÙNG NHAU XEM PHIM</span><h2>Xa nhau vẫn chung một buổi chiếu.</h2><p>Phòng miễn phí 3 người, VIP 10 người, tính cả chủ phòng. Đồng bộ phim và trò chuyện cùng nhau.</p></div><a class="btn secondary" href="{% url 'rooms' %}">Bắt đầu xem chung <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></section>
 {% else %}
   <div data-catalog-app data-catalog-url="{% url 'catalog' %}" hidden></div>
   {{ catalog_results|json_script:"catalog-data" }}

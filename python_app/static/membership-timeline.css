@@ -1,0 +1,24 @@
+.membership-timeline { padding:28px 0; margin:20px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+.membership-timeline header h2 { font-size:20px; font-weight:550; letter-spacing:-.025em; margin:0 0 7px; }
+.membership-timeline header p { font-size:12px; line-height:1.7; color:var(--muted); margin:0; }
+.membership-timeline ol { list-style:none; margin:25px 0 0; padding:0; }
+.membership-period { position:relative; display:flex; align-items:center; gap:18px; padding:0 0 26px 28px; }
+.membership-period:last-child { padding-bottom:0; }
+.membership-period:not(:last-child)::after { content:''; position:absolute; left:4px; top:10px; bottom:0; width:1px; background:var(--line); }
+.membership-period-dot { position:absolute; width:9px; height:9px; left:0; top:5px; border-radius:50%; border:1px solid var(--border-strong); background:var(--bg); z-index:1; }
+.membership-period.is-current .membership-period-dot { border-color:var(--accent); background:var(--accent); }
+.membership-period-status { display:block; color:var(--muted); font-size:10px; letter-spacing:.025em; }
+.membership-period.is-current .membership-period-status { color:var(--accent); }
+.membership-period h3 { font-size:16px; font-weight:550; margin:6px 0; letter-spacing:-.02em; }
+.membership-period p { color:var(--muted); font-size:12px; line-height:1.75; margin:0; }
+.membership-period-days { margin-left:auto; color:var(--muted); font-size:11px; white-space:nowrap; }
+.membership-queue-note { margin:22px 0 0 28px; max-width:650px; color:var(--muted); font-size:11px; line-height:1.85; }
+.membership-renewal-preview { padding:17px 0; margin:12px 0 0; border-top:1px solid var(--line); }
+.membership-renewal-preview > strong { display:block; font-size:12px; font-weight:550; margin-bottom:13px; }
+.membership-renewal-preview dl { margin:0; display:grid; gap:9px; }
+.membership-renewal-preview dl > div { display:flex; align-items:baseline; justify-content:space-between; gap:15px; }
+.membership-renewal-preview dt { font-size:11px; color:var(--muted); }
+.membership-renewal-preview dd { margin:0; color:var(--text); font-size:12px; font-variant-numeric:tabular-nums; }
+.membership-renewal-preview > p { margin:13px 0 0; color:var(--muted); font-size:10px; line-height:1.8; }
+.order-period { display:block; color:var(--muted); font-size:11px; line-height:1.8; margin-top:5px; }
+@media(max-width:600px) { .membership-period { padding-left:23px; gap:10px; align-items:flex-start; } .membership-period p { font-size:11px; } .membership-period-days { font-size:10px; padding-top:3px; } .membership-renewal-preview dd { font-size:11px; } }

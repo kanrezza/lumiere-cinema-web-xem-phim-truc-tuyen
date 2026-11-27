@@ -1,0 +1,100 @@
+.premiere-eyebrow { display: block; color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: .2em; line-height: 1.7; }
+.premiere-directory, .premiere-page { max-width: 1376px; margin-inline: auto; }
+.premiere-directory-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 28px; padding: 35px 0 55px; }
+.premiere-directory-heading h1 { margin: 20px 0; font-size: clamp(42px, 6vw, 76px); font-weight: 520; letter-spacing: -.055em; line-height: 1.05; }
+.premiere-directory-heading p { color: var(--muted); max-width: 500px; line-height: 1.8; margin: 0; }
+.premiere-directory-heading > a { flex-shrink: 0; margin-bottom: 6px; }
+.premiere-directory-legend { display: flex; justify-content: space-between; align-items: center; gap: 20px; border-top: 1px solid var(--line); padding: 20px 0; font-size: 12px; }
+.premiere-directory-legend > span { display: flex; align-items: center; gap: 9px; font-weight: 600; }
+.premiere-directory-legend i, .premiere-status i, .premiere-live-return i { display: inline-block; flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.premiere-directory-legend p { color: var(--muted); margin: 0; }
+.premiere-schedule-row { display: grid; grid-template-columns: 230px minmax(0,1fr) auto; gap: 28px; align-items: center; padding: 25px 0; border-top: 1px solid var(--line); }
+.premiere-schedule-image { display: block; position: relative; aspect-ratio: 16/10; overflow: hidden; background: var(--field); border-radius: 5px; }
+.premiere-schedule-image img { width: 100%; height: 100%; object-fit: cover; transition: transform .25s ease; }
+.premiere-schedule-image:hover img { transform: scale(1.025); }
+.premiere-image-live { position: absolute; left: 12px; bottom: 12px; padding: 5px 8px; background: var(--accent); color: var(--accent-ink); border-radius: 3px; font-size: 9px; font-weight: 700; letter-spacing: .08em; }
+.premiere-schedule-meta { display: flex; flex-wrap: wrap; gap: 12px; color: var(--muted); font-size: 10px; letter-spacing: .06em; }
+.premiere-schedule-meta > span:first-child { color: var(--accent); }
+.premiere-schedule-info h2 { margin: 12px 0 7px; font-size: 24px; font-weight: 550; letter-spacing: -.035em; }
+.premiere-schedule-info h2 a { color: var(--text); }
+.premiere-schedule-info h2 a:hover { color: var(--accent); }
+.premiere-schedule-info p { color: var(--muted); font-size: 13px; margin: 0 0 14px; line-height: 1.6; }
+.premiere-schedule-info time { font-size: 12px; font-weight: 550; }
+.premiere-schedule-info time span { color: var(--muted); font-size: 11px; margin-left: 7px; font-weight: 400; }
+.premiere-schedule-link { display: inline-flex; align-items: center; gap: 24px; font-size: 13px; font-weight: 550; color: var(--text); white-space: nowrap; padding: 12px 0 12px 14px; }
+.premiere-schedule-link:hover { color: var(--accent); }
+.premiere-schedule-link > span { color: var(--accent); font-size: 20px; }
+.premiere-directory-empty { padding: 75px 20px; text-align: center; border-top: 1px solid var(--line); }
+.premiere-directory-empty > span { font: italic 50px Georgia,serif; color: var(--accent); }
+.premiere-directory-empty h2 { font-size: 26px; letter-spacing: -.03em; font-weight: 500; }
+.premiere-directory-empty p { color: var(--muted); font-size: 14px; line-height: 1.7; }
+.premiere-directory-note { padding: 36px 0; margin-top: 30px; border-top: 1px solid var(--line); }
+.premiere-directory-note p { color: var(--muted); font-size: 14px; }
+.premiere-back { color: var(--muted); font-size: 13px; }
+.premiere-back:hover { color: var(--accent); }
+.premiere-detail-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin: 35px 0 30px; }
+.premiere-detail-heading h1 { font-size: clamp(30px,4vw,46px); font-weight: 550; letter-spacing: -.045em; line-height: 1.15; margin: 12px 0; }
+.premiere-detail-heading p { color: var(--muted); font-size: 14px; margin: 0; line-height: 1.6; }
+.premiere-scheduled-time { text-align: right; flex-shrink: 0; }
+.premiere-scheduled-time > span { color: var(--muted); font-size: 9px; letter-spacing: .16em; }
+.premiere-scheduled-time time { display: block; font-size: 30px; letter-spacing: -.04em; line-height: 1.4; margin-top: 4px; }
+.premiere-scheduled-time small { display: block; font-size: 11px; color: var(--muted); letter-spacing: 0; }
+.premiere-experience { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 26px; }
+.premiere-stage { min-width: 0; }
+.premiere-stage-top { display: flex; justify-content: space-between; gap: 15px; align-items: center; font-size: 11px; color: var(--muted); min-height: 40px; }
+.premiere-status { display: inline-flex; align-items: center; gap: 7px; }
+.premiere-status i { background: var(--muted); }
+.premiere-status.is-live { color: var(--accent); }
+.premiere-status.is-live i { background: var(--accent); }
+.premiere-screen { --bg:#0b0d0e; --panel:#17191d; --field:#202329; --line:#2b2f36; --text:#f5f2eb; --muted:#a6a7ad; --accent:#fa8156; --accent-hover:#ff9b75; --accent-ink:#20120d; background:var(--bg); color:var(--text); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.premiere-waiting { min-height: 390px; aspect-ratio: 16/9; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 35px 25px; background: radial-gradient(ellipse at 50% 100%,#fa815609,transparent 65%); }
+.premiere-waiting-mark { font: italic 42px Georgia,serif; color: var(--accent); margin-bottom: 25px; }
+.premiere-waiting .premiere-eyebrow { font-size: 8px; }
+.premiere-waiting h2 { font: 400 clamp(24px,3vw,38px)/1.25 Georgia,serif; letter-spacing: -.035em; max-width: 450px; margin: 15px 0; }
+.premiere-waiting p { color: var(--muted); font-size: 12px; line-height: 1.8; margin: 10px 0; }
+.premiere-waiting p.premiere-countdown { color: var(--text); font-size: clamp(25px,3.4vw,42px); letter-spacing: .06em; font-weight: 300; font-variant-numeric: tabular-nums; margin: 12px 0 5px; }
+.premiere-waiting a { margin-top: 16px; }
+.premiere-player-host .player-wrap { border:0; border-radius:0; margin:0; aspect-ratio:16/9; }
+.premiere-player-host #player-status { margin: 0; padding: 8px 14px; font-size:11px; color:var(--muted); }
+.premiere-player-host #retry-player { margin:0 14px 12px; }
+.premiere-under-screen { display:flex; justify-content:space-between; align-items:center; gap:16px; padding: 14px 0; }
+.premiere-under-screen p { margin:0; font-size:12px; color:var(--muted); line-height:1.7; }
+.premiere-live-return { display:inline-flex; align-items:center; gap:7px; background:transparent; border:0; color:var(--text); cursor:pointer; font:inherit; font-size:11px; padding:8px 0; white-space:nowrap; }
+.premiere-live-return:hover { color:var(--accent); }
+.premiere-host-tools { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:22px 0; border-top:1px solid var(--line); margin-top:12px; }
+.premiere-host-tools .premiere-eyebrow { font-size:8px; }
+.premiere-host-tools h2 { font-size:17px; font-weight:550; letter-spacing:-.02em; margin:6px 0; }
+.premiere-host-tools p { color:var(--muted); font-size:11px; margin:0; }
+.premiere-host-tools .actions { flex-wrap:wrap; justify-content:flex-end; }
+.premiere-access-note { color:var(--muted); font-size:13px; line-height:1.7; }
+.premiere-access-note a { color:var(--accent); }
+.premiere-chat { display:flex; flex-direction:column; min-width:0; align-self:start; margin-top:40px; background:var(--panel); border:1px solid var(--line); border-radius:6px; }
+.premiere-chat > header { padding:20px 18px; border-bottom:1px solid var(--line); }
+.premiere-chat h2 { font-size:14px; font-weight:550; margin:0 0 5px; letter-spacing:-.02em; }
+.premiere-chat header > span { font-size:10px; color:var(--muted); }
+.premiere-chat-log { height:350px; overflow:auto; overscroll-behavior:contain; padding:18px 14px; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+.premiere-chat-empty { padding:32px 12px; color:var(--muted); text-align:center; font-size:12px; line-height:1.8; }
+.premiere-message { display:flex; align-items:flex-start; gap:8px; margin-bottom:14px; }
+.premiere-chat-avatar { width:23px; height:23px; flex-shrink:0; display:grid; place-items:center; overflow:hidden; border-radius:50%; color:var(--muted); background:var(--field); font-size:9px; }
+.premiere-chat-avatar img { width:100%; height:100%; object-fit:cover; }
+.premiere-message p { min-width:0; font-size:12px; line-height:1.8; margin:0; overflow-wrap:anywhere; white-space:pre-wrap; }
+.premiere-message strong { color:var(--muted); font-weight:550; margin-right:5px; }
+.premiere-chat-form { display:flex; align-items:center; gap:10px; padding:14px 14px 8px; border-top:1px solid var(--line); }
+.premiere-chat-form input { min-width:0; flex:1; width:100%; padding:9px 0; border:0; border-bottom:1px solid var(--line); border-radius:0; background:transparent; color:var(--text); font:inherit; font-size:12px; }
+.premiere-chat-form input:focus { outline:0; border-color:var(--accent); }
+.premiere-chat-form button { display:grid; place-items:center; flex:0 0 30px; height:30px; border:0; border-radius:50%; background:var(--accent); color:var(--accent-ink); cursor:pointer; }
+.premiere-chat-form button svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+.premiere-chat-form :disabled { opacity:.5; cursor:default; }
+.premiere-chat-note { padding:0 14px 12px; margin:0; color:var(--muted); font-size:9px; line-height:1.7; }
+.premiere-feedback { grid-column:1/-1; color:var(--muted); font-size:12px; line-height:1.7; margin:0; }
+.premiere-feedback:empty { display:none; }
+.premiere-detail-about { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:60px; border-top:1px solid var(--line); margin-top:45px; padding-top:30px; }
+.premiere-detail-about h2 { font-size:23px; font-weight:500; letter-spacing:-.035em; margin:10px 0; }
+.premiere-detail-about p { color:var(--muted); font-size:13px; line-height:1.9; }
+.premiere-server-fallback { min-height:320px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:var(--field); padding:30px; text-align:center; }
+.premiere-server-fallback h2 { font-weight:500; letter-spacing:-.03em; }
+.premiere-server-fallback p { color:var(--muted); font-size:13px; }
+@media(max-width:1000px) { .premiere-experience { grid-template-columns:minmax(0,1fr) 270px; gap:18px; } .premiere-waiting { min-height:300px; } .premiere-chat-log { height:290px; } .premiere-schedule-row { grid-template-columns:190px minmax(0,1fr); gap:20px; } .premiere-schedule-link { grid-column:2; justify-self:start; padding:0; margin-top:-8px; } }
+@media(max-width:760px) { .premiere-directory-heading { display:block; padding-top:20px; padding-bottom:35px; } .premiere-directory-heading > a { margin-top:24px; } .premiere-directory-legend { align-items:flex-start; font-size:11px; } .premiere-directory-legend p { max-width:170px; text-align:right; line-height:1.6; } .premiere-experience { display:block; } .premiere-chat { margin-top:25px; } .premiere-chat-log { height:300px; } .premiere-waiting { min-height:300px; } .premiere-detail-about { gap:25px; } .premiere-feedback { margin-top:16px; } }
+@media(max-width:480px) { .premiere-schedule-row { grid-template-columns:95px minmax(0,1fr); gap:16px; align-items:start; } .premiere-schedule-image { aspect-ratio:3/4; } .premiere-image-live { bottom:6px; left:5px; font-size:7px; padding:4px; } .premiere-schedule-info h2 { font-size:20px; margin-top:8px; } .premiere-schedule-info p { font-size:11px; margin-bottom:10px; } .premiere-schedule-meta { font-size:8px; gap:6px; } .premiere-schedule-info time { font-size:10px; } .premiere-schedule-info time span { display:block; margin:3px 0 0; font-size:9px; } .premiere-schedule-link { font-size:11px; margin-top:0; } .premiere-detail-heading { display:block; margin-top:26px; } .premiere-scheduled-time { text-align:left; margin-top:20px; display:flex; gap:12px; align-items:center; } .premiere-scheduled-time time { font-size:22px; margin:0; } .premiere-scheduled-time small { display:inline; margin-left:10px; font-size:10px; } .premiere-scheduled-time > span { font-size:8px; } .premiere-detail-about { grid-template-columns:1fr; } .premiere-under-screen { align-items:flex-start; gap:8px; } .premiere-under-screen p { font-size:10px; } .premiere-live-return { font-size:10px; } .premiere-host-tools { display:block; } .premiere-host-tools .actions { justify-content:flex-start; margin-top:16px; } .premiere-waiting { padding-inline:15px; } }
+@media(prefers-reduced-motion:reduce) { .premiere-schedule-image img { transition:none; } }

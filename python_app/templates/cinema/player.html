@@ -1,7 +1,7 @@
 {% load l10n %}
 {% with subtitles=episode.subtitles.all %}
-<div class="player-wrap" tabindex="0" role="group" aria-label="Trình phát phim" data-viewer="{{ user.pk|unlocalize }}" data-can-seek="{% if room and not is_host %}false{% else %}true{% endif %}">
-  <video id="player" controls playsinline preload="metadata" controlslist="nodownload" disablepictureinpicture {% if episode.movie.backdrop %}poster="{{ episode.movie.backdrop.url }}"{% endif %} data-ticket="{% url 'ticket' episode.pk %}" data-progress="{% url 'progress' episode.pk %}" data-position="{{ position|default:0|unlocalize }}" data-duration="{{ episode.duration|unlocalize }}"{% if not room and request.GET.play == '1' %} data-play-on-ready="true"{% endif %}>
+<div class="player-wrap" tabindex="0" role="group" aria-label="Trình phát phim" data-viewer="{{ user.pk|unlocalize }}" data-can-seek="{% if premiere or room and not is_host %}false{% else %}true{% endif %}">
+  <video id="player" controls playsinline preload="metadata" controlslist="nodownload" disablepictureinpicture {% if episode.movie.backdrop %}poster="{{ episode.movie.backdrop.url }}"{% endif %} data-ticket="{% if premiere %}{{ premiere_ticket_url }}{% else %}{% url 'ticket' episode.pk %}{% endif %}" data-progress="{% url 'progress' episode.pk %}" data-position="{{ position|default:0|unlocalize }}" data-duration="{{ episode.duration|unlocalize }}"{% if not room and request.GET.play == '1' %} data-play-on-ready="true"{% endif %}>
     {% for subtitle in subtitles %}<track data-subtitle data-subtitle-id="{{ subtitle.pk }}" kind="subtitles" src="{% url 'subtitle' episode.pk subtitle.pk %}" srclang="{{ subtitle.language }}" label="{{ subtitle.label }}">{% endfor %}
   </video>
   <div class="player-caption-display" data-caption-display aria-hidden="true" hidden><span data-caption-text></span></div>

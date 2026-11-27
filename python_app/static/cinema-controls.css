@@ -104,7 +104,7 @@ video:-webkit-full-screen { width: 100vw !important; height: 100vh !important; m
 [data-room-approval-dialog] .room-access-section:first-child { border-top: 0; }
 [data-room-approval-dialog] .room-access-section h2 { margin-bottom: 9px; }
 [data-room-approval-dialog] .room-access-form { gap: 12px; }
-[data-room-approval-dialog] .room-access-form input { width: 100%; }
+[data-room-approval-dialog] .room-access-form input:not([type="checkbox"]) { width: 100%; }
 [data-room-approval-dialog] .room-queue li { padding-block: 12px; border-top: 1px solid var(--line); }
 [data-room-approval-dialog] .room-queue li:first-child { border-top: 0; }
 @media (max-width: 600px) {

@@ -1,0 +1,20 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}Lịch công chiếu · Lumière{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'premieres.css' %}?v=premiere-1">{% endblock %}
+{% block content %}
+<section class="content-section premiere-directory">
+  <header class="premiere-directory-heading"><div><span class="premiere-eyebrow">LUMIÈRE PREMIERE</span><h1>Một bộ phim.<br>Một cuộc hẹn.</h1><p>Cùng đón tập mới, cùng trò chuyện trong những suất chiếu do Lumière tổ chức.</p></div>{% if can_manage_premiere %}<a class="btn secondary small" href="{% url 'admin:cinema_premiere_changelist' %}">Quản lý công chiếu ↗</a>{% endif %}</header>
+  <div class="premiere-directory-legend"><span><i aria-hidden="true"></i>Lịch công chiếu</span><p>Mở cho mọi người hoặc dành riêng cho VIP.</p></div>
+  <div class="premiere-schedule">
+    {% for item in screenings %}{% with premiere=item.premiere state=item.state %}
+    <article class="premiere-schedule-row">
+      <a class="premiere-schedule-image" href="{% url 'premiere' premiere.pk %}" tabindex="-1" aria-hidden="true">{% if premiere.episode.movie.backdrop %}<img src="{{ premiere.episode.movie.backdrop.url }}" alt="" loading="lazy">{% elif premiere.episode.movie.poster %}<img src="{{ premiere.episode.movie.poster.url }}" alt="" loading="lazy">{% else %}<img src="{% static 'imagery/' %}{{ premiere.episode.movie.artwork }}.jpg" alt="" loading="lazy">{% endif %}{% if state.status == 'live' %}<span class="premiere-image-live">ĐANG CHIẾU</span>{% endif %}</a>
+      <div class="premiere-schedule-info"><div class="premiere-schedule-meta"><span>{% if state.requires_vip %}SUẤT CHIẾU VIP{% else %}MỞ CHO MỌI NGƯỜI{% endif %}</span><span>{% if state.status == 'live' %}Đang công chiếu{% elif state.status == 'ended' %}Đã kết thúc{% elif state.status == 'cancelled' %}Đã hủy{% else %}Sắp công chiếu{% endif %}</span></div><h2><a href="{% url 'premiere' premiere.pk %}">{{ premiere.title }}</a></h2><p>{{ premiere.episode.movie.title }} · {% if premiere.episode.movie.kind == 'series' %}Tập {{ premiere.episode.number }} · {% endif %}{{ premiere.episode.title }}</p><time datetime="{{ premiere.scheduled_at|date:'c' }}">{{ premiere.scheduled_at|date:'H:i · d/m/Y' }} <span>giờ Việt Nam</span></time></div>
+      <a class="premiere-schedule-link" href="{% url 'premiere' premiere.pk %}">{% if state.status == 'live' %}Vào xem{% elif state.status == 'ended' or state.status == 'cancelled' %}Thông tin{% else %}Đến phòng chờ{% endif %}<span aria-hidden="true">↗</span></a>
+    </article>
+    {% endwith %}{% empty %}<div class="premiere-directory-empty"><span aria-hidden="true">L.</span><h2>Cuộc hẹn mới đang được chuẩn bị.</h2><p>Lịch công chiếu sẽ xuất hiện tại đây khi Lumière lên lịch.</p><a class="inline-link" href="{% url 'catalog' %}">Khám phá phim trong lúc chờ ↗</a></div>{% endfor %}
+  </div>
+  {% if premieres.has_previous or premieres.has_next %}<nav class="pagination" aria-label="Các trang lịch công chiếu">{% if premieres.has_previous %}<a href="?page={{ premieres.previous_page_number }}">← Trước</a>{% endif %}<span>{{ premieres.number }} / {{ premieres.paginator.num_pages }}</span>{% if premieres.has_next %}<a href="?page={{ premieres.next_page_number }}">Sau →</a>{% endif %}</nav>{% endif %}
+  <aside class="premiere-directory-note"><span class="premiere-eyebrow">MUỐN CÓ BUỔI CHIẾU CỦA RIÊNG MÌNH?</span><p>Tạo phòng xem chung, tự chọn phim và mời bạn bè.</p><a class="inline-link" href="{% url 'rooms' %}">Phòng xem chung ↗</a></aside>
+</section>
+{% endblock %}
